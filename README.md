@@ -4,6 +4,7 @@ qualysapi
 Fork of qualysconnect.
 
 Example:
+```python
 >>> from qualysconnect.util import build_v2_connector
 >>> a = build_v2_connector()
 QualysGuard Username: quays_pb27
