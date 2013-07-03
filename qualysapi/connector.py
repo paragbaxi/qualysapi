@@ -4,11 +4,11 @@ and requesting data from it.
 import requests, urlparse
 import logging
 
-from qualysconnect import __version__ as VERSION
+from qualysapi import __version__ as VERSION
 
-__author__ = "Parag Baxi <parag.baxi@gmail.com>"
-__copyright__ = "Copyright 2013, Parag Baxi"
-__license__ = "GPL v3"
+__author__ = 'Parag Baxi <parag.baxi@gmail.com>'
+__copyright__ = 'Copyright 2013, Parag Baxi'
+__license__ = 'Apache License 2.0'
 
 class QGConnector:
     """ Base class that provides common connection functionality for QualysGuard API.
@@ -113,6 +113,6 @@ class QGAPIConnect(QGConnector):
     - Remote certificate verification is not supported.
     - This only currently functions with API v1 (not sure why).
     """
-    def __init__(self, pUser, pPassword, pHost=None, pApiVer=1):
+    def __init__(self, pUser, pPassword, pHost=None):
 
         QGConnector.__init__(self, pUser, pPassword, pHost)

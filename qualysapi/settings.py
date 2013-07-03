@@ -1,4 +1,4 @@
-''' Module to hold global settings reused throughout qualysconnect. '''
+''' Module to hold global settings reused throughout qualysapi. '''
 
 __author__ = "Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, University of Waterloo"

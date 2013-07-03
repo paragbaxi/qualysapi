@@ -9,7 +9,7 @@ import logging
 
 from ConfigParser import *
 
-import qualysconnect.settings as qcs
+import qualysapi.settings as qcs
 
 __author__ = "Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, University of Waterloo"

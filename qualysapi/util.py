@@ -1,15 +1,15 @@
 """ A set of utility functions for QualysConnect module. """
 import logging
 
-import qualysconnect.config as qcconf
-import qualysconnect.connect as qcconn
+import qualysapi.config as qcconf
+import qualysapi.connector as qcconn
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
 # define global values used by community code. will standardize debugging later.
-package = 'qualysconnect'
+package = 'qualysapi'
 module = 'util.py'
 from . import __version__ as version
 
