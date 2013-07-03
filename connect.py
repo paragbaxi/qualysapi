@@ -1,11 +1,8 @@
-
 """ Module that contains classes for setting up connections to QualysGuard API
 and requesting data from it.
 """
-import urllib2, requests, urlparse
-import cookielib
+import requests, urlparse
 import logging
-import base64
 
 from qualysconnect import __version__ as VERSION
 
