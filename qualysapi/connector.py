@@ -97,12 +97,12 @@ class QGConnector:
         if http_method == 'get':
             # GET
             self.logger.info('GET request.')
-            request = requests.get(url, auth=self.auth, headers=headers)
+            request = requests.get(url, params=data, auth=self.auth, headers=headers)
         else:
             # POST
             self.logger.info('POST request.')
             # Check if payload is a string.
-            if type(data) == str:
+            if type(data) == str and (api_version in (1, 2)):
                 # Convert to dictionary.
                 self.logger.info('Converting %s to dict.' % data)
                 # Remove possible starting question mark & ending ampersands.
@@ -113,7 +113,7 @@ class QGConnector:
             # Make POST request.
             self.logger.info('data =')
             self.logger.info(str(data))
-            request = requests.post(url, data=data, headers=headers, auth=self.auth)
+            request = requests.post(url, data=data, auth=self.auth, headers=headers)
         self.logger.info('response headers =')
         self.logger.info(request.headers)
         # Remember how many times left user can make against call.
