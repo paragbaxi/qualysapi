@@ -51,6 +51,6 @@ setup(name='QualysAPI',
       ],
       install_requires=[
           'lxml',
-          'requests'
+          'requests',
       ],
      )

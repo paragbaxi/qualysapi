@@ -3,6 +3,7 @@ and requesting data from it.
 """
 import requests, urlparse
 import logging
+from collections import defaultdict
 
 from qualysapi import __version__ as VERSION
 
@@ -39,6 +40,8 @@ class QGConnector:
         self.auth = (username, password,)
         # Remember QualysGuard API server.
         self.server = server
+        # Remember rate limits per call.
+        self.rate_limit_remaining = defaultdict(int)
 
     def __call__(self):
         return self
@@ -71,6 +74,8 @@ class QGConnector:
         url = self.url_api_version(api_version)
         # Set up headers.
         headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s"%(VERSION,)}
+        self.logger.info('headers =')
+        self.logger.info(str(headers))
         # Set up http request method.
         if not http_method:
             # Automatically set method, with POST preferred.
@@ -81,27 +86,43 @@ class QGConnector:
                     http_method = 'get'
             else:
                 http_method = 'post'
-        # Remove possible starting & ending slashes or trailing question marks in call.
-        call = call.strip('/')
+        # Remove possible starting slashes or trailing question marks in call.
+        call = call.lstrip('/')
         call = call.rstrip('?')
         # Append call to url.
         url += call
+        self.logger.info('url =')
+        self.logger.info(url)
         # Make request.
         if http_method == 'get':
             # GET
+            self.logger.info('GET request.')
             request = requests.get(url, auth=self.auth, headers=headers)
         else:
             # POST
+            self.logger.info('POST request.')
             # Check if payload is a string.
             if type(data) == str:
                 # Convert to dictionary.
-                # Remove possible starting & ending question marks.
-                data = data.strip('?')
+                self.logger.info('Converting %s to dict.' % data)
+                # Remove possible starting question mark & ending ampersands.
+                data = data.lstrip('?')
+                data = data.rstrip('&')
                 # Convert to dictionary.
                 data = urlparse.parse_qs(data)
             # Make POST request.
-            request = requests.post(url, auth=self.auth, data=data, headers=headers)
+            self.logger.info('data =')
+            self.logger.info(str(data))
+            request = requests.post(url, data=data, headers=headers, auth=self.auth)
+        self.logger.info('response headers =')
         self.logger.info(request.headers)
+        # Remember how many times left user can make against call.
+        self.rate_limit_remaining[call] = int(request.headers['x-ratelimit-remaining'])
+        self.logger.info('rate limit for call, %s = %d' % (call, self.rate_limit_remaining[call]))
+        self.logger.info('response text =')
+        self.logger.info(request.text)
+        # Check to see if there was an error.
+        request.raise_for_status()
         return request.text
 
 class QGAPIConnect(QGConnector):

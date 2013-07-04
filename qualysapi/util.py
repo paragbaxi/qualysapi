@@ -29,6 +29,7 @@ def connect():
     """ Return a QGAPIConnect object for v1 API pulling settings from config
     file.
     """
+    # Retrieve login credentials.
     conf = qcconf.QualysConnectConfig()
     connect = qcconn.QGAPIConnect(conf.get_username(),
                                   conf.get_password(),

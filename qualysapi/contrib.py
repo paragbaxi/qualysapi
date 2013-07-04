@@ -13,7 +13,7 @@ from lxml import etree, objectify
 # Set module level logger.
 logger = logging.getLogger(__name__)
 
-def generate_vm_report(qualysapi_instance, report_details, startup_delay=60, polling_delay=30, max_checks=10):
+def generate_vm_report(self, report_details, startup_delay=60, polling_delay=30, max_checks=10):
     ''' Spool and download QualysGuard VM report.
 
     startup_delay: Time in seconds to wait before initially checking.
