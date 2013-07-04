@@ -5,7 +5,7 @@ import requests, urlparse
 import logging
 from collections import defaultdict
 
-from qualysapi import __version__ as VERSION
+execfile('qualysapi/version.py')
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2013, Parag Baxi'
@@ -73,7 +73,7 @@ class QGConnector:
         # Set up base url.
         url = self.url_api_version(api_version)
         # Set up headers.
-        headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s"%(VERSION,)}
+        headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s"%(__version__,)}
         self.logger.info('headers =')
         self.logger.info(str(headers))
         # Set up http request method.
@@ -101,7 +101,7 @@ class QGConnector:
         else:
             # POST
             self.logger.info('POST request.')
-            # Check if payload is a string.
+            # Check if payload is a string for API v1 & v2.
             if type(data) == str and (api_version in (1, 2)):
                 # Convert to dictionary.
                 self.logger.info('Converting %s to dict.' % data)

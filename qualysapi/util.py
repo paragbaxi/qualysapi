@@ -9,9 +9,8 @@ __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
 # define global values used by community code. will standardize debugging later.
-package = 'qualysapi'
 module = 'util.py'
-from . import __version__ as version
+execfile('qualysapi/version.py')
 
 # Define a Handler which writes WARNING messages or higher to the sys.stderr
 logger_console = logging.StreamHandler()
