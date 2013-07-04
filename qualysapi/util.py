@@ -24,12 +24,12 @@ logging.getLogger(__name__).addHandler(logger_console)
 # Set module level logger.
 logger = logging.getLogger(__name__)
 
-def connect():
+def connect(remember_me=False):
     """ Return a QGAPIConnect object for v1 API pulling settings from config
     file.
     """
     # Retrieve login credentials.
-    conf = qcconf.QualysConnectConfig()
+    conf = qcconf.QualysConnectConfig(remember_me=remember_me)
     connect = qcconn.QGAPIConnect(conf.get_username(),
                                   conf.get_password(),
                                   conf.get_hostname())

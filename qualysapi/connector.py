@@ -116,8 +116,12 @@ class QGConnector:
         self.logger.info('response headers =')
         self.logger.info(request.headers)
         # Remember how many times left user can make against call.
-        self.rate_limit_remaining[call] = int(request.headers['x-ratelimit-remaining'])
-        self.logger.info('rate limit for call, %s = %d' % (call, self.rate_limit_remaining[call]))
+        try:
+            self.rate_limit_remaining[call] = int(request.headers['x-ratelimit-remaining'])
+            self.logger.info('rate limit for call, %s = %d' % (call, self.rate_limit_remaining[call]))
+        except KeyError, e:
+            # Likely a bad call.
+            pass
         self.logger.info('response text =')
         self.logger.info(request.text)
         # Check to see if there was an error.

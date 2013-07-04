@@ -11,15 +11,15 @@ from ConfigParser import *
 
 import qualysapi.settings as qcs
 
-__author__ = "Colin Bell <colin.bell@uwaterloo.ca>"
-__copyright__ = "Copyright 2011-2013, University of Waterloo"
+__author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
+__copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
 class QualysConnectConfig:
     """ Class to create a ConfigParser and read user/password details
     from an ini file.
     """
-    def __init__(self, filename=qcs.default_filename):
+    def __init__(self, filename=qcs.default_filename, remember_me=False):
 
         self._cfgfile = None
         
@@ -65,6 +65,20 @@ class QualysConnectConfig:
             self._cfgparse.set('info', 'password', password)
         
         logging.debug(self._cfgparse.items('info'))
+
+        if remember_me:
+            # Let's create that config file for next time...
+            # http://stackoverflow.com/questions/5624359/write-file-with-specific-permissions-in-python
+            mode = stat.S_IRUSR | stat.S_IWUSR  # This is 0o600 in octal and 384 in decimal.
+            umask_original = os.umask(0)
+            try:
+                config_file = os.fdopen(os.open('.qcrc', os.O_WRONLY | os.O_CREAT, mode), 'w')
+            finally:
+                os.umask(umask_original)
+            # Add the settings to the structure of the file, and lets write it out...
+            self._cfgparse.write(config_file)
+            config_file.close()
+
             
     def get_config_filename(self):
         return self._cfgfile
