@@ -3,6 +3,7 @@ import logging
 
 import qualysapi.config as qcconf
 import qualysapi.connector as qcconn
+import qualysapi.version
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
@@ -10,7 +11,6 @@ __license__ = "BSD-new"
 
 # define global values used by community code. will standardize debugging later.
 module = 'util.py'
-execfile('qualysapi/version.py')
 
 # Define a Handler which writes WARNING messages or higher to the sys.stderr
 logger_console = logging.StreamHandler()
