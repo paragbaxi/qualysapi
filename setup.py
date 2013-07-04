@@ -45,9 +45,10 @@ setup(name='QualysAPI',
       # scripts=['src/scripts/qhostinfo.py', 'src/scripts/qscanhist.py', 'src/scripts/qreports.py'],
       long_description=read('README.md'),
       classifiers=[
-          "Development Status :: 4 - Beta",
+          "Development Status :: 5 - Production/Stable",
           "Topic :: Utilities",
-          "License :: OSI Approved :: BSD License"
+          "License :: OSI Approved :: BSD License",
+          'Intended Audience :: Developers',
       ],
       install_requires=[
           'lxml',

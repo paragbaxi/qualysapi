@@ -1,6 +1,6 @@
 # This is the version string assigned to the entire egg post
 #  setup.py install
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # Ownership and Copyright Information.
 __author__ = "Parag Baxi <parag.baxi@gmail.com>"
