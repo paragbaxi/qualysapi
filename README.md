@@ -1,8 +1,13 @@
 qualysapi
 =========
+
 QualysGuard API connector. Initially a fork of qualysconnect.
 
-Example:
+Usage
+=====
+
+Example
+-------
 ```python
 >>> import qualysapi
 >>> a = qualysapi.connect()
@@ -21,24 +26,42 @@ QualysGuard Password:
 <!-- CONFIDENTIAL AND PROPRIETARY INFORMATION. Qualys provides the QualysGuard Service "As Is," without any warranty of any kind. Qualys makes no warranty that the information contained in this report is complete or error-free. Copyright 2013, Qualys, Inc. //--> 
 ```
 
-== Installation ==
+Example .qcrc
+-------------
+```INI
+; Note, it should be possible to omit any of these entries.
 
-> $ python setup.py install
+[info]
+hostname = qualysapi.serviceprovider.com
+username = corp_tt
+password = passw0rd
+```
+
+Installation
+============
+
+You can download the source and install locally.
+```Shell
+python setup.py install
+```
 
 NOTE: If you would like to experiment without installing globally, look into 'virtualenv'.
 
 Alternatively, use pip to install:
+```Shell
+pip install qualysapi
+```
 
-> $ pip install qualysapi
-
-=== Requirements ===
+Requirements
+------------
 
 * requests (http://docs.python-requests.org)
 * lxml (http://lxml.de/)
 
 Tested successfully on Python 2.7.
 
-== Configuration ==
+Configuration
+-------------
 
 By default, the package will ask at the command prompt for username and password.  By default, the package connects to the Qualys documented host (qualysapi.qualys.com).
 
@@ -48,15 +71,3 @@ License
 =======
 Apache License, Version 2.0
 http://www.apache.org/licenses/LICENSE-2.0.html
-
-Usage
-=====
-
-=== Example .qcrc ===
-```INI
-; Note, it should be possible to omit any of these entries.
-
-[info]
-hostname = qualysapi.serviceprovider.com
-username = corp_tt
-password = passw0rd
