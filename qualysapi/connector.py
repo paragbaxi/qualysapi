@@ -4,8 +4,7 @@ and requesting data from it.
 import requests, urlparse
 import logging
 from collections import defaultdict
-
-execfile('qualysapi/version.py')
+import qualysapi.version
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2013, Parag Baxi'
@@ -73,7 +72,7 @@ class QGConnector:
         # Set up base url.
         url = self.url_api_version(api_version)
         # Set up headers.
-        headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s"%(__version__,)}
+        headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s"%(qualysapi.version.__version__,)}
         self.logger.info('headers =')
         self.logger.info(str(headers))
         # Set up http request method.
