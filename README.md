@@ -20,3 +20,10 @@ QualysGuard Password:
 </ABOUT>
 <!-- Generated for username="my_username" date="2013-07-03T10:31:57Z" -->
 <!-- CONFIDENTIAL AND PROPRIETARY INFORMATION. Qualys provides the QualysGuard Service "As Is," without any warranty of any kind. Qualys makes no warranty that the information contained in this report is complete or error-free. Copyright 2013, Qualys, Inc. //--> 
+
+
+License
+=======
+
+Apache License, Version 2.0
+http://www.apache.org/licenses/LICENSE-2.0.html
