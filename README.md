@@ -26,6 +26,35 @@ QualysGuard Password:
 <!-- CONFIDENTIAL AND PROPRIETARY INFORMATION. Qualys provides the QualysGuard Service "As Is," without any warranty of any kind. Qualys makes no warranty that the information contained in this report is complete or error-free. Copyright 2013, Qualys, Inc. //--> 
 ```
 
+Installation
+============
+
+Use pip to install:
+```Shell
+pip install qualysapi
+```
+
+NOTE: If you would like to experiment without installing globally, look into 'virtualenv'.
+
+Requirements
+------------
+
+* requests (http://docs.python-requests.org)
+* lxml (http://lxml.de/)
+
+Tested successfully on Python 2.7.
+
+Configuration
+=============
+
+By default, the package will ask at the command prompt for username and password.  By default, the package connects to the Qualys documented host (qualysapi.qualys.com).
+
+You can override these settings and prevent yourself from typing credentials by doing any of the following:
+
+1. By running the following Python, `qualysapi.connect(remember_me=True)`. This automatically generates a .qcrc file in your current working directory, scoping the configuration to that directory.
+2. By running the following Python, `qualysapi.connect(remember_me_always=True)`. This automatically generates a .qcrc file in your home directory, scoping the configuratoin to all calls to qualysapi, regardless of the directory.
+3. By creating a file called '.qcrc' in your home directory or directory of the Python script.
+
 Example .qcrc
 -------------
 ```INI
@@ -37,35 +66,6 @@ username = corp_tt
 password = passw0rd
 ```
 
-Installation
-============
-
-You can download the source and install locally.
-```Shell
-python setup.py install
-```
-
-NOTE: If you would like to experiment without installing globally, look into 'virtualenv'.
-
-Alternatively, use pip to install:
-```Shell
-pip install qualysapi
-```
-
-Requirements
-------------
-
-* requests (http://docs.python-requests.org)
-* lxml (http://lxml.de/)
-
-Tested successfully on Python 2.7.
-
-Configuration
--------------
-
-By default, the package will ask at the command prompt for username and password.  By default, the package connects to the Qualys documented host (qualysapi.qualys.com).
-
-You can override these settings and prevent yourself from typing credentials by creating a file called '.qcrc' in your home directory or directory of the Python script.
 
 License
 =======
