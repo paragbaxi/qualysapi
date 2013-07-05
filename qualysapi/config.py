@@ -19,14 +19,17 @@ class QualysConnectConfig:
     """ Class to create a ConfigParser and read user/password details
     from an ini file.
     """
-    def __init__(self, filename=qcs.default_filename, remember_me=False):
+    def __init__(self, filename=qcs.default_filename, remember_me=False, remember_me_always=False):
 
         self._cfgfile = None
-        
+
+        # Set home path for file.
+        home_filename = os.path.join(os.getenv("HOME"),filename)
+        # Check for file existence.
         if os.path.exists(filename):
             self._cfgfile = filename
-        elif os.path.exists(os.path.join(os.getenv("HOME"),filename)):
-            self._cfgfile = os.path.join(os.getenv("HOME"),filename)
+        elif os.path.exists(home_filename):
+            self._cfgfile = home_filename
         
         # create ConfigParser to combine defaults and input from config file.
         self._cfgparse = ConfigParser(qcs.defaults)
@@ -66,18 +69,27 @@ class QualysConnectConfig:
         
         logging.debug(self._cfgparse.items('info'))
 
-        if remember_me:
+        if remember_me or remember_me_always:
             # Let's create that config file for next time...
-            # http://stackoverflow.com/questions/5624359/write-file-with-specific-permissions-in-python
-            mode = stat.S_IRUSR | stat.S_IWUSR  # This is 0o600 in octal and 384 in decimal.
-            umask_original = os.umask(0)
-            try:
-                config_file = os.fdopen(os.open('.qcrc', os.O_WRONLY | os.O_CREAT, mode), 'w')
-            finally:
-                os.umask(umask_original)
-            # Add the settings to the structure of the file, and lets write it out...
-            self._cfgparse.write(config_file)
-            config_file.close()
+            # Where to store this?
+            if remember_me:
+                # Store in current working directory.
+                config_path = filename
+            if remember_me_always:
+                # Store in home directory.
+                config_path = home_filename
+            if not os.path.exists(config_path):
+                # Write file only if it doesn't already exists.
+                # http://stackoverflow.com/questions/5624359/write-file-with-specific-permissions-in-python
+                mode = stat.S_IRUSR | stat.S_IWUSR  # This is 0o600 in octal and 384 in decimal.
+                umask_original = os.umask(0)
+                try:
+                    config_file = os.fdopen(os.open(config_path, os.O_WRONLY | os.O_CREAT, mode), 'w')
+                finally:
+                    os.umask(umask_original)
+                # Add the settings to the structure of the file, and lets write it out...
+                self._cfgparse.write(config_file)
+                config_file.close()
 
             
     def get_config_filename(self):
