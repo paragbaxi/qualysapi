@@ -6,6 +6,8 @@ QualysGuard API connector. Initially a fork of qualysconnect.
 Usage
 =====
 
+Check out the example scripts in the /scripts directory.
+
 Example
 -------
 ```python
@@ -47,7 +49,7 @@ Tested successfully on Python 2.7.
 Configuration
 =============
 
-By default, the package will ask at the command prompt for username and password.  By default, the package connects to the Qualys documented host (qualysapi.qualys.com).
+By default, the package will ask at the command prompt for username and password. By default, the package connects to the Qualys documented host (qualysapi.qualys.com).
 
 You can override these settings and prevent yourself from typing credentials by doing any of the following:
 
