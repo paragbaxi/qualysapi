@@ -1,7 +1,7 @@
 qualysapi
 =========
 
-QualysGuard API connector. Initially a fork of qualysconnect.
+Python QualysGuard API connector.
 
 Usage
 =====
@@ -73,3 +73,8 @@ License
 =======
 Apache License, Version 2.0
 http://www.apache.org/licenses/LICENSE-2.0.html
+
+Acknowledgements
+================
+
+Special thank you to Colin Bell for qualysconnect.
