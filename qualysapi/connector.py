@@ -34,6 +34,21 @@ class QGConnector:
         """ Return base API url string for the QualysGuard api_version and server.
 
         """
+        # Convert to int.
+        if type(api_version) == str:
+            api_version = api_version.lower()
+            if api_version[0] == 'v' and api_version[1].isdigit():
+                # Remove first 'v' in case the user typed 'v1' or 'v2', etc.
+                api_version = api_version[1:]
+            # Check for Qualys modules.
+            if api_version in ('am', 'was', 'tag'):
+                # Convert portal API to API number 3.
+                api_version = 3
+            elif api_version in ('pol', 'pc'):
+                # Convert PC module to API number 2.
+                api_version = 2
+            else:
+                api_version = int(api_version)
         # Set base url depending on API version.
         if api_version == 1:
             # QualysGuard API v1 url.
@@ -146,8 +161,9 @@ class QGConnector:
         logger.debug(call)
         # Append call to url.
         url += call
-        # Format data
-        data = self.format_payload(api_version, data)
+        # Format data, if applicable.
+        if data:
+            data = self.format_payload(api_version, data)
         # Make request.
         logger.info('url =')
         logger.info(str(url))
