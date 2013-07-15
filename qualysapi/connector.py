@@ -64,11 +64,14 @@ class QGConnector:
         logger.info("Base url = %s" % (url))
         return url
 
-    def format_http_method(self, api_version, call):
+    def format_http_method(self, api_version, call, data):
         """ Return QualysGuard API http method, with POST preferred..
 
         """
         # Define get methods for automatic http request methodology.
+        if data == None:
+            # Post calls with no payload will result in HTTPError: 415 Client Error: Unsupported Media Type.
+            return 'get'
         # Only some commands in API v1 are POST methods.
         api_v1_post_methods = set(['scan.php',
                                    'scan_report.php',
@@ -89,13 +92,12 @@ class QGConnector:
         # Some calls in API v1 don't support POST.
         if api_version == 1:
             if call in api_v1_post_methods:
-                http_method = 'post'
+                return 'post'
             else:
-                http_method = 'get'
+                return 'get'
         else:
             # API v2 & v3 are all POST methods.
-            http_method = 'post'
-        return http_method
+            return 'post'
 
     def format_call(self, api_version, call):
         """ Return appropriate QualysGuard API call.
@@ -153,7 +155,7 @@ class QGConnector:
         logger.debug('http_method = %s' % http_method)
         # Set up http request method, if not specified.
         if not http_method:
-            http_method = self.format_http_method(api_version, call)
+            http_method = self.format_http_method(api_version, call, data)
         logger.debug('http_method = %s' % http_method)
         # Format API call.
         call = self.format_call(api_version, call)
