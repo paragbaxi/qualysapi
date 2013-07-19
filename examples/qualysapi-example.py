@@ -3,7 +3,6 @@ __license__ = 'Apache License 2.0'
 
 import lxml.objectify
 from lxml.builder import E
-from lxml import etree
 import qualysapi
 
 
