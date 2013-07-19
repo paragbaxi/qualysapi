@@ -1,7 +1,8 @@
 
 # File for 3rd party contributions.
 
-__license__ = "BSD-new"
+__author__ = 'Parag Baxi <parag.baxi@gmail.com>'
+__license__ = 'Apache License 2.0'
 
 import logging
 import time

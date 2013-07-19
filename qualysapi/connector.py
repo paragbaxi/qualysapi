@@ -4,7 +4,9 @@ and requesting data from it.
 import requests, urlparse
 import logging
 import lxml.etree
+import pickle
 import qualysapi.version
+import qualysapi.api_methods
 
 from collections import defaultdict
 
@@ -28,60 +30,12 @@ class QGConnector:
         self.server = server
         # Remember rate limits per call.
         self.rate_limit_remaining = defaultdict(int)
-        # Define method algorithm.
-        api_methods = defaultdict(set)
-        # Naming convention: api_methods[api_version blah] due to api_methods_with_trailing_slash testing.
-        # API v1 POST methods.
-        api_methods['1 post'] = set(['scan.php',
-                                   'scan_report.php',
-                                   'scan_target_history.php',
-                                   'knowledgebase_download.php',
-                                   'map-2.php',
-                                   'map.php',
-                                   'scheduled_scans.php',
-                                   'ignore_vuln.php',
-                                   'ticket_list.php',
-                                   'ticket_edit.php',
-                                   'ticket_delete.php',
-                                   'ticket_list_deleted.php',
-                                   'user.php',
-                                   'user_list.php',
-                                   'action_log_report.php',
-                                   'password_change.php'])
-        # WAS GET methods when no POST data.
-        api_methods['was no data get'] = set(['count/was/webapp',
-                                             'count/was/wasscan',
-                                             'count/was/wasscanschedule',
-                                             'count/was/report'])
-        # WAS GET methods.
-        api_methods['was get'] = set(['get/was/webapp/',
-                                      'get/was/wasscan/',
-                                      'status/was/wasscan/',
-                                      'download/was/wasscan',
-                                      'get/was/wasscanschedule/',
-                                      'get/was/report/',
-                                      'status/was/report/',
-                                      'download/was/report/'])
-        # Asset Management GET methods.
-        api_methods['am get'] = set(['get/am/tag/',
-                                     'count/am/tag',
-                                     'get/am/hostasset/',
-                                     'count/am/hostasset',
-                                     'get/am/asset/',
-                                     'count/am/asset'])
+        # api_methods: Define method algorithm in a dict of set.
+        # Naming convention: api_methods[api_version optional_blah] due to api_methods_with_trailing_slash testing.
+        self.api_methods = qualysapi.api_methods.api_methods
+        #
         # Keep track of methods with ending slashes to autocorrect user when they forgot slash.
-        api_methods_with_trailing_slash = defaultdict(set)
-        for method_group in api_methods:
-            for method in api_methods[method_group]:
-                if method[-1] == '/':
-                    # Add applicable method with api_version preceding it.
-                    # Example:
-                    # WAS API has 'get/was/webapp/'.
-                    # method_group = 'was get'
-                    # method_group.split()[0] = 'was'
-                    # Take off slash to match user provided method.
-                    # api_methods_with_trailing_slash['was'] contains 'get/was/webapp'
-                    api_methods_with_trailing_slash[method_group.split()[0]].add(method[:-1])
+        self.api_methods_with_trailing_slash = qualysapi.api_methods.api_methods_with_trailing_slash
 
 
     def __call__(self):
@@ -89,7 +43,7 @@ class QGConnector:
 
 
     def format_api_version(self, api_version):
-        """ Return base API url string for the QualysGuard api_version and server.
+        """ Return QualysGuard API version for api_version specified.
 
         """
         # Convert to int.
@@ -113,6 +67,26 @@ class QGConnector:
         return api_version
 
 
+    def which_api_version(self, api_call):
+        """ Return QualysGuard API version for api_call specified.
+
+        """
+        # Leverage patterns of calls to API methods.
+        if api_call.endswith('.php'):
+            # API v1.
+            return 1
+        elif api_call.startswith('api/2.0/'):
+            # API v2.
+            return 2
+        elif '/am/' in api_call:
+            # Asset Management API.
+            return 'am'
+        elif '/was/' in api_call:
+            # WAS API.
+            return 'was'
+        return False
+
+
     def url_api_version(self, api_version):
         """ Return base API url string for the QualysGuard api_version and server.
 
@@ -123,20 +97,20 @@ class QGConnector:
             url = "https://%s/msp/" % (self.server,)
         elif api_version == 2:
             # QualysGuard API v2 url.
-            url = "https://%s/api/2.0/fo/" % (self.server,)
+            url = "https://%s/" % (self.server,)
         elif api_version == 'was':
-            # QualysGuard REST v3 API url.
+            # QualysGuard REST v3 API url (Portal API).
             url = "https://%s/qps/rest/3.0/" % (self.server,)
         elif api_version == 'am':
-            # QualysGuard REST v1 API url.
+            # QualysGuard REST v1 API url (Portal API).
             url = "https://%s/qps/rest/1.0/" % (self.server,)
         else:
             raise Exception("Unknown QualysGuard API Version Number (%s)" % (api_version,))
-        logger.info("Base url = %s" % (url))
+        logger.debug("Base url =\n%s" % (url))
         return url
 
 
-    def format_http_method(self, api_version, call, data):
+    def format_http_method(self, api_version, api_call, data):
         """ Return QualysGuard API http method, with POST preferred..
 
         """
@@ -146,18 +120,18 @@ class QGConnector:
         if api_version == 2:
             return 'post'
         elif api_version == 1:
-            if call in self.api_methods['1 post']:
+            if api_call in self.api_methods['1 post']:
                 return 'post'
             else:
                 return 'get'
         elif api_version == 'was':
             # WAS API call.
-            if call in self.api_methods['was get']:
+            if api_call in self.api_methods['was get']:
                 return 'get'
             # Post calls with no payload will result in HTTPError: 415 Client Error: Unsupported Media Type.
-            if data == None:
+            if not data:
                 # No post data. Some calls change to GET with no post data.
-                if call in self.api_methods['was no data get']:
+                if api_call in self.api_methods['was no data get']:
                     return 'get'
                 else:
                     return 'post'
@@ -166,30 +140,43 @@ class QGConnector:
                 return 'post'
         else:
             # Asset Management API call.
-            if call in self.api_methods['am get']:
+            if api_call in self.api_methods['am get']:
                 return 'get'
             else:
                 return 'post'
 
 
-    def format_call(self, api_version, call):
-        """ Return appropriate QualysGuard API call.
+    def preformat_call(self, api_call):
+        """ Return properly formatted QualysGuard API call.
 
         """
         # Remove possible starting slashes or trailing question marks in call.
-        call = call.lstrip('/')
-        call = call.rstrip('?')
-        logger.debug('call post strip = %s' % call)
+        api_call_formatted = api_call.lstrip('/')
+        api_call_formatted = api_call_formatted.rstrip('?')
+        if api_call != api_call_formatted:
+            # Show difference
+            logger.debug('api_call post strip =\n%s' % api_call_formatted)
+        return api_call_formatted
+
+
+    def format_call(self, api_version, api_call):
+        """ Return properly formatted QualysGuard API call according to api_version etiquette.
+
+        """
+        # Remove possible starting slashes or trailing question marks in call.
+        api_call = api_call.lstrip('/')
+        api_call = api_call.rstrip('?')
+        logger.debug('api_call post strip =\n%s' % api_call)
         # Make sure call always ends in slash for API v2 calls.
-        if (api_version == 2 and call[-1] != '/'):
+        if (api_version == 2 and api_call[-1] != '/'):
             # Add slash.
-            logger.info('Added "/" to call.')
-            call += '/'
-        if call in self.api_methods_with_trailing_slash[api_version]:
+            logger.debug('Adding "/" to api_call.')
+            api_call += '/'
+        if api_call in self.api_methods_with_trailing_slash[api_version]:
             # Add slash.
-            logger.info('Added "/" to call.')
-            call += '/'
-        return call
+            logger.debug('Adding "/" to api_call.')
+            api_call += '/'
+        return api_call
 
 
     def format_payload(self, api_version, data):
@@ -201,86 +188,88 @@ class QGConnector:
             # Check if string type.
             if type(data) == str:
                 # Convert to dictionary.
-                logger.debug('Converting string to dict: %s' % data)
+                logger.debug('Converting string to dict:\n%s' % data)
                 # Remove possible starting question mark & ending ampersands.
                 data = data.lstrip('?')
                 data = data.rstrip('&')
                 # Convert to dictionary.
                 data = urlparse.parse_qs(data)
-                logger.debug('Converted: %s' % str(data))
-            # Convert spaces to plus sign.
-            for item in data:
-                if type(data[item]) == list:
-                    # Might be a dict of lists from urlparse.parse_qs.
-                    data[item][0] = data[item][0].replace(' ', '+')
-                else:
-                    data[item] = data[item].replace(' ', '+')
-        elif api_version == 3:
-            if type(payload) == lxml.etree._Element:
+                logger.debug('Converted:\n%s' % str(data))
+        elif api_version in ('am', 'was'):
+            if type(data) == lxml.etree._Element:
+                logger.debug('Converting lxml.builder.E to string')
                 data = lxml.etree.tostring(data)
+                logger.debug('Converted:\n%s' % data)
         return data
 
 
-    def request(self, api_version, call, data=None, http_method=None):
+    def request(self, api_call, data=None, api_version=None, http_method=None):
         """ Return QualysGuard API response.
 
         """
-        logger.debug('api_version = %d' % api_version)
-        logger.debug('call = %s' % call)
-        logger.debug('data %s =' % (type(data)))
-        logger.debug(str(data))
-        logger.debug('http_method = %s' % http_method)
-        # Format api version inputted.
-        api_version = self.format_api_version(api_version)
+        logger.debug('api_call =\n%s' % api_call)
+        logger.debug('api_version =\n%s' % api_version)
+        logger.debug('data %s =\n %s' % (type(data), str(data)))
+        logger.debug('http_method =\n%s' % http_method)
+        #
+        # Determine API version.
+        # Preformat call.
+        api_call = self.preformat_call(api_call)
+        if api_version:
+            # API version specified, format API version inputted.
+            api_version = self.format_api_version(api_version)
+        else:
+            # API version not specified, determine automatically.
+            api_version = self.which_api_version(api_call)
+        #
         # Set up base url.
         url = self.url_api_version(api_version)
+        #
         # Set up headers.
         headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s"%(qualysapi.version.__version__,)}
-        logger.debug('headers =')
-        logger.debug(str(headers))
-        if api_version == 3:
-            # API v3 takes in XML text.
+        logger.debug('headers =\n%s' % (str(headers)))
+        # Portal API takes in XML text, requiring custom header.
+        if api_version in ('am', 'was'):
             headers['Content-type'] = 'text/xml'
+        #
         # Set up http request method, if not specified.
         if not http_method:
-            http_method = self.format_http_method(api_version, call, data)
-        logger.debug('http_method = %s' % http_method)
+            http_method = self.format_http_method(api_version, api_call, data)
+        logger.debug('http_method =\n%s' % http_method)
+        #
         # Format API call.
-        call = self.format_call(api_version, call)
-        logger.debug('call =')
-        logger.debug(call)
-        # Append call to url.
-        url += call
+        api_call = self.format_call(api_version, api_call)
+        logger.debug('api_call =\n%s' % (api_call))
+        # Append api_call to url.
+        url += api_call
+        #
         # Format data, if applicable.
-        if data:
+        if data is not None:
             data = self.format_payload(api_version, data)
+        #
         # Make request.
-        logger.info('url =')
-        logger.info(str(url))
-        logger.info('data =')
-        logger.info(str(data))
-        logger.debug('headers =')
-        logger.debug(str(headers))
+        logger.debug('url =\n%s' % (str(url)))
+        logger.debug('data =\n%s' % (str(data)))
+        logger.debug('headers =\n%s' % (str(headers)))
         if http_method == 'get':
             # GET
-            logger.info('GET request.')
+            logger.debug('GET request.')
             request = requests.get(url, params=data, auth=self.auth, headers=headers)
         else:
             # POST
-            logger.info('POST request.')
+            logger.debug('POST request.')
             # Make POST request.
             request = requests.post(url, data=data, auth=self.auth, headers=headers)
-        logger.info('response headers =')
-        logger.info(request.headers)
-        # Remember how many times left user can make against call.
+        logger.debug('response headers =\n%s' % (str(request.headers)))
+        #
+        # Remember how many times left user can make against api_call.
         try:
-            self.rate_limit_remaining[call] = int(request.headers['x-ratelimit-remaining'])
-            logger.info('rate limit for call, %s = %d' % (call, self.rate_limit_remaining[call]))
+            self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
+            logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
         except KeyError, e:
-            # Likely a bad call.
+            # Likely a bad api_call.
             pass
-        logger.info('response text =')
-        logger.info(request.text)
+        logger.debug('response text =\n%s' % (str(request.text)))
         # Check to see if there was an error.
         request.raise_for_status()
         return request.text

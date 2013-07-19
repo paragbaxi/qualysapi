@@ -7,7 +7,7 @@ import qualysapi.version
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
-__license__ = "BSD-new"
+__license__ = 'Apache License 2.0'
 
 # Set module level logger.
 logger = logging.getLogger(__name__)
