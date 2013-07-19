@@ -4,7 +4,6 @@ and requesting data from it.
 import requests, urlparse
 import logging
 import lxml.etree
-import pickle
 import qualysapi.version
 import qualysapi.api_methods
 
