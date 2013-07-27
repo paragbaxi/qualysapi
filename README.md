@@ -64,8 +64,21 @@ Example .qcrc
 
 [info]
 hostname = qualysapi.serviceprovider.com
-username = corp_tt
-password = passw0rd
+username = jerry
+password = I<3Elaine
+
+[proxy]
+
+; proxy_protocol set to https, if not specified.
+proxy_url = proxy.mycorp.com
+
+; proxy_port will override any port specified in proxy_url
+proxy_port = 8080
+
+; proxy authentication
+proxy_username = kramer
+proxy_password = giddy up!
+
 ```
 
 
