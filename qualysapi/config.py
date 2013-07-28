@@ -15,6 +15,9 @@ __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterl
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
+# Setup module level logging.
+logger = logging.getLogger(__name__)
+
 class QualysConnectConfig:
     """ Class to create a ConfigParser and read user/password details
     from an ini file.
@@ -24,7 +27,7 @@ class QualysConnectConfig:
         self._cfgfile = None
 
         # Set home path for file.
-        home_filename = os.path.join(os.getenv("HOME"),filename)
+        home_filename = os.path.join(os.getenv('HOME'),filename)
         # Check for file existence.
         if os.path.exists(filename):
             self._cfgfile = filename
@@ -41,29 +44,98 @@ class QualysConnectConfig:
             
             # apply bitmask to current mode to check ONLY user access permissions.
             if (mode & ( stat.S_IRWXG | stat.S_IRWXO )) != 0:
-                logging.warning("%s permissions allows more than user access."%(filename,))
+                logging.warning('%s permissions allows more than user access.'%(filename,))
 
             self._cfgparse.read(self._cfgfile)
 
         # if 'info' doesn't exist, create the section.
-        if not self._cfgparse.has_section("info"):
-            self._cfgparse.add_section("info")
+        if not self._cfgparse.has_section('info'):
+            self._cfgparse.add_section('info')
 
         # use default hostname (if one isn't provided)
-        if not self._cfgparse.has_option("info","hostname"):
-            if self._cfgparse.has_option("DEFAULT","hostname"):
-                hostname = self._cfgparse.get("DEFAULT","hostname")
+        if not self._cfgparse.has_option('info','hostname'):
+            if self._cfgparse.has_option('DEFAULT','hostname'):
+                hostname = self._cfgparse.get('DEFAULT','hostname')
                 self._cfgparse.set('info', 'hostname', hostname)
             else:
                 raise Exception("No 'hostname' set. QualysConnect does not know who to connect to.")
+
+        proxy_config = proxy_url = proxy_protocol = proxy_port = proxy_username = proxy_password = None
+        # User requires proxy?
+        if self._cfgparse.has_option('proxy','proxy_url'):
+            proxy_url = self._cfgparse.get('proxy','proxy_url')
+            # Remove protocol prefix from url if included.
+            for prefix in ('http://', 'https://'):
+                if proxy_url.startswith(prefix):
+                    proxy_protocol = prefix
+                    proxy_url = proxy_url[len(prefix):]
+            # Default proxy protocol is http.
+            if not proxy_protocol:
+                proxy_protocol = 'https://'
+            # Check for proxy port request.
+            if ':' in proxy_url:
+                # Proxy port already specified in url.
+                # Set proxy port.
+                proxy_port = proxy_url[proxy_url.index(':')+1:]
+                # Remove proxy port from proxy url.
+                proxy_url = proxy_url[:proxy_url.index(':')]
+            if self._cfgparse.has_option('proxy','proxy_port'):
+                # Proxy requires specific port.
+                if proxy_port:
+                    # Warn that a proxy port was already specified in the url.
+                    proxy_port_url = proxy_port
+                    proxy_port = self._cfgparse.get('proxy','proxy_port')
+                    logger.warning('Proxy port from url overwritten by specified proxy_port from config:')
+                    logger.warning('%s --> %s' % (proxy_port_url, proxy_port))
+                else:
+                    proxy_port = self._cfgparse.get('proxy','proxy_port')
+            if not proxy_port:
+                # No proxy port specified.
+                if proxy_protocol == 'http://':
+                    # Use default HTTP Proxy port.
+                    proxy_port = '8080'
+                else:
+                    # Use default HTTPS Proxy port.
+                    proxy_port = '443'
+
+            # Check for proxy authentication request.
+            if self._cfgparse.has_option('proxy','proxy_username'):
+                # Proxy requires username & password.
+                proxy_username = self._cfgparse.get('proxy','proxy_username')
+                proxy_password = self._cfgparse.get('proxy','proxy_password')
+                # Not sure if this use case below is valid.
+                # # Support proxy with username and empty password.
+                # try:
+                #     proxy_password = self._cfgparse.get('proxy','proxy_password')
+                # except NoOptionError, e:
+                #     # Set empty password.
+                #     proxy_password = ''
+        # Sample proxy config:
+        # 'http://user:pass@10.10.1.10:3128'
+        if proxy_url:
+            # Proxy requested.
+            proxy_config = proxy_url
+            if proxy_port:
+                # Proxy port requested.
+                proxy_config += ':' + proxy_port
+            if proxy_username:
+                # Proxy authentication requested.
+                proxy_config = proxy_username + ':' + proxy_password + '@' + proxy_config
+            # Prefix by proxy protocol.
+            proxy_config = proxy_protocol + proxy_config
+        # Set up proxy if applicable.
+        if proxy_config:
+            self.proxies = {'https': proxy_config}
+        else:
+            self.proxies = None
         
         # ask username (if one doesn't exist)
-        if not self._cfgparse.has_option("info","username"):
+        if not self._cfgparse.has_option('info','username'):
             username = raw_input('QualysGuard Username: ')
             self._cfgparse.set('info', 'username', username)
         
         # ask password (if one doesn't exist)
-        if not self._cfgparse.has_option("info", "password"):
+        if not self._cfgparse.has_option('info', 'password'):
             password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set('info', 'password', password)
         
@@ -95,17 +167,21 @@ class QualysConnectConfig:
     def get_config_filename(self):
         return self._cfgfile
     
+
     def get_config(self):
         return self._cfgparse
         
+
     def get_username(self):
         ''' Returns username from the configfile. '''
-        return self._cfgparse.get("info", "username")
-        
+        return self._cfgparse.get('info', 'username')
+
+
     def get_password(self):
         ''' Returns password from the configfile OR as provided. '''
-        return self._cfgparse.get("info", "password")
+        return self._cfgparse.get('info', 'password')
+
 
     def get_hostname(self):
-        ''' Returns username from the hostname. '''
-        return self._cfgparse.get("info", "hostname")
+        ''' Returns hostname. '''
+        return self._cfgparse.get('info', 'hostname')
