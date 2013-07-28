@@ -20,6 +20,7 @@ def connect(remember_me=False, remember_me_always=False):
     conf = qcconf.QualysConnectConfig(remember_me=remember_me, remember_me_always=remember_me_always)
     connect = qcconn.QGConnector(conf.get_username(),
                                   conf.get_password(),
-                                  conf.get_hostname())
+                                  conf.get_hostname(),
+                                  conf.proxies)
     logger.info("Finished building connector.")
     return connect

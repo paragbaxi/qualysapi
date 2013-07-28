@@ -22,7 +22,7 @@ class QGConnector:
     """
 
 
-    def __init__(self, username, password, server='qualysapi.qualys.com'):
+    def __init__(self, username, password, server='qualysapi.qualys.com', proxies=None):
         # Read username & password from file, if possible.
         self.auth = (username, password,)
         # Remember QualysGuard API server.
@@ -35,6 +35,8 @@ class QGConnector:
         #
         # Keep track of methods with ending slashes to autocorrect user when they forgot slash.
         self.api_methods_with_trailing_slash = qualysapi.api_methods.api_methods_with_trailing_slash
+        self.proxies = proxies
+        logger.debug('proxies = \n%s' % proxies)
 
 
     def __call__(self):
@@ -253,12 +255,12 @@ class QGConnector:
         if http_method == 'get':
             # GET
             logger.debug('GET request.')
-            request = requests.get(url, params=data, auth=self.auth, headers=headers)
+            request = requests.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
         else:
             # POST
             logger.debug('POST request.')
             # Make POST request.
-            request = requests.post(url, data=data, auth=self.auth, headers=headers)
+            request = requests.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
         logger.debug('response headers =\n%s' % (str(request.headers)))
         #
         # Remember how many times left user can make against api_call.
