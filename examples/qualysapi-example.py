@@ -17,14 +17,15 @@ parameters = {'scan_title': 'Go big or go home', 'asset_groups': 'New York&Las V
 # Note qualysapi will automatically convert spaces into plus signs for API v1 & v2.
 # Let's call the API and store the result in xml_output.
 xml_output = qgc.request(call, parameters)
+print xml_output
 #
 # API v1 call: Print out all IPs associated with asset group "Looneyville Texas".
 # Note that the question mark at the end is optional.
 call = 'asset_group_list.php?'
 # We can still use strings for the data (not recommended).
 parameters = 'title=Looneyville Texas'
-# The request returns a unicode string, let's convert it to a string.
-xml_output = xml_output.encode('utf-8')
+# Let's call the API and store the result in xml_output.
+xml_output = qgc.request(call, parameters)
 # Let's objectify the xml_output string.
 root = lxml.objectify.fromstring(xml_output)
 # Print out the IPs.
@@ -35,7 +36,7 @@ print root.ASSET_GROUP.SCANIPS.IP.text
 # API v2 call: Print out DNS name for a range of IPs.
 call = '/api/2.0/fo/asset/host/'
 parameters = {'action': 'list', 'ips': '10.0.0.10-10.0.0.11'}
-xml_output = qgc.request(call, parameters).encode('utf-8')
+xml_output = qgc.request(call, parameters)
 root = lxml.objectify.fromstring(xml_output)
 # Iterate hosts and print out DNS name.
 for host in root.RESPONSE.HOST_LIST.HOST:
@@ -47,7 +48,7 @@ for host in root.RESPONSE.HOST_LIST.HOST:
 # API v3 WAS call: Print out number of webapps.
 call = '/count/was/webapp'
 # Note that this call does not have a payload so we don't send any data parameters.
-xml_output = qgc.request(call).encode('utf-8')
+xml_output = qgc.request(call)
 root = lxml.objectify.fromstring(xml_output)
 # Print out count of webapps.
 print root.count.text
@@ -58,7 +59,7 @@ print root.count.text
 call = '/count/was/webapp'
 # We can send a string XML for the data.
 parameters = '<ServiceRequest><filters><Criteria operator="CONTAINS" field="name">Supafly</Criteria></filters></ServiceRequest>'
-xml_output = qgc.request(call, parameters).encode('utf-8')
+xml_output = qgc.request(call, parameters)
 root = lxml.objectify.fromstring(xml_output)
 # Print out count of webapps.
 print root.count.text
@@ -72,7 +73,7 @@ parameters = (
     E.ServiceRequest(
         E.filters(
             E.Criteria('Lightsabertooth Tiger', field='name',operator='CONTAINS'))))
-xml_output = qgc.request(call, parameters).encode('utf-8')
+xml_output = qgc.request(call, parameters)
 root = lxml.objectify.fromstring(xml_output)
 # Print out count of webapps.
 print root.count.text
@@ -82,7 +83,7 @@ print root.count.text
 #
 # API v3 Asset Management call: Count tags.
 call = '/count/am/tag'
-xml_output = qgc.request(call).encode('utf-8')
+xml_output = qgc.request(call)
 root = lxml.objectify.fromstring(xml_output)
 # We can use XPATH to find the count.
 print root.xpath('count')[0].text
@@ -99,4 +100,4 @@ parameters = '''<ServiceRequest>
             <Criteria field="name" operator="CONTAINS">PB</Criteria>
         </filters>
     </ServiceRequest>'''
-xml_output = qgc.request(call, parameters).encode('utf-8')
+xml_output = qgc.request(call, parameters)

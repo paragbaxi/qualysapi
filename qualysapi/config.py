@@ -60,6 +60,7 @@ class QualysConnectConfig:
             else:
                 raise Exception("No 'hostname' set. QualysConnect does not know who to connect to.")
 
+        # Proxy support
         proxy_config = proxy_url = proxy_protocol = proxy_port = proxy_username = proxy_password = None
         # User requires proxy?
         if self._cfgparse.has_option('proxy','proxy_url'):
@@ -128,7 +129,20 @@ class QualysConnectConfig:
             self.proxies = {'https': proxy_config}
         else:
             self.proxies = None
-        
+
+        # cURL support
+        self.curl_path = False
+        if self._cfgparse.has_option('curl','use_curl'):
+            use_curl = self._cfgparse.get('curl','use_curl')
+            if use_curl.lower() not in ('no', '0', 'false'):
+                # Use curl.
+                self.curl_path = True
+                # FUTURE
+                # self.curl_path = 'curl'
+                # # Check for specific curl path.
+                # if self._cfgparse.has_option('curl','path'):
+                #     self.curl_path = self._cfgparse.get('curl','path')
+
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option('info','username'):
             username = raw_input('QualysGuard Username: ')

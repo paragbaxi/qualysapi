@@ -21,6 +21,6 @@ def connect(remember_me=False, remember_me_always=False):
     connect = qcconn.QGConnector(conf.get_username(),
                                   conf.get_password(),
                                   conf.get_hostname(),
-                                  conf.proxies)
+                                  conf.proxies, conf.curl_path)
     logger.info("Finished building connector.")
     return connect

@@ -22,7 +22,7 @@ class QGConnector:
     """
 
 
-    def __init__(self, username, password, server='qualysapi.qualys.com', proxies=None):
+    def __init__(self, username, password, server='qualysapi.qualys.com', proxies=None, curl_path=None):
         # Read username & password from file, if possible.
         self.auth = (username, password,)
         # Remember QualysGuard API server.
@@ -37,6 +37,11 @@ class QGConnector:
         self.api_methods_with_trailing_slash = qualysapi.api_methods.api_methods_with_trailing_slash
         self.proxies = proxies
         logger.debug('proxies = \n%s' % proxies)
+        self.curl_path = curl_path
+        logger.debug('curl_path = \n%s' % curl_path)
+        if curl_path:
+            # Replace requests with curl.
+            import human_curl as requests
 
 
     def __call__(self):
@@ -270,7 +275,7 @@ class QGConnector:
         except KeyError, e:
             # Likely a bad api_call.
             pass
-        logger.debug('response text =\n%s' % (str(request.text)))
+        logger.debug('response text =\n%s' % (str(request.content)))
         # Check to see if there was an error.
         request.raise_for_status()
-        return request.text
+        return request.content

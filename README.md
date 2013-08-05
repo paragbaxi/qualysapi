@@ -79,6 +79,9 @@ proxy_port = 8080
 proxy_username = kramer
 proxy_password = giddy up!
 
+[curl]
+use_curl = True
+
 ```
 
 
