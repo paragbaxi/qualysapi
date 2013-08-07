@@ -313,6 +313,11 @@ class QGConnector:
                 logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
             except KeyError, e:
                 # Likely a bad api_call.
+                logger.debug(e)
+                pass
+            except TypeError, e:
+                # Likely an asset search api_call.
+                logger.debug(e)
                 pass
             logger.debug('response text =\n%s' % (str(request.content)))
             # Check to see if there was an error.
