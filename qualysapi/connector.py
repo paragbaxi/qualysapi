@@ -6,6 +6,8 @@ import logging
 import lxml.etree
 import qualysapi.version
 import qualysapi.api_methods
+import subprocess
+import urllib
 
 from collections import defaultdict
 
@@ -22,7 +24,7 @@ class QGConnector:
     """
 
 
-    def __init__(self, username, password, server='qualysapi.qualys.com', proxies=None, curl_path=None):
+    def __init__(self, username, password, server='qualysapi.qualys.com', proxies=None, curl_path=None, curl_use_subprocess=False):
         # Read username & password from file, if possible.
         self.auth = (username, password,)
         # Remember QualysGuard API server.
@@ -39,9 +41,14 @@ class QGConnector:
         logger.debug('proxies = \n%s' % proxies)
         self.curl_path = curl_path
         logger.debug('curl_path = \n%s' % curl_path)
+        # Library human_curl may have issues, see if subprocess will be used.
+        self.curl_use_subprocess = False
         if curl_path:
             # Replace requests with curl.
             import human_curl as requests
+            if curl_use_subprocess:
+                # Use subprocess to call curl.
+                self.curl_use_subprocess = True
 
 
     def __call__(self):
@@ -257,25 +264,57 @@ class QGConnector:
         logger.debug('url =\n%s' % (str(url)))
         logger.debug('data =\n%s' % (str(data)))
         logger.debug('headers =\n%s' % (str(headers)))
-        if http_method == 'get':
-            # GET
-            logger.debug('GET request.')
-            request = requests.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
+        if self.curl_use_subprocess:
+            # Use Subprocess to call curl.
+            curl_call = ['curl', '-k', '-u', '%s:%s' % (self.auth[0], self.auth[1]), url]
+            # Insert headers.
+            for header in headers:
+                for i in ['-H', '%s: %s' % (header, headers[header])]:
+                    curl_call.insert(len(curl_call)-1, i)
+            # Check for POST data.
+            if data:
+                # Always being sent a dictionary.
+                if type(data) == dict:
+                    for i in data:
+                        # Convert one item list to a string.
+                        if type(data[i])==list:
+                            data[i]=data[i][0]
+                    # Parameterize data.
+                    data = urllib.urlencode(data)
+                # Insert data.
+                for i in ['-d', data]:
+                    curl_call.insert(len(curl_call)-1, i)
+            # Check for proxy.
+            if self.proxies:
+                # Insert proxy info before url.
+                for i in ['--proxy', self.proxies['https']]:
+                    curl_call.insert(len(curl_call)-1, i)
+            logger.debug('curl_call =\n%s' % (str(curl_call)))
+            print 'curl_call =\n%s' % (str(curl_call))
+            request = subprocess.call(curl_call)
+            logger.debug('response text =\n%s' % (str(request)))
+            return request
         else:
-            # POST
-            logger.debug('POST request.')
-            # Make POST request.
-            request = requests.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
-        logger.debug('response headers =\n%s' % (str(request.headers)))
-        #
-        # Remember how many times left user can make against api_call.
-        try:
-            self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
-            logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
-        except KeyError, e:
-            # Likely a bad api_call.
-            pass
-        logger.debug('response text =\n%s' % (str(request.content)))
-        # Check to see if there was an error.
-        request.raise_for_status()
-        return request.content
+            # Do not use Subprocess to call curl.
+            if http_method == 'get':
+                # GET
+                logger.debug('GET request.')
+                request = requests.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
+            else:
+                # POST
+                logger.debug('POST request.')
+                # Make POST request.
+                request = requests.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
+            logger.debug('response headers =\n%s' % (str(request.headers)))
+            #
+            # Remember how many times left user can make against api_call.
+            try:
+                self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
+                logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
+            except KeyError, e:
+                # Likely a bad api_call.
+                pass
+            logger.debug('response text =\n%s' % (str(request.content)))
+            # Check to see if there was an error.
+            request.raise_for_status()
+            return request.content

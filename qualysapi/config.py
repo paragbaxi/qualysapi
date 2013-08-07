@@ -111,7 +111,7 @@ class QualysConnectConfig:
                 # except NoOptionError, e:
                 #     # Set empty password.
                 #     proxy_password = ''
-        # Sample proxy config:
+        # Sample proxy config:f
         # 'http://user:pass@10.10.1.10:3128'
         if proxy_url:
             # Proxy requested.
@@ -131,7 +131,7 @@ class QualysConnectConfig:
             self.proxies = None
 
         # cURL support
-        self.curl_path = False
+        self.curl_path = self.curl_use_subprocess = False
         if self._cfgparse.has_option('curl','use_curl'):
             use_curl = self._cfgparse.get('curl','use_curl')
             if use_curl.lower() not in ('no', '0', 'false'):
@@ -142,6 +142,12 @@ class QualysConnectConfig:
                 # # Check for specific curl path.
                 # if self._cfgparse.has_option('curl','path'):
                 #     self.curl_path = self._cfgparse.get('curl','path')
+                #
+                # Override human_curl with subprocess.
+                if self._cfgparse.has_option('curl','use_subprocess'):
+                    curl_use_subprocess = self._cfgparse.get('curl','use_subprocess')
+                    if curl_use_subprocess.lower() not in ('no', '0', 'false'):
+                        self.curl_use_subprocess = True
 
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option('info','username'):
