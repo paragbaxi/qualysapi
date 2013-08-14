@@ -291,7 +291,9 @@ class QGConnector:
                     curl_call.insert(len(curl_call)-1, i)
             logger.debug('curl_call =\n%s' % (str(curl_call)))
             print 'curl_call =\n%s' % (str(curl_call))
-            request = subprocess.call(curl_call)
+            p = subprocess.call(curl_call)
+            out, err = p.communicate()
+            request = str(out)
             logger.debug('response text =\n%s' % (str(request)))
             return request
         else:
