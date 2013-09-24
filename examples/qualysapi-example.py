@@ -11,7 +11,7 @@ qgc = qualysapi.connect()
 #
 # API v1 call: Scan the New York & Las Vegas asset groups
 # The call is our request's first parameter.
-call = 'scan'
+call = 'scan.php'
 # The parameters to append to the url is our request's second parameter.
 parameters = {'scan_title': 'Go big or go home', 'asset_groups': 'New York&Las Vegas', 'option': 'Initial+Options'}
 # Note qualysapi will automatically convert spaces into plus signs for API v1 & v2.
