@@ -79,13 +79,6 @@ proxy_port = 8080
 proxy_username = kramer
 proxy_password = giddy up!
 
-[curl]
-use_curl = True
-
-; Optional: Use subprocess to actually call cURL instead of human_curl.
-; Note this is incompatiable with WAS API and Asset Management API with no plans to support them.
-use_subprocess = True
-
 ```
 
 
