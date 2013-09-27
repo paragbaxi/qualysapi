@@ -130,25 +130,6 @@ class QualysConnectConfig:
         else:
             self.proxies = None
 
-        # cURL support
-        self.curl_path = self.curl_use_subprocess = False
-        if self._cfgparse.has_option('curl','use_curl'):
-            use_curl = self._cfgparse.get('curl','use_curl')
-            if use_curl.lower() not in ('no', '0', 'false'):
-                # Use curl.
-                self.curl_path = True
-                # FUTURE
-                # self.curl_path = 'curl'
-                # # Check for specific curl path.
-                # if self._cfgparse.has_option('curl','path'):
-                #     self.curl_path = self._cfgparse.get('curl','path')
-                #
-                # Override human_curl with subprocess.
-                if self._cfgparse.has_option('curl','use_subprocess'):
-                    curl_use_subprocess = self._cfgparse.get('curl','use_subprocess')
-                    if curl_use_subprocess.lower() not in ('no', '0', 'false'):
-                        self.curl_use_subprocess = True
-
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option('info','username'):
             username = raw_input('QualysGuard Username: ')
