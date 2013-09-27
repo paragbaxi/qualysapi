@@ -78,7 +78,6 @@ proxy_port = 8080
 ; proxy authentication
 proxy_username = kramer
 proxy_password = giddy up!
-
 ```
 
 
