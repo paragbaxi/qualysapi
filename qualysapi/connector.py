@@ -2,9 +2,6 @@
 and requesting data from it.
 """
 import logging
-# Setup module level logging.
-logger = logging.getLogger(__name__)
-
 import requests, urlparse
 import qualysapi.version
 import qualysapi.api_methods
@@ -12,14 +9,18 @@ import subprocess
 import urllib
 
 from collections import defaultdict
+
 try:
     from lxml import etree
 except ImportError, e:
-    logger.error('Cannot understand lxml.builder E objects.')
+    print 'Warning: Cannot consume lxml.builder E objects. Send XML strings for AM & WAS API calls.'
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2013, Parag Baxi'
 __license__ = 'Apache License 2.0'
+
+# Setup module level logging.
+logger = logging.getLogger(__name__)
 
 
 class QGConnector:
