@@ -38,6 +38,6 @@ if __name__ == '__main__':
     # Old way still works:
     # ret = qgs.request(2, "asset/host","?action=list&ips=%s&"%(sys.argv[1]))
     # New way is cleaner:
-    ret = qgs.request('asset/host',{'action': 'list', 'ips': sys.argv[1]})
+    ret = qgs.request('/api/2.0/fo/asset/host',{'action': 'list', 'ips': sys.argv[1]})
 
     print ret

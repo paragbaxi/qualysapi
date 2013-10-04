@@ -32,6 +32,6 @@ if __name__ == '__main__':
     #  https://community.qualys.com/docs/DOC-1324
     #  http://www.qualys.com/docs/QualysGuard_API_User_Guide.pdf
     #
-    ret = qgs.request(2, 'report',{'action': 'launch', 'report_refs': sys.argv[2], 'output_format': 'xml', 'template_id': sys.argv[1], 'report_type': 'Scan'})
+    ret = qgs.request('/api/2.0/fo/report',{'action': 'launch', 'report_refs': sys.argv[2], 'output_format': 'xml', 'template_id': sys.argv[1], 'report_type': 'Scan'})
 
     print ret
