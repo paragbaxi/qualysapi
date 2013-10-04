@@ -56,6 +56,7 @@ You can override these settings and prevent yourself from typing credentials by 
 1. By running the following Python, `qualysapi.connect(remember_me=True)`. This automatically generates a .qcrc file in your current working directory, scoping the configuration to that directory.
 2. By running the following Python, `qualysapi.connect(remember_me_always=True)`. This automatically generates a .qcrc file in your home directory, scoping the configuratoin to all calls to qualysapi, regardless of the directory.
 3. By creating a file called '.qcrc' in your home directory or directory of the Python script.
+4. This supports multiple configuration files. Just add the filename in your call to qualysapi.connect('config.txt').
 
 Example .qcrc
 -------------
