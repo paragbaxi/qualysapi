@@ -7,7 +7,7 @@ import qualysapi
 
 
 # Setup connection to QualysGuard API.
-qgc = qualysapi.connect()
+qgc = qualysapi.connect('config.txt')
 #
 # API v1 call: Scan the New York & Las Vegas asset groups
 # The call is our request's first parameter.
