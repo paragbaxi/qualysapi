@@ -6,10 +6,14 @@ Python QualysGuard API connector.
 Usage
 =====
 
-Check out the example scripts in the /scripts directory.
+Check out the example scripts in the [/examples directory](https://github.com/paragbaxi/qualysapi/blob/master/examples/).
 
 Example
 -------
+Detailed example found at [qualysapi-example.py](https://github.com/paragbaxi/qualysapi/blob/master/examples/qualysapi-example.py).
+
+Sample example below.
+
 ```python
 >>> import qualysapi
 >>> a = qualysapi.connect()
