@@ -3,6 +3,7 @@ import logging
 
 import qualysapi.config as qcconf
 import qualysapi.connector as qcconn
+import qualysapi.settings as qcs
 import qualysapi.version
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
@@ -12,7 +13,7 @@ __license__ = 'Apache License 2.0'
 # Set module level logger.
 logger = logging.getLogger(__name__)
 
-def connect(config_file=False, remember_me=False, remember_me_always=False):
+def connect(config_file=qcs.default_filename, remember_me=False, remember_me_always=False):
     """ Return a QGAPIConnect object for v1 API pulling settings from config
     file.
     """
