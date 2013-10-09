@@ -73,6 +73,8 @@ username = jerry
 password = I<3Elaine
 
 [proxy]
+; This section is optional. Leave it out if you're not using a proxy.
+; You can use environmental variables as well: http://www.python-requests.org/en/latest/user/advanced/#proxies
 
 ; proxy_protocol set to https, if not specified.
 proxy_url = proxy.mycorp.com
