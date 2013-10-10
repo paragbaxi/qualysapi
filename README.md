@@ -1,8 +1,12 @@
 qualysapi
 =========
 
-Python QualysGuard API connector.
-
+Python package, qualysapi, that makes calling any QualysGuard API very simple. QualysGuard API versions v1, v2, & WAS & AM (asset management) are all supported.
+ 
+My focus was making the API super easy to use. The only parameters the user needs to provide is the call, and data (optional). It automates the following:
+* Automatically identifies API version through the call requested.
+* Automatically identifies url from the above step.
+* Automatically identifies http method as POST or GET for the request per Qualys documentation.
 
 Usage
 =====
