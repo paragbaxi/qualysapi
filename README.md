@@ -76,6 +76,8 @@ Example .qcrc
 hostname = qualysapi.serviceprovider.com
 username = jerry
 password = I<3Elaine
+# Supports NTLM. Username should be in format of 'domain\\username'.
+ntlm = True
 
 [proxy]
 ; This section is optional. Leave it out if you're not using a proxy.
