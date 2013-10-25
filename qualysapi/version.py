@@ -1,3 +1,3 @@
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __pkgname__ = 'qualysapi'
-__version__ = '3.4.3'
+__version__ = '3.5.0'

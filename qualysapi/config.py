@@ -7,7 +7,14 @@ import sys
 import getpass
 import logging
 
+# Setup module level logging.
+logger = logging.getLogger(__name__)
+
 from ConfigParser import *
+try:
+    from requests_ntlm import HttpNtlmAuth
+except ImportError, e:
+    logger.warning('Warning: Cannot support NTML authentication.')
 
 import qualysapi.settings as qcs
 
@@ -15,8 +22,6 @@ __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterl
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
-# Setup module level logging.
-logger = logging.getLogger(__name__)
 
 class QualysConnectConfig:
     """ Class to create a ConfigParser and read user/password details
@@ -139,7 +144,14 @@ class QualysConnectConfig:
         if not self._cfgparse.has_option('info', 'password'):
             password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set('info', 'password', password)
-        
+
+        # Check for NTLM auth.
+        if not self._cfgparse.has_option('info', 'ntlm'):
+            self.ntlm = False
+        else:
+            if self._cfgparse.get('info', 'ntlm') == 'True':
+                self.ntlm = True
+
         logging.debug(self._cfgparse.items('info'))
 
         if remember_me or remember_me_always:
@@ -173,15 +185,12 @@ class QualysConnectConfig:
         return self._cfgparse
         
 
-    def get_username(self):
+    def get_auth(self):
         ''' Returns username from the configfile. '''
-        return self._cfgparse.get('info', 'username')
-
-
-    def get_password(self):
-        ''' Returns password from the configfile OR as provided. '''
-        return self._cfgparse.get('info', 'password')
-
+        if not self.ntlm:
+            return (self._cfgparse.get('info', 'username'), self._cfgparse.get('info', 'password'))
+        else:
+            return HttpNtlmAuth(self._cfgparse.get('info', 'username'), self._cfgparse.get('info', 'password'))
 
     def get_hostname(self):
         ''' Returns hostname. '''

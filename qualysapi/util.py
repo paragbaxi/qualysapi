@@ -19,9 +19,8 @@ def connect(config_file=qcs.default_filename, remember_me=False, remember_me_alw
     """
     # Retrieve login credentials.
     conf = qcconf.QualysConnectConfig(filename=config_file, remember_me=remember_me, remember_me_always=remember_me_always)
-    connect = qcconn.QGConnector(conf.get_username(),
-                                  conf.get_password(),
-                                  conf.get_hostname(),
-                                  conf.proxies)
+    connect = qcconn.QGConnector(conf.get_auth(),
+                                 conf.get_hostname(),
+                                 conf.proxies)
     logger.info("Finished building connector.")
     return connect
