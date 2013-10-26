@@ -1,3 +1,8 @@
+__author__ = 'Parag Baxi <parag.baxi@gmail.com>'
+__copyright__ = 'Copyright 2013, Parag Baxi'
+__license__ = 'Apache License 2.0'
+
+
 """ Module that contains classes for setting up connections to QualysGuard API
 and requesting data from it.
 """
@@ -10,17 +15,15 @@ import urllib
 
 from collections import defaultdict
 
+# Setup module level logging.
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+
+
 try:
     from lxml import etree
 except ImportError, e:
-    print 'Warning: Cannot consume lxml.builder E objects. Send XML strings for AM & WAS API calls.'
-
-__author__ = 'Parag Baxi <parag.baxi@gmail.com>'
-__copyright__ = 'Copyright 2013, Parag Baxi'
-__license__ = 'Apache License 2.0'
-
-# Setup module level logging.
-logger = logging.getLogger(__name__)
+    logger.warning('Warning: Cannot consume lxml.builder E objects without lxml. Send XML strings for AM & WAS API calls.')
 
 
 class QGConnector:

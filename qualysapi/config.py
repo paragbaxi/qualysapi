@@ -6,15 +6,16 @@ import stat
 import sys
 import getpass
 import logging
+logging.basicConfig()
 
 # Setup module level logging.
 logger = logging.getLogger(__name__)
 
 from ConfigParser import *
-try:
-    from requests_ntlm import HttpNtlmAuth
-except ImportError, e:
-    logger.warning('Warning: Cannot support NTML authentication.')
+#try:
+#    from requests_ntlm import HttpNtlmAuth
+#except ImportError, e:
+#    logger.warning('Warning: Cannot support NTML authentication.')
 
 import qualysapi.settings as qcs
 
