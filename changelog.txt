@@ -1,5 +1,5 @@
 3.5.0
-- Support NTLM.
+- Retooled authentication.
 
 3.4.0
 - Allows choice of configuration filenames. Easy to support those with multiple Qualys accounts, and need to automate tasks.

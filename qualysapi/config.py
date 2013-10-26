@@ -145,13 +145,6 @@ class QualysConnectConfig:
             password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set('info', 'password', password)
 
-        # Check for NTLM auth.
-        if not self._cfgparse.has_option('info', 'ntlm'):
-            self.ntlm = False
-        else:
-            if self._cfgparse.get('info', 'ntlm') == 'True':
-                self.ntlm = True
-
         logging.debug(self._cfgparse.items('info'))
 
         if remember_me or remember_me_always:
@@ -187,10 +180,7 @@ class QualysConnectConfig:
 
     def get_auth(self):
         ''' Returns username from the configfile. '''
-        if not self.ntlm:
-            return (self._cfgparse.get('info', 'username'), self._cfgparse.get('info', 'password'))
-        else:
-            return HttpNtlmAuth(self._cfgparse.get('info', 'username'), self._cfgparse.get('info', 'password'))
+        return (self._cfgparse.get('info', 'username'), self._cfgparse.get('info', 'password'))
 
     def get_hostname(self):
         ''' Returns hostname. '''
