@@ -32,13 +32,13 @@ class QualysConnectConfig:
 
         self._cfgfile = None
 
-        # Set home path for file.
-        home_filename = os.path.join(os.getenv('HOME'),filename)
+        # Prioritize local directory filename.
         # Check for file existence.
         if os.path.exists(filename):
             self._cfgfile = filename
-        elif os.path.exists(home_filename):
-            self._cfgfile = home_filename
+        elif os.path.exists(os.path.join(os.path.expanduser("~"),filename)):
+            # Set home path for file.
+            self._cfgfile = os.path.join(os.path.expanduser("~"),filename)
         
         # create ConfigParser to combine defaults and input from config file.
         self._cfgparse = ConfigParser(qcs.defaults)
