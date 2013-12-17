@@ -137,12 +137,15 @@ class QGConnector:
                 return 'get'
         elif api_version == 'was':
             # WAS API call.
-            if api_call in self.api_methods['was get']:
+            # Because WAS API enables user to GET API resources in URI, let's chop off the resource.
+            # '/download/was/report/18823' --> '/download/was/report/'
+            api_call_endpoint = api_call[:api_call.rfind('/')+1]
+            if api_call_endpoint in self.api_methods['was get']:
                 return 'get'
             # Post calls with no payload will result in HTTPError: 415 Client Error: Unsupported Media Type.
             if not data:
                 # No post data. Some calls change to GET with no post data.
-                if api_call in self.api_methods['was no data get']:
+                if api_call_endpoint in self.api_methods['was no data get']:
                     return 'get'
                 else:
                     return 'post'
