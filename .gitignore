@@ -39,9 +39,9 @@ nosetests.xml
 
 # Authenticatin configuration
 .qcrc
+config.qcrc
+config.ini
 
 # PyCharm
 .idea
 .qcrc.swp
-
-config.qcrc
