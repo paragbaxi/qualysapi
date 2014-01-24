@@ -106,6 +106,8 @@ api_methods['was no data get'] = set([
     'count/was/wasscan',
     'count/was/wasscanschedule',
     'count/was/webapp',
+    'download/was/report/',
+    'download/was/wasscan/',
 ])
 # WAS GET methods.
 api_methods['was get'] = set([

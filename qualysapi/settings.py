@@ -7,6 +7,11 @@ __license__ = "BSD-new"
 global defaults
 global default_filename
 
-default_filename = ".qcrc"
+import os
+
+if os.name == 'nt':
+    default_filename = "config.ini"
+else:
+    default_filename = ".qcrc"
 
 defaults = { 'hostname' : 'qualysapi.qualys.com' }
