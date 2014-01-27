@@ -76,6 +76,7 @@ Example config file
 hostname = qualysapi.serviceprovider.com
 username = jerry
 password = I<3Elaine
+max_retries = 10
 # Supports NTLM. Username should be in format of 'domain\\username'.
 ntlm = True
 

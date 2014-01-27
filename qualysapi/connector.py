@@ -48,11 +48,10 @@ class QGConnector:
         self.proxies = proxies
         logger.debug('proxies = \n%s' % proxies)
         # Set up requests.
-        self.max_retries = max_retries
         logger.debug('max_retries = \n%s' % max_retries)
         self.session = requests.Session()
-        a = requests.adapters.HTTPAdapter(max_retries=3)
-        b = requests.adapters.HTTPAdapter(max_retries=3)
+        a = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        b = requests.adapters.HTTPAdapter(max_retries=max_retries)
         self.session.mount('http://', a)
         self.session.mount('https://', b)
 
