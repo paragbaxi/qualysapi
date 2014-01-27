@@ -32,7 +32,7 @@ class QGConnector:
     """
 
 
-    def __init__(self, auth, server='qualysapi.qualys.com', proxies=None):
+    def __init__(self, auth, server='qualysapi.qualys.com', proxies=None, max_retries=3):
         # Read username & password from file, if possible.
         self.auth = auth
         # Remember QualysGuard API server.
@@ -47,6 +47,14 @@ class QGConnector:
         self.api_methods_with_trailing_slash = qualysapi.api_methods.api_methods_with_trailing_slash
         self.proxies = proxies
         logger.debug('proxies = \n%s' % proxies)
+        # Set up requests.
+        self.max_retries = max_retries
+        logger.debug('max_retries = \n%s' % max_retries)
+        self.session = requests.Session()
+        a = requests.adapters.HTTPAdapter(max_retries=3)
+        b = requests.adapters.HTTPAdapter(max_retries=3)
+        self.session.mount('http://', a)
+        self.session.mount('https://', b)
 
 
     def __call__(self):
@@ -268,12 +276,12 @@ class QGConnector:
         if http_method == 'get':
             # GET
             logger.debug('GET request.')
-            request = requests.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
+            request = self.session.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
         else:
             # POST
             logger.debug('POST request.')
             # Make POST request.
-            request = requests.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
+            request = self.session.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
         logger.debug('response headers =\n%s' % (str(request.headers)))
         #
         # Remember how many times left user can make against api_call.

@@ -14,4 +14,5 @@ if os.name == 'nt':
 else:
     default_filename = ".qcrc"
 
-defaults = { 'hostname' : 'qualysapi.qualys.com' }
+defaults = { 'hostname': 'qualysapi.qualys.com',
+             'max_retries': '3'}

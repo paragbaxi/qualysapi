@@ -58,13 +58,27 @@ class QualysConnectConfig:
         if not self._cfgparse.has_section('info'):
             self._cfgparse.add_section('info')
 
-        # use default hostname (if one isn't provided)
+        # Use default hostname (if one isn't provided).
         if not self._cfgparse.has_option('info','hostname'):
             if self._cfgparse.has_option('DEFAULT','hostname'):
                 hostname = self._cfgparse.get('DEFAULT','hostname')
                 self._cfgparse.set('info', 'hostname', hostname)
             else:
                 raise Exception("No 'hostname' set. QualysConnect does not know who to connect to.")
+
+        # Use default max_retries (if one isn't provided).
+        if not self._cfgparse.has_option('info','max_retries'):
+            self.max_retries = qcs.defaults['max_retries']
+        else:
+            self.max_retries = self._cfgparse.get('info','max_retries')
+            try:
+                self.max_retries = int(self.max_retries)
+            except Exception:
+                logger.error('Value max_retries must be an integer.')
+                print 'Value max_retries must be an integer.'
+                exit(1)
+            self._cfgparse.set('info', 'max_retries', str(self.max_retries))
+        self.max_retries = int(self.max_retries)
 
         # Proxy support
         proxy_config = proxy_url = proxy_protocol = proxy_port = proxy_username = proxy_password = None
@@ -156,7 +170,7 @@ class QualysConnectConfig:
                 config_path = filename
             if remember_me_always:
                 # Store in home directory.
-                config_path = home_filename
+                config_path = os.path.expanduser("~")
             if not os.path.exists(config_path):
                 # Write file only if it doesn't already exists.
                 # http://stackoverflow.com/questions/5624359/write-file-with-specific-permissions-in-python
