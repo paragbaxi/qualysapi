@@ -297,5 +297,14 @@ class QGConnector:
             pass
         logger.debug('response text =\n%s' % (str(request.content)))
         # Check to see if there was an error.
-        request.raise_for_status()
+        try:
+            request.raise_for_status()
+        except requests.HTTPError as e:
+            # Error
+            print 'Error! Received a 4XX client error or 5XX server error response.'
+            print 'Content = \n', request.content
+            logger.error('Content = \n%s' % str(request.content))
+            print 'Headers = \n', request.headers
+            logger.error('Headers = \n%s' % str(request.headers))
+            request.raise_for_status()
         return request.content
