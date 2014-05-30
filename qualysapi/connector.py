@@ -236,6 +236,10 @@ class QGConnector:
         logger.debug('api_version =\n%s' % api_version)
         logger.debug('data %s =\n %s' % (type(data), str(data)))
         logger.debug('http_method =\n%s' % http_method)
+        logger.debug('concurrent_scans_retries =\n%s' % str(concurrent_scans_retries))
+        logger.debug('concurrent_scans_retry_delay =\n%s' % str(concurrent_scans_retry_delay))
+        concurrent_scans_retries = int(concurrent_scans_retries)
+        concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
         #
         # Determine API version.
         # Preformat call.
