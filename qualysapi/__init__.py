@@ -1,5 +1,5 @@
 # This is the version string assigned to the entire egg post
-#  setup.py install
+# setup.py install
 
 # Ownership and Copyright Information.
 __author__ = "Parag Baxi <parag.baxi@gmail.com>"

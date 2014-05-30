@@ -15,7 +15,18 @@ call = 'scan.php'
 parameters = {'scan_title': 'Go big or go home', 'asset_groups': 'New York&Las Vegas', 'option': 'Initial+Options'}
 # Note qualysapi will automatically convert spaces into plus signs for API v1 & v2.
 # Let's call the API and store the result in xml_output.
-xml_output = qgc.request(call, parameters)
+xml_output = qgc.request(call, parameters, concurrent_scans_retries=2, concurrent_scans_retry_delay=600)
+# concurrent_retries: Retry the call this many times if your subscription hits the concurrent scans limit.
+# concurrent_retries: Delay in seconds between retrying when subscription hits the concurrent scans limit.
+# Example XML response when this happens below:
+#     <?xml version="1.0" encoding="UTF-8"?>
+#     <ServiceResponse xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://localhost:50205/qps/rest/app//xsd/3.0/was/wasscan.xsd">
+#       <responseCode>INVALID_REQUEST</responseCode>
+#       <responseErrorDetails>
+#         <errorMessage>You have reached the maximum number of concurrent running scans (10) for your account</errorMessage>
+#         <errorResolution>Please wait until your previous scans have completed</errorResolution>
+#       </responseErrorDetails>
+#
 print xml_output
 #
 # API v1 call: Print out all IPs associated with asset group "Looneyville Texas".

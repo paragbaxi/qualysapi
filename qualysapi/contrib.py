@@ -1,4 +1,3 @@
-
 # File for 3rd party contributions.
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
@@ -9,10 +8,14 @@ import time
 import types
 import unicodedata
 from collections import defaultdict
+
 from lxml import etree, objectify
+
+
 
 # Set module level logger.
 logger = logging.getLogger(__name__)
+
 
 def generate_vm_report(self, report_details, startup_delay=60, polling_delay=30, max_checks=10):
     ''' Spool and download QualysGuard VM report.
@@ -60,7 +63,7 @@ def qg_html_to_ascii(qg_html_text):
     text = re.sub(r'(?i)<br>[ ]*', '\n', text)
     text = re.sub(r'(?i)<p>[ ]*', '\n', text)
     # Remove consecutive line breaks
-    text = re.sub(r"^\s+", "", text, flags = re.MULTILINE)
+    text = re.sub(r"^\s+", "", text, flags=re.MULTILINE)
     # Remove empty lines at the end.
     text = re.sub('[\n]+$', '$', text)
     # Store anchor tags href attribute
@@ -85,21 +88,22 @@ def qg_html_to_ascii(qg_html_text):
     logging.debug('Done.')
     return text
 
+
 def qg_parse_informational_qids(xml_report):
     """Return vulnerabilities of severity 1 and 2 levels due to a restriction of
        QualysGuard's inability to report them in the internal ticketing system.
     """
-#    asset_group's vulnerability data map:
-#    {'qid_number': {
-#                    # CSV info
-#                    'hosts': [{'ip': '10.28.0.1', 'dns': 'hostname', 'netbios': 'blah', 'vuln_id': 'remediation_ticket_number'}, {'ip': '10.28.0.3', 'dns': 'hostname2', 'netbios': '', 'vuln_id': 'remediation_ticket_number'}, ...],
-#                    'solution': '',
-#                    'impact': '',
-#                    'threat': '', 
-#                    'severity': '',
-#                   }
-#     'qid_number2': ...
-#     }
+    # asset_group's vulnerability data map:
+    #    {'qid_number': {
+    #                    # CSV info
+    #                    'hosts': [{'ip': '10.28.0.1', 'dns': 'hostname', 'netbios': 'blah', 'vuln_id': 'remediation_ticket_number'}, {'ip': '10.28.0.3', 'dns': 'hostname2', 'netbios': '', 'vuln_id': 'remediation_ticket_number'}, ...],
+    #                    'solution': '',
+    #                    'impact': '',
+    #                    'threat': '',
+    #                    'severity': '',
+    #                   }
+    #     'qid_number2': ...
+    #     }
     # Add all vulnerabilities to list of dictionaries.
     # Use defaultdict in case a new QID is encountered.    
     info_vulns = defaultdict(dict)
@@ -131,7 +135,8 @@ def qg_parse_informational_qids(xml_report):
                 info_vulns[qid]['hosts'].append({'ip': '%s' % (ip),
                                                  'dns': '%s' % (dns),
                                                  'netbios': '%s' % (netbios),
-                                                 'vuln_id': '', # Informational QIDs do not have vuln_id numbers.  This is a flag to write the CSV file.
+                                                 'vuln_id': '',
+                                                 # Informational QIDs do not have vuln_id numbers.  This is a flag to write the CSV file.
                                                  'result': '%s' % (result), })
             except KeyError:
                 # New QID.
@@ -140,33 +145,40 @@ def qg_parse_informational_qids(xml_report):
                 info_vulns[qid]['hosts'].append({'ip': '%s' % (ip),
                                                  'dns': '%s' % (dns),
                                                  'netbios': '%s' % (netbios),
-                                                 'vuln_id': '', # Informational QIDs do not have vuln_id numbers.  This is a flag to write the CSV file. 
+                                                 'vuln_id': '',
+                                                 # Informational QIDs do not have vuln_id numbers.  This is a flag to write the CSV file.
                                                  'result': '%s' % (result), })
     # All vulnerabilities added.
     # Add all vulnerabilty information.
     for vuln_details in tree.GLOSSARY.VULN_DETAILS_LIST.VULN_DETAILS:
         qid = unicodedata.normalize('NFKD', unicode(vuln_details.QID)).encode('ascii', 'ignore').strip()
-        info_vulns[qid]['title'] = unicodedata.normalize('NFKD', unicode(vuln_details.TITLE)).encode('ascii', 'ignore').strip()
-        info_vulns[qid]['severity'] = unicodedata.normalize('NFKD', unicode(vuln_details.SEVERITY)).encode('ascii', 'ignore').strip()
-        info_vulns[qid]['solution'] = qg_html_to_ascii(unicodedata.normalize('NFKD', unicode(vuln_details.SOLUTION)).encode('ascii', 'ignore').strip())
-        info_vulns[qid]['threat'] = qg_html_to_ascii(unicodedata.normalize('NFKD', unicode(vuln_details.THREAT)).encode('ascii', 'ignore').strip())
-        info_vulns[qid]['impact'] = qg_html_to_ascii(unicodedata.normalize('NFKD', unicode(vuln_details.IMPACT)).encode('ascii', 'ignore').strip())
+        info_vulns[qid]['title'] = unicodedata.normalize('NFKD', unicode(vuln_details.TITLE)).encode('ascii',
+                                                                                                     'ignore').strip()
+        info_vulns[qid]['severity'] = unicodedata.normalize('NFKD', unicode(vuln_details.SEVERITY)).encode('ascii',
+                                                                                                           'ignore').strip()
+        info_vulns[qid]['solution'] = qg_html_to_ascii(
+            unicodedata.normalize('NFKD', unicode(vuln_details.SOLUTION)).encode('ascii', 'ignore').strip())
+        info_vulns[qid]['threat'] = qg_html_to_ascii(
+            unicodedata.normalize('NFKD', unicode(vuln_details.THREAT)).encode('ascii', 'ignore').strip())
+        info_vulns[qid]['impact'] = qg_html_to_ascii(
+            unicodedata.normalize('NFKD', unicode(vuln_details.IMPACT)).encode('ascii', 'ignore').strip())
     # Ready to report informational vulnerabilities.
     return info_vulns
 
-#TODO: Implement required function qg_remediation_tickets(asset_group, status, qids)
+
+# TODO: Implement required function qg_remediation_tickets(asset_group, status, qids)
 #TODO: Remove static 'report_template' value.  Parameterize and document required report template.
-def qg_ticket_list(asset_group, severity, qids = None):
+def qg_ticket_list(asset_group, severity, qids=None):
     """Return dictionary of each vulnerability reported against asset_group of severity."""
     global asset_group_details
     # All vulnerabilities imported to list of dictionaries.
-    vulns = qg_remediation_tickets(asset_group, 'OPEN', qids)    # vulns now holds all open remediation tickets.
+    vulns = qg_remediation_tickets(asset_group, 'OPEN', qids)  # vulns now holds all open remediation tickets.
     if not vulns:
         # No tickets to report.
         return False
     #
     # Sort the vulnerabilities in order of prevalence -- number of hosts affected.
-    vulns = OrderedDict(sorted(vulns.items(), key = lambda t: len(t[1]['hosts'])))
+    vulns = OrderedDict(sorted(vulns.items(), key=lambda t: len(t[1]['hosts'])))
     logging.debug('vulns sorted = %s' % (vulns))
     #
     # Remove QIDs that have duplicate patches.
@@ -178,7 +190,10 @@ def qg_ticket_list(asset_group, severity, qids = None):
     print 'Retrieving patch report from QualysGuard.'
     report_template = '1063695'
     # Call QualysGuard for patch report.
-    csv_output = qg_command(2, 'report', {'action': 'launch', 'output_format': 'csv', 'asset_group_ids':asset_group_details['qg_asset_group_id'], 'template_id':report_template, 'report_title':'QGIR Patch %s' % (asset_group)})
+    csv_output = qg_command(2, 'report', {'action': 'launch', 'output_format': 'csv',
+                                          'asset_group_ids': asset_group_details['qg_asset_group_id'],
+                                          'template_id': report_template,
+                                          'report_title': 'QGIR Patch %s' % (asset_group)})
     logging.debug('csv_output =')
     logging.debug(csv_output)
     logging.debug('Improving remediation efficiency by removing unneeded, redundant patches.')
@@ -189,19 +204,21 @@ def qg_ticket_list(asset_group, severity, qids = None):
     starting_pos = csv_output.find('Patch QID, IP, DNS, NetBIOS, OS, Vulnerability Count') + 52
     logging.debug('starting_pos = %s' % str(starting_pos))
     # Data resides between line ending in 'Vulnerability Count' and a blank line.
-    patches_by_host = csv_output[starting_pos:csv_output[starting_pos:].find('Host Vulnerabilities Fixed by Patch') + starting_pos - 3]
+    patches_by_host = csv_output[starting_pos:csv_output[starting_pos:].find(
+        'Host Vulnerabilities Fixed by Patch') + starting_pos - 3]
     logging.debug('patches_by_host =')
     logging.debug(patches_by_host)
     # Read in string patches_by_host csv to a dictionary.
     f = patches_by_host.split(os.linesep)
-    reader = csv.DictReader(f, ['Patch QID', 'IP', 'DNS', 'NetBIOS', 'OS', 'Vulnerability Count'], delimiter = ',')
+    reader = csv.DictReader(f, ['Patch QID', 'IP', 'DNS', 'NetBIOS', 'OS', 'Vulnerability Count'], delimiter=',')
     # Mark Patch QIDs that fix multiple vulnerabilities with associated IP addresses.
     redundant_qids = defaultdict(list)
     for row in reader:
         if int(row['Vulnerability Count']) > 1:
             # Add to list of redundant QIDs.
             redundant_qids[row['Patch QID']].append(row['IP'])
-            logging.debug('%s, %s, %s, %s' % (row['Patch QID'], row['IP'], int(row['Vulnerability Count']), redundant_qids[row['Patch QID']]))
+            logging.debug('%s, %s, %s, %s' % (
+            row['Patch QID'], row['IP'], int(row['Vulnerability Count']), redundant_qids[row['Patch QID']]))
     # Log for debugging.
     logging.debug('len(redundant_qids) = %s, redundant_qids =' % (len(redundant_qids)))
     for patch_qid in redundant_qids.keys():
@@ -213,7 +230,8 @@ def qg_ticket_list(asset_group, severity, qids = None):
     host_vulnerabilities_fixed_by_patch = csv_output[starting_pos:]
     # Read in string host_vulnerabilities_fixed_by_patch csv to a dictionary.
     f = host_vulnerabilities_fixed_by_patch.split(os.linesep)
-    reader = csv.DictReader(f, ['Patch QID', 'IP', 'QID', 'Severity', 'Type', 'Title', 'Instance', 'Last Detected'], delimiter = ',')
+    reader = csv.DictReader(f, ['Patch QID', 'IP', 'QID', 'Severity', 'Type', 'Title', 'Instance', 'Last Detected'],
+                            delimiter=',')
     # Remove IP addresses associated with redundant QIDs.
     qids_to_remove = defaultdict(list)
     for row in reader:
@@ -255,7 +273,9 @@ def qg_ticket_list(asset_group, severity, qids = None):
             del vulns[a_qid]
     # Diff completed
     if not vulns_length == len(vulns):
-        print 'A count of %s vulnerabilities have been consolidated to %s vulnerabilities, a reduction of %s%%.' % (int(vulns_length), int(len(vulns)), int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100)))
+        print 'A count of %s vulnerabilities have been consolidated to %s vulnerabilities, a reduction of %s%%.' % (
+        int(vulns_length), int(len(vulns)),
+        int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100)))
     # Return vulns to report.
     logging.debug('vulns =')
     logging.debug(vulns)

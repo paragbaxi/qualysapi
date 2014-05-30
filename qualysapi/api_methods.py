@@ -60,7 +60,7 @@ api_methods['1 post'] = set([
     'ticket_list_deleted.php',
     'user.php',
     'user_list.php',
-    ])
+])
 # API v2 methods (they're all POST).
 api_methods['2'] = set([
     'api/2.0/fo/appliance/',

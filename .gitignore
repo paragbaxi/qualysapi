@@ -38,7 +38,7 @@ nosetests.xml
 .DS_Store
 
 # Authenticatin configuration
-.qcrc
+*.qcrc
 config.qcrc
 config.ini
 

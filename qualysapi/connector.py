@@ -2,28 +2,31 @@ __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2013, Parag Baxi'
 __license__ = 'Apache License 2.0'
 
-
 """ Module that contains classes for setting up connections to QualysGuard API
 and requesting data from it.
 """
 import logging
-import requests, urlparse
+import time
+import urlparse
+from collections import defaultdict
+
+import requests
+
 import qualysapi.version
 import qualysapi.api_methods
-import subprocess
-import urllib
 
-from collections import defaultdict
+
+
 
 # Setup module level logging.
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-
 try:
     from lxml import etree
 except ImportError, e:
-    logger.warning('Warning: Cannot consume lxml.builder E objects without lxml. Send XML strings for AM & WAS API calls.')
+    logger.warning(
+        'Warning: Cannot consume lxml.builder E objects without lxml. Send XML strings for AM & WAS API calls.')
 
 
 class QGConnector:
@@ -47,13 +50,13 @@ class QGConnector:
         self.api_methods_with_trailing_slash = qualysapi.api_methods.api_methods_with_trailing_slash
         self.proxies = proxies
         logger.debug('proxies = \n%s' % proxies)
-        # Set up requests.
+        # Set up requests max_retries.
         logger.debug('max_retries = \n%s' % max_retries)
         self.session = requests.Session()
-        a = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        b = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        self.session.mount('http://', a)
-        self.session.mount('https://', b)
+        http_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        https_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        self.session.mount('http://', http_max_retries)
+        self.session.mount('https://', https_max_retries)
 
 
     def __call__(self):
@@ -71,7 +74,7 @@ class QGConnector:
                 # Remove first 'v' in case the user typed 'v1' or 'v2', etc.
                 api_version = api_version[1:]
             # Check for input matching Qualys modules.
-            if api_version in ('asset management', 'assets', 'tag',  'tagging', 'tags'):
+            if api_version in ('asset management', 'assets', 'tag', 'tagging', 'tags'):
                 # Convert to Asset Management API.
                 api_version = 'am'
             elif api_version in ('webapp', 'web application scanning', 'webapp scanning'):
@@ -146,7 +149,7 @@ class QGConnector:
             # WAS API call.
             # Because WAS API enables user to GET API resources in URI, let's chop off the resource.
             # '/download/was/report/18823' --> '/download/was/report/'
-            api_call_endpoint = api_call[:api_call.rfind('/')+1]
+            api_call_endpoint = api_call[:api_call.rfind('/') + 1]
             if api_call_endpoint in self.api_methods['was get']:
                 return 'get'
             # Post calls with no payload will result in HTTPError: 415 Client Error: Unsupported Media Type.
@@ -224,7 +227,8 @@ class QGConnector:
         return data
 
 
-    def request(self, api_call, data=None, api_version=None, http_method=None):
+    def request(self, api_call, data=None, api_version=None, http_method=None, concurrent_scans_retries=0,
+                concurrent_scans_retry_delay=0):
         """ Return QualysGuard API response.
 
         """
@@ -247,7 +251,7 @@ class QGConnector:
         url = self.url_api_version(api_version)
         #
         # Set up headers.
-        headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s"%(qualysapi.version.__version__,)}
+        headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s" % (qualysapi.version.__version__,)}
         logger.debug('headers =\n%s' % (str(headers)))
         # Portal API takes in XML text, requiring custom header.
         if api_version in ('am', 'was'):
@@ -267,44 +271,70 @@ class QGConnector:
         # Format data, if applicable.
         if data is not None:
             data = self.format_payload(api_version, data)
-        #
-        # Make request.
-        logger.debug('url =\n%s' % (str(url)))
-        logger.debug('data =\n%s' % (str(data)))
-        logger.debug('headers =\n%s' % (str(headers)))
-        if http_method == 'get':
-            # GET
-            logger.debug('GET request.')
-            request = self.session.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
-        else:
-            # POST
-            logger.debug('POST request.')
-            # Make POST request.
-            request = self.session.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
-        logger.debug('response headers =\n%s' % (str(request.headers)))
-        #
-        # Remember how many times left user can make against api_call.
-        try:
-            self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
-            logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
-        except KeyError, e:
-            # Likely a bad api_call.
-            logger.debug(e)
-            pass
-        except TypeError, e:
-            # Likely an asset search api_call.
-            logger.debug(e)
-            pass
-        logger.debug('response text =\n%s' % (str(request.content)))
+        # Make request at least once (more if concurrent_retry is enabled).
+        retries = 0
+        while retries <= concurrent_scans_retries:
+            # Make request.
+            logger.debug('url =\n%s' % (str(url)))
+            logger.debug('data =\n%s' % (str(data)))
+            logger.debug('headers =\n%s' % (str(headers)))
+            if http_method == 'get':
+                # GET
+                logger.debug('GET request.')
+                request = self.session.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
+            else:
+                # POST
+                logger.debug('POST request.')
+                # Make POST request.
+                request = self.session.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
+            logger.debug('response headers =\n%s' % (str(request.headers)))
+            #
+            # Remember how many times left user can make against api_call.
+            try:
+                self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
+                logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
+            except KeyError, e:
+                # Likely a bad api_call.
+                logger.debug(e)
+                pass
+            except TypeError, e:
+                # Likely an asset search api_call.
+                logger.debug(e)
+                pass
+            # Response received.
+            response = str(request.content)
+            logger.debug('response text =\n%s' % (response))
+            # Keep track of how many retries.
+            retries += 1
+            # Check for concurrent scans limit.
+            if not ('<responseCode>INVALID_REQUEST</responseCode>' in response and \
+                                '<errorMessage>You have reached the maximum number of concurrent running scans' in response and \
+                                '<errorResolution>Please wait until your previous scans have completed</errorResolution>' in response):
+                # Did not hit concurrent scan limit.
+                break
+            else:
+                # Hit concurrent scan limit.
+                logger.critical(response)
+                # If trying again, delay next try by concurrent_scans_retry_delay.
+                if retries <= concurrent_scans_retries:
+                    logger.warning('Waiting %d seconds until next try.' % concurrent_scans_retry_delay)
+                    time.sleep(concurrent_scans_retry_delay)
+                    # Inform user of how many retries.
+                    logger.critical('Retry #%d' % retries)
+                else:
+                    # Ran out of retries. Let user know.
+                    print 'Alert! Ran out of concurrent_scans_retries!'
+                    logger.critical('Alert! Ran out of concurrent_scans_retries!')
+                    return False
         # Check to see if there was an error.
         try:
             request.raise_for_status()
         except requests.HTTPError as e:
             # Error
             print 'Error! Received a 4XX client error or 5XX server error response.'
-            print 'Content = \n', request.content
-            logger.error('Content = \n%s' % str(request.content))
+            print 'Content = \n', response
+            logger.error('Content = \n%s' % response)
             print 'Headers = \n', request.headers
             logger.error('Headers = \n%s' % str(request.headers))
             request.raise_for_status()
-        return request.content
+        return response

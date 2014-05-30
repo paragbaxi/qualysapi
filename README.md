@@ -76,9 +76,9 @@ Example config file
 hostname = qualysapi.serviceprovider.com
 username = jerry
 password = I<3Elaine
+
+# Set the maximum number of retries each connection should attempt. Note, this applies only to failed connections and timeouts, never to requests where the server returns a response.
 max_retries = 10
-# Supports NTLM. Username should be in format of 'domain\\username'.
-ntlm = True
 
 [proxy]
 ; This section is optional. Leave it out if you're not using a proxy.
