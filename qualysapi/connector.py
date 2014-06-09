@@ -341,4 +341,11 @@ class QGConnector:
             print 'Headers = \n', request.headers
             logger.error('Headers = \n%s' % str(request.headers))
             request.raise_for_status()
+        if '<RETURN status="FAILED" number="2007">' in response:
+            print 'Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).'
+            print 'Content = \n', response
+            logger.error('Content = \n%s' % response)
+            print 'Headers = \n', request.headers
+            logger.error('Headers = \n%s' % str(request.headers))
+            return False
         return response
