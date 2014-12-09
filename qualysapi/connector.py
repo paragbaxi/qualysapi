@@ -297,6 +297,10 @@ class QGConnector:
             try:
                 self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
                 logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
+                if self.rate_limit_remaining[api_call] <= '5':
+                    logger.warning('Rate limit is about to being reached (remaining api calls = %s)' % self.rate_limit_remaining[api_call])
+                if self.rate_limit_remaining[api_call] <= '0':
+                    logger.critical('ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!' % self.rate_limit_remaining[api_call])
             except KeyError, e:
                 # Likely a bad api_call.
                 logger.debug(e)
