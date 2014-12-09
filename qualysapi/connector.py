@@ -277,6 +277,9 @@ class QGConnector:
             data = self.format_payload(api_version, data)
         # Make request at least once (more if concurrent_retry is enabled).
         retries = 0
+        #
+        # set a warning threshold for the rate limit
+        rate_warn_threshold = 10
         while retries <= concurrent_scans_retries:
             # Make request.
             logger.debug('url =\n%s' % (str(url)))
@@ -297,9 +300,11 @@ class QGConnector:
             try:
                 self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
                 logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
-                if self.rate_limit_remaining[api_call] <= '5':
+                if (self.rate_limit_remaining[api_call] > rate_warn_threshold):
+                    logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
+                elif (self.rate_limit_remaining[api_call] <= rate_warn_threshold) and (self.rate_limit_remaining[api_call] > 0):
                     logger.warning('Rate limit is about to being reached (remaining api calls = %s)' % self.rate_limit_remaining[api_call])
-                if self.rate_limit_remaining[api_call] <= '0':
+                elif self.rate_limit_remaining[api_call] <= 0:
                     logger.critical('ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!' % self.rate_limit_remaining[api_call])
             except KeyError, e:
                 # Likely a bad api_call.
