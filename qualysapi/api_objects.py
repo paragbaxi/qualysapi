@@ -1,4 +1,5 @@
 import datetime
+from lxml import objectify
 
 class Host(object):
     def __init__(self, dns, id, ip, last_scan, netbios, os, tracking_method):
@@ -50,7 +51,7 @@ class Scan(object):
         self.type = str(type)
         self.user_login = str(user_login)
         
-    def cancel(conn):
+    def cancel(self, conn):
         cancelled_statuses = ['Cancelled', 'Finished', 'Error']
         if any(self.status in s for s in cancelled_statuses):
             raise ValueError("Scan cannot be cancelled because its status is "+self.status)
@@ -62,7 +63,7 @@ class Scan(object):
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
             self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
             
-    def pause(conn):
+    def pause(self, conn):
         if self.status != "Running":
             raise ValueError("Scan cannot be paused because its status is "+self.status)
         else:
@@ -73,7 +74,7 @@ class Scan(object):
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
             self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
             
-    def resume(conn):
+    def resume(self, conn):
         if self.status != "Paused":
             raise ValueError("Scan cannot be resumed because its status is "+self.status)
         else:
