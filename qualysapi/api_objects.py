@@ -76,7 +76,7 @@ class Scan(object):
     def resume(conn):
         if self.status != "Paused":
             raise ValueError("Scan cannot be resumed because its status is "+self.status)
-        else
+        else:
             call = '/api/2.0/fo/scan/'
             parameters = {'action': 'resume', 'scan_ref': self.ref}
             conn.request(call, parameters)
