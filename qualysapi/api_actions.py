@@ -112,4 +112,20 @@ class QGActions(object):
             
         return scanArray
         
-
+    def launchScan(self, title, option_title, iscanner_name, asset_groups="", ip=""):
+        # TODO: Add ability to scan by tag.
+        call = '/api/2.0/fo/scan/'
+        parameters = {'action': 'launch', 'scan_title': title, 'option_title': option_title, 'iscanner_name': iscanner_name, 'ip': ip, 'asset_groups': asset_groups}
+        scan_ref = objectify.fromstring(self.request(call, parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
+        
+        call = '/api/2.0/fo/scan/'
+        parameters = {'action': 'cancel', 'scan_ref': self.ref}
+        conn.request(call, parameters)
+        parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1, 'show_last': 1}
+        
+        scan = objectify.fromstring(self.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN
+        agList = []
+        for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
+            agList.append(ag)
+        
+        return Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN)
