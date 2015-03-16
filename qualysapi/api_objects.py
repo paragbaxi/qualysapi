@@ -34,12 +34,14 @@ class AssetGroup(object):
         conn.request(call, parameters)
         
 class Scan(object):
-    def __init__(self, duration, launch_datetime, processed, ref, status, target, title, type, user_login):
+    def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title, type, user_login):
+        self.assetgroups = assetgroups
         self.duration = str(duration)
         launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
         date = launch_datetime[0].split('-')
         time = launch_datetime[1].split(':')
         self.launch_datetime = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
+        self.option_profile = str(option_profile)
         self.processed = int(processed)
         self.ref = str(ref)
         self.status = str(status.STATE)
