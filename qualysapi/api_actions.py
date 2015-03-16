@@ -128,7 +128,6 @@ class QGActions(object):
         scan_ref = objectify.fromstring(self.request(call, parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
         
         call = '/api/2.0/fo/scan/'
-        self.request(call, parameters)
         parameters = {'action': 'list', 'scan_ref': scan_ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1}
         
         scan = objectify.fromstring(self.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN
