@@ -85,7 +85,7 @@ class QGActions(object):
         #'type' parameter accepts "On-Demand", and "Scheduled".
         #'user_login' parameter accepts a user name (string)
         call = '/api/2.0/fo/scan/'
-        parameters = {'action': 'list', 'show_ags': 1, 'show_op': 1, 'show_status': 1, 'show_last': 1}
+        parameters = {'action': 'list', 'show_ags': 1, 'show_op': 1, 'show_status': 1}
         if launched_after != "":
             parameters['launched_after_datetime'] = launched_after
             
@@ -104,9 +104,12 @@ class QGActions(object):
         scanlist = objectify.fromstring(self.request(call, parameters))
         scanArray = []
         for scan in scanlist.RESPONSE.SCAN_LIST.SCAN:
-            agList = []
-            for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
-                agList.append(ag)
+            try:
+                agList = []
+                for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
+                    agList.append(ag)
+            except AttributeError:
+                agList = []
             
             scanArray.append(Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN))
             
@@ -116,16 +119,24 @@ class QGActions(object):
         # TODO: Add ability to scan by tag.
         call = '/api/2.0/fo/scan/'
         parameters = {'action': 'launch', 'scan_title': title, 'option_title': option_title, 'iscanner_name': iscanner_name, 'ip': ip, 'asset_groups': asset_groups}
+        if ip == "":
+            parameters.pop("ip")
+        
+        if asset_groups == "":
+            parameters.pop("asset_groups")
+            
         scan_ref = objectify.fromstring(self.request(call, parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
         
         call = '/api/2.0/fo/scan/'
-        parameters = {'action': 'cancel', 'scan_ref': self.ref}
-        conn.request(call, parameters)
-        parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1, 'show_last': 1}
+        self.request(call, parameters)
+        parameters = {'action': 'list', 'scan_ref': scan_ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1}
         
         scan = objectify.fromstring(self.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN
-        agList = []
-        for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
-            agList.append(ag)
+        try:
+            agList = []
+            for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
+                agList.append(ag)
+        except AttributeError:
+            agList = []
         
         return Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN)
