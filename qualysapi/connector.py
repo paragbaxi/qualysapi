@@ -15,8 +15,8 @@ import requests
 import qualysapi.version
 import qualysapi.api_methods
 
-
-
+import qualysapi.api_actions
+import qualysapi.api_actions as api_actions
 
 # Setup module level logging.
 logging.basicConfig()
@@ -29,7 +29,7 @@ except ImportError, e:
         'Warning: Cannot consume lxml.builder E objects without lxml. Send XML strings for AM & WAS API calls.')
 
 
-class QGConnector:
+class QGConnector(api_actions.QGActions):
     """ Qualys Connection class which allows requests to the QualysGuard API using HTTP-Basic Authentication (over SSL).
 
     """
