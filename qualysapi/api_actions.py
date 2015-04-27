@@ -24,7 +24,7 @@ class QGActions(object):
         return hostArray
         
     def listAssetGroups(self, groupName=''):
-        call = '/api/2.0/fo/asset/group/'
+        call = 'asset_group_list.php'
         if groupName == '':
             agData = objectify.fromstring(self.request(call))
         else:
@@ -32,21 +32,52 @@ class QGActions(object):
             
         groupsArray = []
         scanipsArray = []
+        scandnsArray = []
         scannersArray = []
         for group in agData.ASSET_GROUP:
             try:
-                for scanip in agData.ASSET_GROUP.SCANIPS:
+                for scanip in group.SCANIPS:
                     scanipsArray.append(scanip.IP)
             except AttributeError:
                 scanipsArray = [] # No IPs defined to scan.
                 
-            for scanner in agData.ASSET_GROUP.SCANNER_APPLIANCES.SCANNER_APPLIANCE:
-                scannersArray.append(scanner.SCANNER_APPLIANCE_NAME)
+            try:
+                for scanner in group.SCANNER_APPLIANCES.SCANNER_APPLIANCE:
+                    scannersArray.append(scanner.SCANNER_APPLIANCE_NAME)
+            except AttributeError:
+                scannersArray = [] # No scanner appliances defined for this group.
                 
-            groupsArray.append(AssetGroup(group.BUSINESS_IMPACT, group.ID, group.LAST_UPDATE, scanipsArray, scannersArray, group.TITLE))
+            try:
+                for dnsName in group.SCANDNS:
+                    scandnsArray.append(dnsName.DNS)
+            except AttributeError:
+                scandnsArray = [] # No DNS names assigned to group.
+                
+            groupsArray.append(AssetGroup(group.BUSINESS_IMPACT, group.ID, group.LAST_UPDATE, scanipsArray, scandnsArray, scannersArray, group.TITLE))
             
         return groupsArray
         
+       
+    def listReportTemplates(self):
+        call = 'report_template_list.php'
+        rtData = objectify.fromstring(self.request(call))
+        templatesArray = []
+        
+        for template in rtData.REPORT_TEMPLATE:
+            templatesArray.append(ReportTemplate(template.GLOBAL, template.ID, template.LAST_UPDATE, template.TEMPLATE_TYPE, template.TITLE, template.TYPE, template.USER))
+        
+        return templatesArray
+        
+    def listReports(self):
+        call = '/api/2.0/fo/report'
+        parameters = {'action': 'list'}
+        repData = objectify.fromstring(self.request(call, parameters)).RESPONSE
+        reportsArray = []
+        
+        for report in repData.REPORT_LIST.REPORT:
+            reportsArray.append(Report(report.EXPIRATION_DATETIME, report.ID, report.LAUNCH_DATETIME, report.OUTPUT_FORMAT, report.SIZE, report.STATUS, report.TYPE, report.USER_LOGIN))
+        
+        return reportsArray
         
     def notScannedSince(self, days):
         call = '/api/2.0/fo/asset/host/'
