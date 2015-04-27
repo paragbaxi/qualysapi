@@ -15,11 +15,12 @@ class Host(object):
         self.tracking_method = str(tracking_method)
         
 class AssetGroup(object):
-    def __init__(self, business_impact, id, last_update, scanips, scanner_appliances, title):
+    def __init__(self, business_impact, id, last_update, scanips, scandns, scanner_appliances, title):
         self.business_impact = str(business_impact)
         self.id = int(id)
         self.last_update = str(last_update)
         self.scanips = scanips
+        self.scandns = scandns
         self.scanner_appliances = scanner_appliances
         self.title = str(title)
         
@@ -33,6 +34,33 @@ class AssetGroup(object):
         call = '/api/2.0/fo/asset/group/'
         parameters = {'action': 'edit', 'id': self.id, 'set_ips': ips}
         conn.request(call, parameters)
+        
+class ReportTemplate(object):
+    def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
+        self.isGlobal = int(isGlobal)
+        self.id = int(id)
+        self.last_update = str(last_update).replace('T', ' ').replace('Z', '').split(' ')
+        self.template_type = template_type
+        self.title = title
+        self.type = type
+        self.user = user.LOGIN
+        
+class Report(object):
+    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login):
+        self.expiration_datetime = str(expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
+        self.id = int(id)
+        self.launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
+        self.output_format = output_format
+        self.size = size
+        self.status = status.STATE
+        self.type = type
+        self.user_login = user_login
+        
+    def download(self, conn):
+        call = '/api/2.0/fo/report'
+        parameters = {'action': 'fetch', 'id': self.id}
+        if self.status == 'Finished':
+            return conn.request(call, parameters)
         
 class Scan(object):
     def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title, type, user_login):
