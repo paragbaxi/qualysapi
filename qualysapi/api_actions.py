@@ -68,16 +68,25 @@ class QGActions(object):
         
         return templatesArray
         
-    def listReports(self):
+    def listReports(self, id=0):
         call = '/api/2.0/fo/report'
-        parameters = {'action': 'list'}
-        repData = objectify.fromstring(self.request(call, parameters)).RESPONSE
-        reportsArray = []
         
-        for report in repData.REPORT_LIST.REPORT:
-            reportsArray.append(Report(report.EXPIRATION_DATETIME, report.ID, report.LAUNCH_DATETIME, report.OUTPUT_FORMAT, report.SIZE, report.STATUS, report.TYPE, report.USER_LOGIN))
+        if id == 0:
+            parameters = {'action': 'list'}
+            
+            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE
+            reportsArray = []
         
-        return reportsArray
+            for report in repData.REPORT_LIST.REPORT:
+                reportsArray.append(Report(report.EXPIRATION_DATETIME, report.ID, report.LAUNCH_DATETIME, report.OUTPUT_FORMAT, report.SIZE, report.STATUS, report.TYPE, report.USER_LOGIN))
+        
+            return reportsArray
+            
+        else:
+            parameters = {'action': 'list', 'id': id}
+            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE.REPORT_LIST.REPORT
+            return Report(repData.EXPIRATION_DATETIME, repData.ID, repData.LAUNCH_DATETIME, repData.OUTPUT_FORMAT, repData.SIZE, repData.STATUS, repData.TYPE, repData.USER_LOGIN)
+        
         
     def notScannedSince(self, days):
         call = '/api/2.0/fo/asset/host/'
