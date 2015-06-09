@@ -77,6 +77,9 @@ class QGConnector(api_actions.QGActions):
             if api_version in ('asset management', 'assets', 'tag', 'tagging', 'tags'):
                 # Convert to Asset Management API.
                 api_version = 'am'
+            elif api_version in ('am2'):
+                # Convert to Asset Management API v2
+                api_version = 'am2'
             elif api_version in ('webapp', 'web application scanning', 'webapp scanning'):
                 # Convert to WAS API.
                 api_version = 'was'
@@ -123,6 +126,9 @@ class QGConnector(api_actions.QGActions):
             # QualysGuard REST v3 API url (Portal API).
             url = "https://%s/qps/rest/3.0/" % (self.server,)
         elif api_version == 'am':
+            # QualysGuard REST v1 API url (Portal API).
+            url = "https://%s/qps/rest/1.0/" % (self.server,)
+        elif api_version == 'am2':
             # QualysGuard REST v1 API url (Portal API).
             url = "https://%s/qps/rest/2.0/" % (self.server,)
         else:
@@ -219,7 +225,7 @@ class QGConnector(api_actions.QGActions):
                 # Convert to dictionary.
                 data = urlparse.parse_qs(data)
                 logger.debug('Converted:\n%s' % str(data))
-        elif api_version in ('am', 'was'):
+        elif api_version in ('am', 'was','am2'):
             if type(data) == etree._Element:
                 logger.debug('Converting lxml.builder.E to string')
                 data = etree.tostring(data)
@@ -258,7 +264,7 @@ class QGConnector(api_actions.QGActions):
         headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s" % (qualysapi.version.__version__,)}
         logger.debug('headers =\n%s' % (str(headers)))
         # Portal API takes in XML text, requiring custom header.
-        if api_version in ('am', 'was'):
+        if api_version in ('am', 'was','am2'):
             headers['Content-type'] = 'text/xml'
         #
         # Set up http request method, if not specified.
