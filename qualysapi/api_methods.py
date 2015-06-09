@@ -130,7 +130,7 @@ api_methods['am get'] = set([
     'get/am/tag/',
 ])
 # Asset Management v2 GET methods.
-api_methods['am get'] = set([
+api_methods['am2 get'] = set([
     'get/am/asset/',
     'get/am/hostasset/',
     'get/am/tag/',
