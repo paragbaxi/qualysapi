@@ -124,7 +124,7 @@ class QGConnector(api_actions.QGActions):
             url = "https://%s/qps/rest/3.0/" % (self.server,)
         elif api_version == 'am':
             # QualysGuard REST v1 API url (Portal API).
-            url = "https://%s/qps/rest/1.0/" % (self.server,)
+            url = "https://%s/qps/rest/2.0/" % (self.server,)
         else:
             raise Exception("Unknown QualysGuard API Version Number (%s)" % (api_version,))
         logger.debug("Base url =\n%s" % (url))
