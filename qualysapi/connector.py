@@ -7,7 +7,7 @@ and requesting data from it.
 """
 import logging
 import time
-import urlparse
+import urllib.parse
 from collections import defaultdict
 
 import requests
@@ -15,8 +15,8 @@ import requests
 import qualysapi.version
 import qualysapi.api_methods
 
-import qualysapi.api_actions
-import qualysapi.api_actions as api_actions
+
+
 
 # Setup module level logging.
 logging.basicConfig()
@@ -24,12 +24,13 @@ logger = logging.getLogger(__name__)
 
 try:
     from lxml import etree
-except ImportError, e:
+except ImportError as e:
     logger.warning(
-        'Warning: Cannot consume lxml.builder E objects without lxml. Send XML strings for AM & WAS API calls.')
+        'Warning: Cannot consume lxml.builder E objects without lxml. \
+                Send XML strings for AM & WAS API calls.')
 
 
-class QGConnector(api_actions.QGActions):
+class QGConnector:
     """ Qualys Connection class which allows requests to the QualysGuard API using HTTP-Basic Authentication (over SSL).
 
     """
@@ -217,7 +218,7 @@ class QGConnector(api_actions.QGActions):
                 data = data.lstrip('?')
                 data = data.rstrip('&')
                 # Convert to dictionary.
-                data = urlparse.parse_qs(data)
+                data = urllib.parse.parse_qs(data)
                 logger.debug('Converted:\n%s' % str(data))
         elif api_version in ('am', 'was'):
             if type(data) == etree._Element:
@@ -277,9 +278,6 @@ class QGConnector(api_actions.QGActions):
             data = self.format_payload(api_version, data)
         # Make request at least once (more if concurrent_retry is enabled).
         retries = 0
-        #
-        # set a warning threshold for the rate limit
-        rate_warn_threshold = 10
         while retries <= concurrent_scans_retries:
             # Make request.
             logger.debug('url =\n%s' % (str(url)))
@@ -300,22 +298,19 @@ class QGConnector(api_actions.QGActions):
             try:
                 self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
                 logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
-                if (self.rate_limit_remaining[api_call] > rate_warn_threshold):
-                    logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
-                elif (self.rate_limit_remaining[api_call] <= rate_warn_threshold) and (self.rate_limit_remaining[api_call] > 0):
-                    logger.warning('Rate limit is about to being reached (remaining api calls = %s)' % self.rate_limit_remaining[api_call])
-                elif self.rate_limit_remaining[api_call] <= 0:
-                    logger.critical('ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!' % self.rate_limit_remaining[api_call])
-            except KeyError, e:
+            except KeyError as e:
                 # Likely a bad api_call.
                 logger.debug(e)
                 pass
-            except TypeError, e:
+            except TypeError as e:
                 # Likely an asset search api_call.
                 logger.debug(e)
                 pass
             # Response received.
-            response = str(request.content)
+            response = "".join([str(buffblock,'utf-8') for buffblock in request.iter_content(chunk_size=8192, decode_unicode=False)])
+            # for buffblock in request.iter_content(chunk_size=8192, decode_unicode=True):
+            #    response_str += unicode(buffblock)
+            # response = str(request.content)
             logger.debug('response text =\n%s' % (response))
             # Keep track of how many retries.
             retries += 1
@@ -336,7 +331,7 @@ class QGConnector(api_actions.QGActions):
                     logger.critical('Retry #%d' % retries)
                 else:
                     # Ran out of retries. Let user know.
-                    print 'Alert! Ran out of concurrent_scans_retries!'
+                    print('Alert! Ran out of concurrent_scans_retries!')
                     logger.critical('Alert! Ran out of concurrent_scans_retries!')
                     return False
         # Check to see if there was an error.
@@ -344,17 +339,120 @@ class QGConnector(api_actions.QGActions):
             request.raise_for_status()
         except requests.HTTPError as e:
             # Error
-            print 'Error! Received a 4XX client error or 5XX server error response.'
-            print 'Content = \n', response
+            print('Error! Received a 4XX client error or 5XX server error response.')
+            print('Content = \n', response)
             logger.error('Content = \n%s' % response)
-            print 'Headers = \n', request.headers
+            print('Headers = \n', request.headers)
             logger.error('Headers = \n%s' % str(request.headers))
             request.raise_for_status()
         if '<RETURN status="FAILED" number="2007">' in response:
-            print 'Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).'
-            print 'Content = \n', response
+            print('Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).')
+            print('Content = \n', response)
             logger.error('Content = \n%s' % response)
-            print 'Headers = \n', request.headers
+            print('Headers = \n', request.headers)
             logger.error('Headers = \n%s' % str(request.headers))
-            return False
         return response
+
+    def stream_request(self, api_call, **kwargs):
+        """ Return QualysGuard API response as
+            lxml ElementTree parsing iterator for large resopnses.
+
+        """
+        data = kwargs.pop(None)
+        api_version = kwargs.pop(None)
+        http_method = kwargs.pop(None)
+        concurrent_scans_retries = kwargs.pop(0)
+        concurrent_scans_retry_delay = kwargs.pop(0)
+
+        #
+        # Determine API version.
+        # Preformat call.
+        api_call = self.preformat_call(api_call)
+        if api_version:
+            # API version specified, format API version inputted.
+            api_version = self.format_api_version(api_version)
+        else:
+            # API version not specified, determine automatically.
+            api_version = self.which_api_version(api_call)
+        #
+        # Set up base url.
+        url = self.url_api_version(api_version)
+        #
+        # Set up headers.
+        headers = {"X-Requested-With": "Parag Baxi QualysAPI (python) v%s" % (qualysapi.version.__version__,)}
+        logger.debug('headers =\n%s' % (str(headers)))
+        # Portal API takes in XML text, requiring custom header.
+        if api_version in ('am', 'was'):
+            headers['Content-type'] = 'text/xml'
+        #
+        # Set up http request method, if not specified.
+        if not http_method:
+            http_method = self.format_http_method(api_version, api_call, data)
+        logger.debug('http_method =\n%s' % http_method)
+        #
+        # Format API call.
+        api_call = self.format_call(api_version, api_call)
+        logger.debug('api_call =\n%s' % (api_call))
+        # Append api_call to url.
+        url += api_call
+        #
+        # Format data, if applicable.
+        if data is not None:
+            data = self.format_payload(api_version, data)
+        # Make request at least once (more if concurrent_retry is enabled).
+        retries = 0
+
+        # this call should be results/maps oriented for large domains and/or maps and/or asset groups so
+        # there really is no need or benefit to using concurrent scans here...
+#         while retries <= concurrent_scans_retries:
+#             # Make request.
+#             logger.debug('url =\n%s' % (str(url)))
+#             logger.debug('data =\n%s' % (str(data)))
+#             logger.debug('headers =\n%s' % (str(headers)))
+#             # use a stream-based non-blocking request
+        if http_method == 'get':
+            # GET
+            logger.debug('GET request.')
+            response = self.session.get(url,
+                    params=data,
+                    auth=self.auth,
+                    headers=headers,
+                    proxies=self.proxies,
+                    stream=True
+                )
+        else:
+            # POST
+            logger.debug('POST request.')
+            # Make POST request.
+            response = self.session.post(
+                    url,
+                    data=data,
+                    auth=self.auth,
+                    headers=headers,
+                    proxies=self.proxies,
+                    stream=True
+                )
+#             logger.debug('response headers =\n%s' % (str(request.headers)))
+#             #
+#             # Remember how many times left user can make against api_call.
+#             try:
+#                 self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
+#                 logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
+#             except KeyError as e:
+#                 # Likely a bad api_call.
+#                 logger.debug(e)
+#                 pass
+#             except TypeError as e:
+#                 # Likely an asset search api_call.
+#                 logger.debug(e)
+#                 pass
+#             # Response received.
+#             # let's not do this mmmkay?
+#             # response = str(request.content)
+#             # handle the debug stuff a bit better (perhaps the first chunk)
+#             # logger.debug('response text =\n%s' % (response))
+#             # Keep track of how many retries.
+#             retries += 1
+        response.raise_for_status()
+        response.raw.decode_content = True
+        return etree.iterparse(response.raw)

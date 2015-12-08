@@ -11,7 +11,7 @@ logging.basicConfig()
 # Setup module level logging.
 logger = logging.getLogger(__name__)
 
-from ConfigParser import *
+from configparser import *
 # try:
 #    from requests_ntlm import HttpNtlmAuth
 #except ImportError, e:
@@ -29,17 +29,27 @@ class QualysConnectConfig:
     from an ini file.
     """
 
-    def __init__(self, filename=qcs.default_filename, remember_me=False, remember_me_always=False):
+    def __init__(self, *args, **kwargs):
+
+        #handle kwarg defaults (don't think I can zip because of overwrite)
+        settings = qcs.defaults
+        settings.update(kwargs)
 
         self._cfgfile = None
 
-        # Prioritize local directory filename.
-        # Check for file existence.
-        if os.path.exists(filename):
-            self._cfgfile = filename
-        elif os.path.exists(os.path.join(os.path.expanduser("~"), filename)):
-            # Set home path for file.
-            self._cfgfile = os.path.join(os.path.expanduser("~"), filename)
+        #this needs to only be done in ***SOME*** cases.  UGH yuck no no no
+        if(settings['use_ini']):
+            # Prioritize local directory filename.
+            # Check for file existence.
+            if os.path.exists(settings['filename']):
+                self._cfgfile = settings['filename']
+            elif os.path.exists(os.path.join(os.path.expanduser("~"),
+                settings['filename'])):
+                # Set home path for file.
+                self._cfgfile = os.path.join(os.path.expanduser("~"),
+                        settings['filename'])
+        else:
+            self._cfgfile = None #better... but not happy...
 
         # create ConfigParser to combine defaults and input from config file.
         self._cfgparse = ConfigParser(qcs.defaults)
@@ -51,7 +61,8 @@ class QualysConnectConfig:
 
             # apply bitmask to current mode to check ONLY user access permissions.
             if (mode & ( stat.S_IRWXG | stat.S_IRWXO )) != 0:
-                logging.warning('%s permissions allows more than user access.' % (filename,))
+                logging.warning('%s permissions allows more than user access.'
+                        % (self._cfgfile,))
 
             self._cfgparse.read(self._cfgfile)
 
@@ -76,7 +87,7 @@ class QualysConnectConfig:
                 self.max_retries = int(self.max_retries)
             except Exception:
                 logger.error('Value max_retries must be an integer.')
-                print 'Value max_retries must be an integer.'
+                print('Value max_retries must be an integer.')
                 exit(1)
             self._cfgparse.set('info', 'max_retries', str(self.max_retries))
         self.max_retries = int(self.max_retries)
@@ -151,9 +162,13 @@ class QualysConnectConfig:
         else:
             self.proxies = None
 
+        #uh... ok..., let's go ahead and handle kwarg overrides
+        for key in settings:
+            self._cfgparse.set('info', key, str(settings[key]))
+
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option('info', 'username'):
-            username = raw_input('QualysGuard Username: ')
+            username = input('QualysGuard Username: ')
             self._cfgparse.set('info', 'username', username)
 
         # ask password (if one doesn't exist)
@@ -163,15 +178,10 @@ class QualysConnectConfig:
 
         logging.debug(self._cfgparse.items('info'))
 
-        if remember_me or remember_me_always:
+        if settings['remember_me'] or settings['remember_me_always']:
             # Let's create that config file for next time...
             # Where to store this?
-            if remember_me:
-                # Store in current working directory.
-                config_path = filename
-            if remember_me_always:
-                # Store in home directory.
-                config_path = os.path.expanduser("~")
+            config_path = os.path.expanduser('~') if settings['remember_me_always'] else settings['filename']
             if not os.path.exists(config_path):
                 # Write file only if it doesn't already exists.
                 # http://stackoverflow.com/questions/5624359/write-file-with-specific-permissions-in-python
@@ -184,10 +194,6 @@ class QualysConnectConfig:
                 # Add the settings to the structure of the file, and lets write it out...
                 self._cfgparse.write(config_file)
                 config_file.close()
-
-
-    def get_config_filename(self):
-        return self._cfgfile
 
 
     def get_config(self):
