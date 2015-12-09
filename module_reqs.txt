@@ -1,4 +1,6 @@
-qualysapi==4.1.1
+nose2==0.5.0
+-e git+https://github.com/paragbaxi/qualysapi@a5da0cabc384be23497a2adcc5b3a327d407dfed#egg=qualysapi-4.1.1-develop
 redis==2.10.5
 requests==2.8.1
+six==1.10.0
 wheel==0.24.0

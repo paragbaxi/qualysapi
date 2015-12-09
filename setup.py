@@ -45,4 +45,5 @@ setup(name=__pkgname__,
           'requests',
           'redis',
       ],
+      test_suite='nose2.collector.collector',
      )

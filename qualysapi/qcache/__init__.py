@@ -356,7 +356,7 @@ class APICacheInstance():
         if kwargs.pop('force_cache_refresh', False):
             conn.delete(key)
         else:
-            result = str(conn.get(key), 'utf-8')
+            result = conn.get(key)
 
         #not in cache or force refresh then go to qualys
         if not result:

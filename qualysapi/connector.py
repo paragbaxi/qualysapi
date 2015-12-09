@@ -15,6 +15,8 @@ import requests
 import qualysapi.version
 import qualysapi.api_methods
 
+from qualysapi.exceptions import QualysAuthenticationException
+
 
 
 
@@ -325,7 +327,8 @@ class QGConnector:
                 logger.critical(response)
                 # If trying again, delay next try by concurrent_scans_retry_delay.
                 if retries <= concurrent_scans_retries:
-                    logger.warning('Waiting %d seconds until next try.' % concurrent_scans_retry_delay)
+                    logger.warning('Waiting %d seconds until next try.' % \
+                            concurrent_scans_retry_delay)
                     time.sleep(concurrent_scans_retry_delay)
                     # Inform user of how many retries.
                     logger.critical('Retry #%d' % retries)
@@ -334,23 +337,27 @@ class QGConnector:
                     print('Alert! Ran out of concurrent_scans_retries!')
                     logger.critical('Alert! Ran out of concurrent_scans_retries!')
                     return False
+        # handle authentication exception special
+        if request.status_code == 401:
+            request.close()
+            raise QualysAuthenticationException('Bad Qualys username or \
+                password.')
         # Check to see if there was an error.
         try:
             request.raise_for_status()
-        except requests.HTTPError as e:
+        except requests.exceptions.HTTPError as e:
             # Error
-            print('Error! Received a 4XX client error or 5XX server error response.')
-            print('Content = \n', response)
-            logger.error('Content = \n%s' % response)
-            print('Headers = \n', request.headers)
-            logger.error('Headers = \n%s' % str(request.headers))
+            # only do this logging if we don't know the reason for the
+            # exception (have already handled it IOTW)
+            logger.exception('Error! Received a 4XX client error or 5XX server error response.')
+            logger.error('    Content = \n%s' % response)
+            logger.error('    Headers = \n%s' % str(request.headers))
             request.raise_for_status()
         if '<RETURN status="FAILED" number="2007">' in response:
-            print('Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).')
-            print('Content = \n', response)
-            logger.error('Content = \n%s' % response)
-            print('Headers = \n', request.headers)
-            logger.error('Headers = \n%s' % str(request.headers))
+            logger.error('Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).')
+            logger.error('    Content = \n%s' % response)
+            logger.error('    Headers = \n%s' % str(request.headers))
+        request.close()
         return response
 
     def stream_request(self, api_call, **kwargs):

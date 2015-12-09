@@ -10,6 +10,8 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+from qualysapi import qcache, config, exceptions
+
 
 class TestAPICache(unittest.TestCase):
     '''
@@ -35,7 +37,6 @@ class TestAPICache(unittest.TestCase):
         Sets up a unittest api config file if one doesn't exist already
         '''
         #test from relative...
-        from qualysapi import qcache, config
 
         #check if we have the required test data for unit tests
         self.tcfilename = os.path.join(
@@ -43,8 +44,8 @@ class TestAPICache(unittest.TestCase):
                 'test_data')
         self.tcfilename = os.path.join( self.tcfilename, 'unittests.cfg')
 
-        logger.debug('Test Case Config File is ' + self.tcfilename)
-        logger.debug(os.path.isfile(self.tcfilename))
+        # logger.debug('Test Case Config File is ' + self.tcfilename)
+        # logger.debug(os.path.isfile(self.tcfilename))
 
         # if we don't have a unittest configuration file make a temporary
         # file for our unit tests
@@ -88,30 +89,26 @@ class TestAPICache(unittest.TestCase):
             self.cache_instance.build_redis_key(endpoint, **args)
             )
 
-    def basic_test(self):
+    def test_cache(self):
         ''' pulls a map_report_list and stores it in redis. '''
         result = None
         try:
             endpoint = 'map_report_list.php'
-            result = self.cache_instance.cache_request(endpoint)
-            logger.debug('--------------------- KEY \
-            --------------------')
-            logger.debug(self.cache_instance.build_redis_key(endpoint))
-            logger.debug('--------------------- END KEY \
-            --------------------')
+            with self.assertRaises(exceptions.QualysAuthenticationException):
+                result = self.cache_instance.cache_request(endpoint)
         except Exception as e:
-            traceback.print_exc()
-            return False
+            logging.exception('Cache call failed!')
+
         if result:
-            return True
-        else:
-            return False
+            # Because we expect an exception if result actually gets set the
+            # test has failed, somehow we didn't get an auth exception.
+            self.assertTrue(False)
 
     def test_cache_expiration(self):
-        pass
+        self.assertTrue(False)
 
     def test_speed(self):
-        pass
+        self.assertTrue(False)
 
 #stand-alone test execution
 if __name__ == '__main__':
