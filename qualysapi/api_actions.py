@@ -3,6 +3,7 @@ import qualysapi.api_objects
 from qualysapi.api_objects import *
 from qualysapi.exceptions import NoConnectionError
 import logging
+import pprint
 
 
 class QGActions(object):
@@ -145,6 +146,22 @@ class QGActions(object):
 
         parameters = {'action': 'add', 'ips': ips, 'enable_vm': enablevm, 'enable_pc': enablepc}
         self.request(call, parameters)
+
+    def listMaps(self, *args, **kwargs):
+        '''
+        Initially this is a api v1 only capability of listing available map
+        reports.
+        '''
+        call = 'map_report_list.php'
+        data = {}
+        result = self.request(call, data = data)
+        logging.debug(pprint.pformat(result))
+        maplist = objectify.fromstring(result)
+        logging.debug(pprint.pformat(maplist.__dict__))
+        return [mapr.TITLE for mapr in maplist.MAP_REPORT]
+#        for mapr in maplist.RESPONSE.MAP_REPORT_LIST.MAP_REPORT:
+#            logging.debug(pprint.pformat(mapr))
+
 
     def listScans(self, launched_after="", state="", target="", type="", user_login=""):
         #'launched_after' parameter accepts a date in the format: YYYY-MM-DD

@@ -80,15 +80,24 @@ class TestAPIMethods(unittest.TestCase):
             actions = api_actions.QGActions()
 
 
-
     def test_map_list(self):
-        ''' Pulls a list of maps '''
+        ''' Pulls a list of maps'''
+        actions = api_actions.QGActions(cache_connection =
+                self.cache_instance)
+        maps = actions.listMaps(state='Finished')
+        self.assertGreaterEqual(len(maps),1)
+        for counter,mapr in enumerate(maps):
+            logging.debug('%02d:\r%s' % (counter, mapr))
+
+
+    def test_report_list(self):
+        ''' Pulls a list of scans'''
         actions = api_actions.QGActions(cache_connection =
                 self.cache_instance)
         scans = actions.listScans(state='Finished')
         self.assertGreaterEqual(len(scans),1)
-        for counter,scan in enumerate(scans):
-            logging.debug('%02d:\r%s' % (counter, scan))
+        #for counter,scan in enumerate(scans):
+        #    logging.debug('%02d:\r%s' % (counter, scan))
 
 
 #stand-alone test execution
