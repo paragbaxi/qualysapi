@@ -5,7 +5,7 @@ import os
 import unittest
 import logging
 
-logging.basicConfig()
+logging.basicConfig(level=logging.DEBUG)
 # Setup module level logging.
 
 from qualysapi import qcache, config, exceptions
@@ -102,6 +102,10 @@ class TestAPICache(unittest.TestCase):
             # Because we expect an exception if result actually gets set the
             # test has failed, somehow we didn't get an auth exception.
             self.assertTrue(False)
+
+
+    def test_cache_clear(self):
+        self.assertTrue(self.cache_instance.cache_flush(all=True))
 
 
     def test_cache_expiration(self):

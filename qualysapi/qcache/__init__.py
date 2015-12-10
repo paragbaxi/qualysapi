@@ -538,14 +538,45 @@ class APICacheInstance():
         return endpoint + ''.join(['|%s=%s' % (key,kwargs[key]) for key in intersect])
 
 
+    def cache_flush(self, *args, **kwargs):
+        '''
+        Deletes a key or the entire database specified by the configuration
+        '''
+        conn = kwargs.get('connection', None)
+        if not conn: conn = self.getConnection(**kwargs)
+
+        if kwargs.get('all', False):
+            return conn.flushdb()
+        else:
+            endpoint = None
+            if len(args):
+                endpoint = util.preformat_call(args[0])
+                if self.__config.__defaults__.get(endpoint, None) is None:
+                    raise QCacheException('first argument for args \'' + endpoint \
+                            + '\' not a valid qualys api endpoint.')
+            else:
+                endpoint = kwargs.pop('endpoint', None)
+            if not endpoint:
+                raise QCacheException('can\'t find your endpoint in args or keyword args')
+            data = kwargs.get('data', None)
+            key = self.build_redis_key(endpoint, **data)
+            return conn.delete(key)
+
+
+
     def cache_request(self,*args,**kwargs):
         '''
         Just build a redis key from the endpoint + arguments and
         check the cache.  If not found cache.
+
+        if an endpoint is included as the first argument that is fine
+        (backwards compatible with old qualysapi style) but the preferred
+        method is to use the keyword endpoint = 'api-endpoint' as in the below
+        example.
         '''
-        connection = kwargs.pop('connection', None)
-        if not connection:
-            connection = self.getConnection(**kwargs)
+        conn = kwargs.pop('connection', None)
+        if not conn:
+            conn = self.getConnection(**kwargs)
         if len(args):
             endpoint = util.preformat_call(args[0])
             if self.__config.__defaults__.get(endpoint, None) is None:
@@ -558,9 +589,9 @@ class APICacheInstance():
 
         #check the cache
         data = kwargs.get('data', None)
+        if data is None: data = {}
         key = self.build_redis_key(endpoint, **data)
         result = None
-        conn = self.getConnection()
         if kwargs.pop('force_cache_refresh', False):
             conn.delete(key)
         else:

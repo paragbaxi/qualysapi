@@ -6,6 +6,7 @@ __license__ = 'Apache License 2.0'
 and requesting data from it.
 """
 import logging
+import pprint
 import time
 import urllib.parse
 from collections import defaultdict
@@ -296,9 +297,18 @@ class QGConnector:
                 # Likely an asset search api_call.
                 logger.debug(e)
                 pass
-            # Response received.
-            response = "".join([str(buffblock,'utf-8') for buffblock in
-                request.iter_content(chunk_size=8192, decode_unicode=True)])
+            # handle authentication exception special and early
+            if request.status_code == 401:
+                request.close()
+                raise QualysAuthenticationException('Bad Qualys username or \
+                    password.')
+            # Response received
+            for buffblock in request.iter_content(chunk_size=8192,
+                    decode_unicode=True):
+                logger.debug(pprint.pformat(buffblock))
+            response = b"".join([buffblock for buffblock in
+                request.iter_content(chunk_size=8192, decode_unicode=False)])
+            logging.debug(pprint.pformat(response))
             # for buffblock in request.iter_content(chunk_size=8192, decode_unicode=True):
             #    response_str += unicode(buffblock)
             # response = str(request.content)
@@ -306,9 +316,9 @@ class QGConnector:
             # Keep track of how many retries.
             retries += 1
             # Check for concurrent scans limit.
-            if not ('<responseCode>INVALID_REQUEST</responseCode>' in response and \
-                                '<errorMessage>You have reached the maximum number of concurrent running scans' in response and \
-                                '<errorResolution>Please wait until your previous scans have completed</errorResolution>' in response):
+            if not (b'<responseCode>INVALID_REQUEST</responseCode>' in response and \
+                                b'<errorMessage>You have reached the maximum number of concurrent running scans' in response and \
+                                b'<errorResolution>Please wait until your previous scans have completed</errorResolution>' in response):
                 # Did not hit concurrent scan limit.
                 break
             else:
@@ -326,11 +336,6 @@ class QGConnector:
                     print('Alert! Ran out of concurrent_scans_retries!')
                     logger.critical('Alert! Ran out of concurrent_scans_retries!')
                     return False
-        # handle authentication exception special
-        if request.status_code == 401:
-            request.close()
-            raise QualysAuthenticationException('Bad Qualys username or \
-                password.')
         # Check to see if there was an error.
         try:
             request.raise_for_status()
@@ -342,7 +347,7 @@ class QGConnector:
             logger.error('    Content = \n%s' % response)
             logger.error('    Headers = \n%s' % str(request.headers))
             request.raise_for_status()
-        if '<RETURN status="FAILED" number="2007">' in response:
+        if b'<RETURN status="FAILED" number="2007">' in response:
             logger.error('Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).')
             logger.error('    Content = \n%s' % response)
             logger.error('    Headers = \n%s' % str(request.headers))
