@@ -13,7 +13,7 @@ class Host(object):
         self.netbios = str(netbios)
         self.os = str(os)
         self.tracking_method = str(tracking_method)
-        
+
 class AssetGroup(object):
     def __init__(self, business_impact, id, last_update, scanips, scandns, scanner_appliances, title):
         self.business_impact = str(business_impact)
@@ -23,18 +23,18 @@ class AssetGroup(object):
         self.scandns = scandns
         self.scanner_appliances = scanner_appliances
         self.title = str(title)
-        
+
     def addAsset(conn, ip):
         call = '/api/2.0/fo/asset/group/'
         parameters = {'action': 'edit', 'id': self.id, 'add_ips': ip}
         conn.request(call, parameters)
         self.scanips.append(ip)
-        
+
     def setAssets(conn, ips):
         call = '/api/2.0/fo/asset/group/'
         parameters = {'action': 'edit', 'id': self.id, 'set_ips': ips}
         conn.request(call, parameters)
-        
+
 class ReportTemplate(object):
     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
         self.isGlobal = int(isGlobal)
@@ -44,7 +44,7 @@ class ReportTemplate(object):
         self.title = title
         self.type = type
         self.user = user.LOGIN
-        
+
 class Report(object):
     def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login):
         self.expiration_datetime = str(expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
@@ -55,13 +55,13 @@ class Report(object):
         self.status = status.STATE
         self.type = type
         self.user_login = user_login
-        
+
     def download(self, conn):
         call = '/api/2.0/fo/report'
         parameters = {'action': 'fetch', 'id': self.id}
         if self.status == 'Finished':
             return conn.request(call, parameters)
-        
+
 class Scan(object):
     def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title, type, user_login):
         self.assetgroups = assetgroups
@@ -78,7 +78,21 @@ class Scan(object):
         self.title = str(title)
         self.type = str(type)
         self.user_login = str(user_login)
-        
+
+    def __repr__(self):
+        ''' Represent this object in a human-readable string '''
+        return '''
+    Scan '%s':
+        lanch datetime: %s
+        option profile: %s
+        scan ref: %s
+        status: %s
+        target: %s
+        type: %s
+        user: %s
+        ''' % (self.title, self.launch_datetime, self.option_profile, self.ref,
+                self.status, self.target, self.type, self.user_login)
+
     def cancel(self, conn):
         cancelled_statuses = ['Cancelled', 'Finished', 'Error']
         if any(self.status in s for s in cancelled_statuses):
@@ -87,10 +101,10 @@ class Scan(object):
             call = '/api/2.0/fo/scan/'
             parameters = {'action': 'cancel', 'scan_ref': self.ref}
             conn.request(call, parameters)
-            
+
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
             self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
-            
+
     def pause(self, conn):
         if self.status != "Running":
             raise ValueError("Scan cannot be paused because its status is "+self.status)
@@ -98,10 +112,10 @@ class Scan(object):
             call = '/api/2.0/fo/scan/'
             parameters = {'action': 'pause', 'scan_ref': self.ref}
             conn.request(call, parameters)
-            
+
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
             self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
-            
+
     def resume(self, conn):
         if self.status != "Paused":
             raise ValueError("Scan cannot be resumed because its status is "+self.status)
@@ -109,6 +123,6 @@ class Scan(object):
             call = '/api/2.0/fo/scan/'
             parameters = {'action': 'resume', 'scan_ref': self.ref}
             conn.request(call, parameters)
-            
+
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
             self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE

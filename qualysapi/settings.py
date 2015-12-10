@@ -18,6 +18,7 @@ defaults =  {
     'hostname'              : 'qualysapi.qualys.com',
     'max_retries'           : '3',
     'filename'              : default_filename,
+    'cfg_file'              : default_filename,
     'remember_me'           : False,
     'remember_me_always'    : False,
     'use_ini'               : False,

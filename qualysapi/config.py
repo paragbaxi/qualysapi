@@ -5,6 +5,7 @@ import os
 import stat
 import getpass
 import logging
+import pprint
 
 logging.basicConfig()
 
@@ -34,7 +35,7 @@ class QualysConnectConfig:
         #handle kwarg defaults (don't think I can zip because of overwrite)
         settings = qcs.defaults
         settings.update(kwargs)
-
+        logging.debug(pprint.pformat(kwargs))
         self._cfgfile = None
 
         #this needs to only be done in ***SOME*** cases.  UGH yuck no no no
@@ -53,6 +54,7 @@ class QualysConnectConfig:
 
         # create ConfigParser to combine defaults and input from config file.
         self._cfgparse = ConfigParser(qcs.defaults)
+        logging.debug(pprint.pformat(self._cfgparse.sections()))
 
         if self._cfgfile:
             self._cfgfile = os.path.realpath(self._cfgfile)
@@ -164,12 +166,19 @@ class QualysConnectConfig:
 
         #uh... ok..., let's go ahead and handle kwarg overrides
         for key in settings:
-            self._cfgparse.set('info', key, str(settings[key]))
+            if settings[key] is not None:
+                self._cfgparse.set('info', key, str(settings[key]))
 
         # ask username (if one doesn't exist)
+        logging.debug('checking config file for username')
         if not self._cfgparse.has_option('info', 'username'):
             username = input('QualysGuard Username: ')
             self._cfgparse.set('info', 'username', username)
+        else:
+            logging.debug('username \'' + \
+                    self._cfgparse.get('info', 'username') + \
+                    '\' found in config file')
+
 
         # ask password (if one doesn't exist)
         if not self._cfgparse.has_option('info', 'password'):

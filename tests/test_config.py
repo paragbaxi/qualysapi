@@ -5,15 +5,15 @@ import os
 import unittest
 import logging
 
-logging.basicConfig()
 # Setup module level logging.
+logging.basicConfig(level=logging.DEBUG)
 
 from qualysapi import qcache, config, exceptions
+from qualysapi import api_actions
 
-
-class TestAPICache(unittest.TestCase):
+class TestConfig(unittest.TestCase):
     '''
-    APICache unittest class
+    Config unittest class
 
     @Params
     tf = tempfile
@@ -42,8 +42,8 @@ class TestAPICache(unittest.TestCase):
                 'test_data')
         self.tcfilename = os.path.join( self.tcfilename, 'unittests.cfg')
 
-        # logger.debug('Test Case Config File is ' + self.tcfilename)
-        # logger.debug(os.path.isfile(self.tcfilename))
+        logging.debug('Test Case Config File is ' + self.tcfilename)
+        logging.debug('isfile returned ' + str(os.path.isfile(self.tcfilename)))
 
         # if we don't have a unittest configuration file make a temporary
         # file for our unit tests
@@ -61,62 +61,25 @@ class TestAPICache(unittest.TestCase):
             self.tf.close()
             self.tfDestroy = True
 
-        qconf = config.QualysConnectConfig(
-                use_ini=True,
-                filename=self.tcfilename,
-                username=self.test_username,
-                password=self.test_password,
-                remember_me=True)
-        self.cache_instance = qcache.APICacheInstance(qconf)
 
 
     def tearDown(self):
         '''Remove the temporary file'''
         if self.tfDestroy: os.remove(os.path.abspath(self.tcfilename))
 
-
-    def test_key(self):
-        ''' prints out a redis key from a qualysapi style request '''
-        endpoint = 'api/2.0/fo/report'
-        args = {
-            'action' : 'list',
-            'state' : 'Finished',
-        }
-        self.assertEqual(
-            'api/2.0/fo/report|action=list|state=Finished',
-            self.cache_instance.build_redis_key(endpoint, **args)
-            )
-
-
-    def test_cache(self):
-        ''' pulls a map_report_list and stores it in redis. '''
-        result = None
-        try:
-            endpoint = 'map_report_list.php'
-            with self.assertRaises(exceptions.QualysAuthenticationException):
-                result = self.cache_instance.cache_request(endpoint)
-        except Exception as e:
-            logging.exception('Cache call failed!')
-
-        if result:
-            # Because we expect an exception if result actually gets set the
-            # test has failed, somehow we didn't get an auth exception.
-            self.assertTrue(False)
-
-
-    def test_cache_expiration(self):
-        self.assertTrue(False)
-
-
-    def test_speed(self):
-        self.assertTrue(False)
+    def test_config(self):
+        ''' Pulls a list of maps '''
+        qconf = config.QualysConnectConfig(
+                use_ini=True,
+                filename=self.tcfilename,
+                username=self.test_username,
+                password=self.test_password,
+                remember_me=False)
+        self.cache_instance = qcache.APICacheInstance(qconf)
 
 
 #stand-alone test execution
 if __name__ == '__main__':
-    # enable debug logging for main
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    # execute
-    unittest.main()
+    import nose2
+    nose2.main()
 

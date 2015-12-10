@@ -5,13 +5,13 @@ import os
 import unittest
 import logging
 
-logging.basicConfig()
 # Setup module level logging.
+logging.basicConfig(level=logging.DEBUG)
 
 from qualysapi import qcache, config, exceptions
+from qualysapi import api_actions
 
-
-class TestAPICache(unittest.TestCase):
+class TestAPIMethods(unittest.TestCase):
     '''
     APICache unittest class
 
@@ -40,7 +40,7 @@ class TestAPICache(unittest.TestCase):
         self.tcfilename = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
                 'test_data')
-        self.tcfilename = os.path.join( self.tcfilename, 'unittests.cfg')
+        self.tcfilename = os.path.join( self.tcfilename, 'integration-config.cfg')
 
         # logger.debug('Test Case Config File is ' + self.tcfilename)
         # logger.debug(os.path.isfile(self.tcfilename))
@@ -74,49 +74,27 @@ class TestAPICache(unittest.TestCase):
         '''Remove the temporary file'''
         if self.tfDestroy: os.remove(os.path.abspath(self.tcfilename))
 
-
-    def test_key(self):
-        ''' prints out a redis key from a qualysapi style request '''
-        endpoint = 'api/2.0/fo/report'
-        args = {
-            'action' : 'list',
-            'state' : 'Finished',
-        }
-        self.assertEqual(
-            'api/2.0/fo/report|action=list|state=Finished',
-            self.cache_instance.build_redis_key(endpoint, **args)
-            )
+    def test_api_init(self):
+        ''' Pulls a list of maps '''
+        with self.assertRaises(exceptions.NoConnectionError):
+            actions = api_actions.QGActions()
 
 
-    def test_cache(self):
-        ''' pulls a map_report_list and stores it in redis. '''
-        result = None
-        try:
-            endpoint = 'map_report_list.php'
-            with self.assertRaises(exceptions.QualysAuthenticationException):
-                result = self.cache_instance.cache_request(endpoint)
-        except Exception as e:
-            logging.exception('Cache call failed!')
 
-        if result:
-            # Because we expect an exception if result actually gets set the
-            # test has failed, somehow we didn't get an auth exception.
-            self.assertTrue(False)
-
-
-    def test_cache_expiration(self):
-        self.assertTrue(False)
-
-
-    def test_speed(self):
-        self.assertTrue(False)
+    def test_map_list(self):
+        ''' Pulls a list of maps '''
+        actions = api_actions.QGActions(cache_connection =
+                self.cache_instance)
+        scans = actions.listScans(state='Finished')
+        self.assertGreaterEqual(len(scans),1)
+        for counter,scan in enumerate(scans):
+            logging.debug('%02d:\r%s' % (counter, scan))
 
 
 #stand-alone test execution
 if __name__ == '__main__':
-    # enable debug logging for main
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    # execute
-    unittest.main()
+    logging.info('Beginning nose2 unit tests...')
+    import nose2
+    nose2.main()
+    logging.info('Tests completed...')
 

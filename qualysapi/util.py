@@ -1,10 +1,6 @@
 """ A set of utility functions for QualysConnect module. """
 import logging
 
-import qualysapi.config as qcconf
-import qualysapi.connector as qcconn
-import qualysapi.settings as qcs
-
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = 'Apache License 2.0'
@@ -13,26 +9,14 @@ __license__ = 'Apache License 2.0'
 logger = logging.getLogger(__name__)
 
 
-def connect(*args, **kwargs):
+def preformat_call(api_call):
+    """ Return properly formatted QualysGuard API call.
 
-    defaults = {
-        'config_file' : qcs.default_filename,
-        'remember_me' : False,
-        'remember_me_always' : False
-    }
-    defaults.update(kwargs)
-
-    """ Return a QGAPIConnect object for v1 API pulling settings from config
-    file.
     """
-    # Retrieve login credentials.
-    conf = kwargs.get(
-            'config',
-            qcconf.QualysConnectConfig(**defaults))
-    connect = qcconn.QGConnector(
-            conf.get_auth(),
-            conf.get_hostname(),
-            conf.proxies,
-            conf.max_retries)
-    logger.info("Finished building connector.")
-    return connect
+    # Remove possible starting slashes or trailing question marks in call.
+    api_call_formatted = api_call.lstrip('/')
+    api_call_formatted = api_call_formatted.rstrip('?')
+    if api_call != api_call_formatted:
+        # Show difference
+        logger.debug('api_call post strip =\n%s' % api_call_formatted)
+    return api_call_formatted

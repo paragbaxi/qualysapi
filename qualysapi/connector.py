@@ -14,6 +14,7 @@ import requests
 
 import qualysapi.version
 import qualysapi.api_methods
+from qualysapi import util
 
 from qualysapi.exceptions import QualysAuthenticationException
 
@@ -173,19 +174,6 @@ class QGConnector:
                 return 'post'
 
 
-    def preformat_call(self, api_call):
-        """ Return properly formatted QualysGuard API call.
-
-        """
-        # Remove possible starting slashes or trailing question marks in call.
-        api_call_formatted = api_call.lstrip('/')
-        api_call_formatted = api_call_formatted.rstrip('?')
-        if api_call != api_call_formatted:
-            # Show difference
-            logger.debug('api_call post strip =\n%s' % api_call_formatted)
-        return api_call_formatted
-
-
     def format_call(self, api_version, api_call):
         """ Return properly formatted QualysGuard API call according to api_version etiquette.
 
@@ -246,7 +234,7 @@ class QGConnector:
         #
         # Determine API version.
         # Preformat call.
-        api_call = self.preformat_call(api_call)
+        api_call = util.preformat_call(api_call)
         if api_version:
             # API version specified, format API version inputted.
             api_version = self.format_api_version(api_version)
@@ -309,7 +297,8 @@ class QGConnector:
                 logger.debug(e)
                 pass
             # Response received.
-            response = "".join([str(buffblock,'utf-8') for buffblock in request.iter_content(chunk_size=8192, decode_unicode=False)])
+            response = "".join([str(buffblock,'utf-8') for buffblock in
+                request.iter_content(chunk_size=8192, decode_unicode=True)])
             # for buffblock in request.iter_content(chunk_size=8192, decode_unicode=True):
             #    response_str += unicode(buffblock)
             # response = str(request.content)
