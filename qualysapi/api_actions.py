@@ -1,9 +1,11 @@
 from lxml import objectify
 import qualysapi.api_objects
 from qualysapi.api_objects import *
-from qualysapi.exceptions import NoConnectionError
+from qualysapi.exceptions import NoConnectionError, ParsingBufferException
 import logging
 import pprint
+
+
 
 
 class QGActions(object):
@@ -29,6 +31,41 @@ class QGActions(object):
                 raise NoConnectionError('You attempted to make an \
                 api requst without specifying an API connection first.')
             self.request = kwargs['connection'].request
+
+    def parseResponse(self, **kwargs):
+        '''
+        An internal utility method that implements an lxml parser capable of
+        handling streams and mapping objects to elements.
+
+        Please note that this utiliy is only capable of parsing known Qualys
+        API DTDs properly.
+
+        @Params
+        source -- a filename or url to an xml file or an open stream.
+        buffer -- an object capable of buffering the stream by doing block
+        processing of chunks of data.
+        '''
+        source = kwargs.pop('source', None)
+        if source is None:
+            raise QualysException('No source file or URL or raw stream found.')
+
+        context = etree.iterparse(source, events=('end',))
+
+        inbuff = kwargs.pop('buffer', None)
+        if inbuff is None:
+            raise ParsingBufferException('No buffer sent to parser.')
+        for event, elem in context:
+            #Use QName to avoid specifying or stripping the namespace, which we don't need
+            if etree.QName(elem.tag).localname.upper() in obj_elem_map:
+                count+=1
+                inbuff.add(obj_elem_map[etree.QName(elem.tag).localname.upper()](elem))
+            elem.clear() #don't fill up a dom we don't need.
+        logger.info("parsed %d records" % (count))
+        if kwargs.pop('commit', True):
+            inbuff.commit()
+        else:
+            inbuff.rollback()
+        inbuff.info()
 
 
     def getHost(host):
