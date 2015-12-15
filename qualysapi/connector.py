@@ -14,10 +14,13 @@ from collections import defaultdict
 import requests
 
 import qualysapi.version
+from qualysapi.api_methods import api_methods
+from qualysapi.api_methods import api_methods_with_trailing_slash
 import qualysapi.api_methods
 from qualysapi import util
 
 from qualysapi.exceptions import QualysAuthenticationException
+from qualysapi.api_methods import api_methods
 
 
 
@@ -47,12 +50,6 @@ class QGConnector:
         self.server = server
         # Remember rate limits per call.
         self.rate_limit_remaining = defaultdict(int)
-        # api_methods: Define method algorithm in a dict of set.
-        # Naming convention: api_methods[api_version optional_blah] due to api_methods_with_trailing_slash testing.
-        self.api_methods = qualysapi.api_methods.api_methods
-        #
-        # Keep track of methods with ending slashes to autocorrect user when they forgot slash.
-        self.api_methods_with_trailing_slash = qualysapi.api_methods.api_methods_with_trailing_slash
         self.proxies = proxies
         logger.debug('proxies = \n%s' % proxies)
         # Set up requests max_retries.
@@ -146,7 +143,7 @@ class QGConnector:
         if api_version == 2:
             return 'post'
         elif api_version == 1:
-            if api_call in self.api_methods['1 post']:
+            if api_call in api_methods['1 post']:
                 return 'post'
             else:
                 return 'get'
@@ -155,12 +152,12 @@ class QGConnector:
             # Because WAS API enables user to GET API resources in URI, let's chop off the resource.
             # '/download/was/report/18823' --> '/download/was/report/'
             api_call_endpoint = api_call[:api_call.rfind('/') + 1]
-            if api_call_endpoint in self.api_methods['was get']:
+            if api_call_endpoint in api_methods['was get']:
                 return 'get'
             # Post calls with no payload will result in HTTPError: 415 Client Error: Unsupported Media Type.
             if not data:
                 # No post data. Some calls change to GET with no post data.
-                if api_call_endpoint in self.api_methods['was no data get']:
+                if api_call_endpoint in api_methods['was no data get']:
                     return 'get'
                 else:
                     return 'post'
@@ -169,7 +166,7 @@ class QGConnector:
                 return 'post'
         else:
             # Asset Management API call.
-            if api_call in self.api_methods['am get']:
+            if api_call in api_methods['am get']:
                 return 'get'
             else:
                 return 'post'
@@ -188,7 +185,7 @@ class QGConnector:
             # Add slash.
             logger.debug('Adding "/" to api_call.')
             api_call += '/'
-        if api_call in self.api_methods_with_trailing_slash[api_version]:
+        if api_call in api_methods_with_trailing_slash[api_version]:
             # Add slash.
             logger.debug('Adding "/" to api_call.')
             api_call += '/'
@@ -454,6 +451,10 @@ class QGConnector:
 #             # logger.debug('response text =\n%s' % (response))
 #             # Keep track of how many retries.
 #             retries += 1
+        if request.status_code == 401:
+            request.close()
+            raise QualysAuthenticationException('Bad Qualys username or \
+                password.')
         response.raise_for_status()
         response.raw.decode_content = True
-        return etree.iterparse(response.raw)
+        return response.raw

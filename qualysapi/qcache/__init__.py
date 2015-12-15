@@ -4,7 +4,7 @@ from .. import api_methods, connect
 import traceback
 import pprint
 import logging
-
+from io import BytesIO 
 
 from qualysapi import util
 connection_args = {
@@ -481,7 +481,7 @@ class QCacheException(Exception):
     pass
 
 
-class APICacheInstance():
+class APICacheInstance(object):
     ''' A unary cache instance.
 
     Required:
@@ -563,7 +563,6 @@ class APICacheInstance():
             return conn.delete(key)
 
 
-
     def cache_request(self,*args,**kwargs):
         '''
         Just build a redis key from the endpoint + arguments and
@@ -617,5 +616,12 @@ class APICacheInstance():
         return result
 
 
+    def stream_cache_request(self, *args, **kwargs):
+        ''' This implements a stream wrapper around redis, which doesn't handle
+        streams.  Eventually this should be handled differently (because of XML
+        sizes).
+        '''
+        result = self.cache_request(*args, **kwargs)
+        return BytesIO(result)
 
 

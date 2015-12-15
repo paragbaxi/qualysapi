@@ -2,10 +2,11 @@ import datetime
 import lxml
 import logging
 import pprint
+from multiprocessing import Process, Pool, Manager, get_context
+from multiprocessing.queues import Queue
+import queue
+from qualysapi.exceptions import ParsingBufferException
 
-obj_elem_map = {
-    'MAP_REPORT' : Map,
-}
 
 
 class Host(object):
@@ -144,25 +145,16 @@ class Scan(object):
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
             self.status = lxml.objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
 
-from multiprocessing import process, queue, pool
-class BuffFlusher(Process):
-    '''A multiprocessing class that is capable of doing side-process buffer
-    flushing to a database or object cash or anything else while the parse
-    continues to parse a large data set.'''
 
-    def __init__(self, **kwargs):
-        '''Initializes a buffer flusher'''
-        pass
-
-    def start(self):
-        pass
-
-class BuffQueue(object):
+class BufferQueue(Queue):
     '''A thread/process safe queue for append/pop operations with the import
     buffer.  Initially this is just a wrapper around a collections deque but in
     the future it will be based off of multiprocess queue for access across
-    processes (which isn't really possible right now)'''
-    queue = Queue()
+    processes (which isn't really possible right now)
+    '''
+
+    def __init__(self, **kwargs):
+        super(BufferQueue,self).__init__(**kwargs)
 
     def consume(self, lim):
         '''Consume up to but no more than lim elements and return them in a new
@@ -172,19 +164,8 @@ class BuffQueue(object):
         lim -- the maximum (limit) to consume from the list.  If less items
         exist in the list then that's fine too.
         '''
-        lim = len(queue) if len(queue) < lim else lim
-        return [self.queue.popleft() for i in range(lim)]
-
-    def add(self, element):
-        '''Adds a new object to the end of the queue.'''
-        self.queue.append(element)
-
-    def getsize(self):
-        ''' return the number of items currently in the queue at the exact
-        moment this was called.  This is only really useful for metrics since
-        the number can change at any time based on consumer(s).
-        '''
-        return len(queue)
+        lim = len(self) if len(self) < lim else lim
+        return [self.popleft() for i in range(lim)]
 
 
 class BufferStats(object):
@@ -206,24 +187,64 @@ class BufferStats(object):
         end_time and number processed.  Useful for metrics.'''
         pass
 
+    def increment_updates(self):
+        '''
+        Increase updates..
+        '''
+        self.updates+=1
 
-class BufferConsumer(process):
+    def increment_insertions(self):
+        '''
+        Increase additions.
+        '''
+        self.adds+=1
+
+    def decrement(self):
+        '''
+        Increase deleted items
+        '''
+        self.deletes+=1
+
+
+class BufferConsumer(Process):
     '''This will eventually be a subclass of Process, but for now it is simply
-    a consumer which will consume buffer objects and do somethign with them.
+    a consumer which will consume buffer objects and do something with them.
     '''
-
+    bite_size = 1
+    queue = None
+    results_list = None
     def __init__(self, **kwargs):
         '''
         initialize this consumer with a bite_size to consume from the buffer.
+        @Parms
+        queue -- a BufferQueue object
+        results_list -- Optional.  A list in which to store processing results.
+        None by default.
         '''
+        super(BufferConsumer, self).__init__() #pass to parent
         self.bite_size = kwargs.get('bite_size', 1000)
         self.queue = kwargs.get('queue', None)
+        if self.queue is None:
+            raise ParsingBufferException('Consumer initialized without an input \
+                queue.')
+
+        self.results_list = kwargs.get('results_list', None)
 
     def run(self):
-        '''a processes that consumes a queue in bite-sized chunks'''
-        for item in self.queue.consume(self.bite_size):
-            #the base class just logs this stuff
-            logging.debug(str(item, 'utf-8'))
+        '''a processes that consumes a queue in bite-sized chunks
+        This class and method should be overridden by child implementations in
+        order to actually do something useful with results.
+        '''
+        done = False
+        while not done:
+            try:
+                item = self.queue.get(timeout=0.5)
+                #the base class just logs this stuff
+                if self.results_list is not None:
+                    self.results_list.append(item)
+            except queue.Empty:
+                logging.debug('Queue timed out, assuming closed.')
+                done = True
 
 
 class ImportBuffer(object):
@@ -247,25 +268,39 @@ class ImportBuffer(object):
         comitted to the database will be detected by another process.
         Obviously.
     '''
-    queue = BuffQueue()
-    stats = bufferStats()
+    queue = BufferQueue(ctx=get_context())
+    stats = BufferStats()
+    consumer = None
 
     trigger_limit = 5000
     bite_size = 1000
     max_consumers = 5
-    process_pool = 
+
+    results_list = None
+    running = []
+
 
     def __init__(self, *args, **kwargs):
         '''
         Creates a new import buffer.
 
         @Params
+        completion_callback -- Required.  A function that gets called when the buffer has
+        been flushed and all consumers have finished.  Must allow keyword
+        arguments list.
+        consumer_callback -- Optional.  a function that gets called each time a consumer
+        completes but the buffer hasn't been clearned or finished.
         trigger_limit -- set the consumer triggering limit.  The default is
         5000.
         bite_size -- set the consumer consumption size (bites NOT BYTES).  The
         default is 1000.
         max_consumers -- set the maximum number of queue consumers to spawn.
         The default is five.
+        consumer -- the buffer consumer.  A type of multiprocessing.Process and
+        responsible to do something with the results buffer.  This is optional,
+        but not really useful in its optional form since it really just fills
+        up a threadsafe list taken from the buffer.  By default this is set to
+        a BufferConsumer(results_list=self.results_list).
         '''
         tlimit = kwargs.pop('trigger_limit', None)
         if tlimit is not None:
@@ -277,7 +312,38 @@ class ImportBuffer(object):
         if mxcons is not None:
             self.max_consumers = mxcons
 
+        self.manager = Manager()
+        self.results_list = self.manager.list()
+
+        self.consumer = kwargs.pop('consumer', None)
+        if self.consumer is None:
+            self.consumer = BufferConsumer
+
+
     def add(self, item):
         '''Place a new object into the buffer'''
-        queue.add(item)
-        if 
+        self.queue.put(item)
+        #see if we should start a consumer...
+        if not len(self.running):
+            new_consumer = self.consumer(queue=self.queue, results_list=self.results_list)
+            new_consumer.start()
+            self.running.append(new_consumer)
+
+        #check for finished consumers and clean them up...
+        for csmr in self.running:
+            if not csmr.is_alive():
+                self.running.remove(csmr)
+
+
+    def finish(self):
+        '''Notifies the buffer that we are done filling it, forces it wait for
+        processes to finish and then return the results, if any.'''
+        for csmr in self.running:
+            csmr.join()
+
+        return self.results_list
+
+
+obj_elem_map = {
+    'MAP_REPORT' : Map,
+}

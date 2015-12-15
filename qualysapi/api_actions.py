@@ -1,14 +1,24 @@
-from lxml import objectify
+from lxml import objectify, etree
 import qualysapi.api_objects
 from qualysapi.api_objects import *
 from qualysapi.exceptions import NoConnectionError, ParsingBufferException
+from qualysapi.api_methods import api_methods
 import logging
 import pprint
 
 
+def defaultCompletionHandler(IB):
+    logging.info('Import buffer completed.')
+    logging.info(repr(IB))
 
 
 class QGActions(object):
+
+    import_buffer = None
+    request = None
+    stream_request = None
+
+    conn = None
 
 
     def __init__(self, *args, **kwargs):
@@ -20,17 +30,27 @@ class QGActions(object):
         required, but this one takes precedence.  If you specify a cache
         connection then the connection is inferred from the cache
         configuration.
-
         connection -- required if no cache_connection is specified, otherwise
         it is ignored in favor of the cache connection.
+        import_buffer -- an optional parse buffer which handles parsing using
+        both an object instance factory and a multiprocess/thread parse
+        handler.  This is efficient for enterprise applications which have
+        large numbers of maps and scans with very large result sets and custom
+        handling attached to the qualys objects.
         '''
-        if kwargs.get('cache_connection', None):
-            self.request = kwargs['cache_connection'].cache_request
+        self.conn = kwargs.get('cache_connection', None)
+        if self.conn:
+            self.request = self.conn.cache_request
+            self.stream_request = self.conn.stream_cache_request
         else:
-            if not kwargs.get('connection', None):
+            self.conn = kwargs.get('connection', None)
+            if not self.conn:
                 raise NoConnectionError('You attempted to make an \
                 api requst without specifying an API connection first.')
-            self.request = kwargs['connection'].request
+            self.request = self.conn.request
+            self.stream_request = self.conn.stream_request
+
+        self.import_buffer = kwargs.get('import_buffer', None)
 
     def parseResponse(self, **kwargs):
         '''
@@ -42,36 +62,42 @@ class QGActions(object):
 
         @Params
         source -- a filename or url to an xml file or an open stream.
-        buffer -- an object capable of buffering the stream by doing block
-        processing of chunks of data.
+        block -- an optional parameter which binds the caller to the parse
+        buffer for consumption.  It is generally assumed by the design that
+        parse consumers will handle themselves internally and that this method
+        can return once it kicks off an action.  When block is set to True,
+        however, this method will join the parse buffer and wait for the
+        consumers to clear the queue before returning.
+        result_handler -- an optional method that gets called when consumption
+        of a parse completes.  This method will receive all of the objects
+        handled by the buffer consumers as a callback rather than a threaded
+        parse consumer.
         '''
         source = kwargs.pop('source', None)
         if source is None:
             raise QualysException('No source file or URL or raw stream found.')
 
-        context = etree.iterparse(source, events=('end',))
 
-        inbuff = kwargs.pop('buffer', None)
-        if inbuff is None:
-            raise ParsingBufferException('No buffer sent to parser.')
+        block = kwargs.pop('block', False)
+        callback = kwargs.pop('callback', None)
+
+        response = self.stream_request(source, **kwargs)
+        context = etree.iterparse(response, events=('end',))
+
+        if self.import_buffer is None:
+            self.import_buffer = ImportBuffer()
         for event, elem in context:
             #Use QName to avoid specifying or stripping the namespace, which we don't need
             if etree.QName(elem.tag).localname.upper() in obj_elem_map:
-                count+=1
-                inbuff.add(obj_elem_map[etree.QName(elem.tag).localname.upper()](elem))
+                self.import_buffer.add(obj_elem_map[etree.QName(elem.tag).localname.upper()](elem))
             elem.clear() #don't fill up a dom we don't need.
-        logger.info("parsed %d records" % (count))
-        if kwargs.pop('commit', True):
-            inbuff.commit()
-        else:
-            inbuff.rollback()
-        inbuff.info()
+        return self.import_buffer.finish()
 
 
     def getHost(host):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'ips': host, 'details': 'All'}
-        hostData = objectify.fromstring(self.request(call, parameters)).RESPONSE
+        hostData = objectify.fromstring(self.request(call, data=parameters)).RESPONSE
         try:
             hostData = hostData.HOST_LIST.HOST
             return Host(hostData.DNS, hostData.ID, hostData.IP, hostData.LAST_VULN_SCAN_DATETIME, hostData.NETBIOS, hostData.OS, hostData.TRACKING_METHOD)
@@ -81,7 +107,7 @@ class QGActions(object):
     def getHostRange(self, start, end):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'ips': start+'-'+end}
-        hostData = objectify.fromstring(self.request(call, parameters))
+        hostData = objectify.fromstring(self.request(call, data=parameters))
         hostArray = []
         for host in hostData.RESPONSE.HOST_LIST.HOST:
             hostArray.append(Host(host.DNS, host.ID, host.IP, host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS, host.TRACKING_METHOD))
@@ -140,7 +166,7 @@ class QGActions(object):
         if id == 0:
             parameters = {'action': 'list'}
 
-            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE
+            repData = objectify.fromstring(self.request(call, data=parameters)).RESPONSE
             reportsArray = []
 
             for report in repData.REPORT_LIST.REPORT:
@@ -150,14 +176,14 @@ class QGActions(object):
 
         else:
             parameters = {'action': 'list', 'id': id}
-            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE.REPORT_LIST.REPORT
+            repData = objectify.fromstring(self.request(call, data=parameters)).RESPONSE.REPORT_LIST.REPORT
             return Report(repData.EXPIRATION_DATETIME, repData.ID, repData.LAUNCH_DATETIME, repData.OUTPUT_FORMAT, repData.SIZE, repData.STATUS, repData.TYPE, repData.USER_LOGIN)
 
 
     def notScannedSince(self, days):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'details': 'All'}
-        hostData = objectify.fromstring(self.request(call, parameters))
+        hostData = objectify.fromstring(self.request(call, data=parameters))
         hostArray = []
         today = datetime.date.today()
         for host in hostData.RESPONSE.HOST_LIST.HOST:
@@ -182,7 +208,14 @@ class QGActions(object):
             enablepc = 1
 
         parameters = {'action': 'add', 'ips': ips, 'enable_vm': enablevm, 'enable_pc': enablepc}
-        self.request(call, parameters)
+        self.request(call, data=parameters)
+
+    def asyncListMaps(self, bind=False):
+        '''
+        An asynchronous call to the parser/consumer framework to return a list
+        of maps.
+        '''
+        raise QualyException('Not yet implemented')
 
     def listMaps(self, *args, **kwargs):
         '''
@@ -191,11 +224,12 @@ class QGActions(object):
         '''
         call = 'map_report_list.php'
         data = {}
-        result = self.request(call, data = data)
-        logging.debug(pprint.pformat(result))
-        maplist = objectify.fromstring(result)
-        logging.debug(pprint.pformat(maplist.__dict__))
-        return [mapr.TITLE for mapr in maplist.MAP_REPORT]
+        return self.parseResponse(source=call, data=data)
+        #result = self.request(call, data = data)
+        #logging.debug(pprint.pformat(result))
+        #maplist = objectify.fromstring(result)
+        #logging.debug(pprint.pformat(maplist.__dict__))
+        #return [mapr.TITLE for mapr in maplist.MAP_REPORT]
 #        for mapr in maplist.RESPONSE.MAP_REPORT_LIST.MAP_REPORT:
 #            logging.debug(pprint.pformat(mapr))
 
@@ -247,12 +281,12 @@ class QGActions(object):
         if asset_groups == "":
             parameters.pop("asset_groups")
 
-        scan_ref = objectify.fromstring(self.request(call, parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
+        scan_ref = objectify.fromstring(self.request(call, data=parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
 
         call = '/api/2.0/fo/scan/'
         parameters = {'action': 'list', 'scan_ref': scan_ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1}
 
-        scan = objectify.fromstring(self.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN
+        scan = objectify.fromstring(self.request(call, data=parameters)).RESPONSE.SCAN_LIST.SCAN
         try:
             agList = []
             for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
@@ -261,3 +295,9 @@ class QGActions(object):
             agList = []
 
         return Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN)
+
+    def addBuffer(self, parse_buffer):
+        '''
+        Add an ImportBuffer to this action object.
+        '''
+        self.import_buffer = parse_buffer

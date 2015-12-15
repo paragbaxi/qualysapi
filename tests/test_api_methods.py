@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from qualysapi import qcache, config, exceptions
-from qualysapi import api_actions
+from qualysapi import api_actions, api_objects
 
 class TestAPIMethods(unittest.TestCase):
     '''
@@ -85,6 +85,7 @@ class TestAPIMethods(unittest.TestCase):
         actions = api_actions.QGActions(cache_connection =
                 self.cache_instance)
         maps = actions.listMaps(state='Finished')
+        self.assertIsNotNone(maps)
         self.assertGreaterEqual(len(maps),1)
         for counter,mapr in enumerate(maps):
             logging.debug('%02d:\r%s' % (counter, mapr))
