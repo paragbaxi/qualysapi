@@ -86,11 +86,15 @@ class QGActions(object):
 
         if self.import_buffer is None:
             self.import_buffer = ImportBuffer()
+        clear_ok = False
         for event, elem in context:
             #Use QName to avoid specifying or stripping the namespace, which we don't need
             if etree.QName(elem.tag).localname.upper() in obj_elem_map:
-                self.import_buffer.add(obj_elem_map[etree.QName(elem.tag).localname.upper()](elem))
-            elem.clear() #don't fill up a dom we don't need.
+                self.import_buffer.add(obj_elem_map[etree.QName(elem.tag).localname.upper()](elem=elem))
+                clear_ok = True
+            if clear_ok:
+                elem.clear() #don't fill up a dom we don't need.
+                clear_ok = False
         return self.import_buffer.finish()
 
 

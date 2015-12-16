@@ -71,13 +71,49 @@ class Report(object):
             return conn.request(call, parameters)
 
 
+class OptionProfile(object):
+    title = None
+    is_default = False
+    def __init__(self, *args, **kwargs):
+        el = None
+        if len(args):
+            el = args[0]
+        elif kwargs.get('elem', None):
+            el = kwargs.get('elem')
+        if el is not None:
+            self.title = el.text
+            self.is_default = (el.get('option_profile_default', 1) == 0)
+
+
 class Map(object):
+    name = None
+    ref = None
+    date = None
+    domain = None
+    status = None
     def __init__(self, *args, **kwargs):
         '''Instantiate a new Map.'''
         elem = kwargs.pop('elem', None)
+        logging.debug('Map with elem\n\t\t%s' % pprint.pformat(elem))
         if elem is not None: #we are being initialized with an lxml element, assume it's in CVE export format
+            self.ref = elem.get('ref', None)
+            self.date = elem.get('date', None)
+            self.domain = elem.get('domain', None)
+            self.status = elem.get('status', None)
+
             for child in elem:
-                logging.debug(lxml.etree.QName(child.tag).localname.upper())
+                if lxml.etree.QName(child.tag).localname.upper() == 'TITLE':
+                    if child.text:
+                        self.name = child.text
+                    else:
+                        self.name="".join(child.itertext())
+                if lxml.etree.QName(child.tag).localname.upper() == \
+                    'OPTION_PROFILE':
+                    self.option_profiles = [OptionProfile(op) for op in child]
+
+    def __repr__(self):
+        return '<Map name=\'%s\' date=\'%s\' ref=\'%s\' />' % (self.name, \
+                self.date, self.ref)
 
 
 class Scan(object):

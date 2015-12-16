@@ -5,11 +5,15 @@ import os
 import unittest
 import logging
 
-# Setup module level logging.
-logging.basicConfig(level=logging.DEBUG)
+# Setup module level logging. -- workaround nose
+# logging.basicConfig(level=logging.DEBUG)
 
 from qualysapi import qcache, config, exceptions
 from qualysapi import api_actions, api_objects
+
+#pudb nice debugger
+import pudb
+pu.db
 
 class TestAPIMethods(unittest.TestCase):
     '''
@@ -84,6 +88,7 @@ class TestAPIMethods(unittest.TestCase):
         ''' Pulls a list of maps'''
         actions = api_actions.QGActions(cache_connection =
                 self.cache_instance)
+        #import pdb; pdb.set_trace()
         maps = actions.listMaps(state='Finished')
         self.assertIsNotNone(maps)
         self.assertGreaterEqual(len(maps),1)
@@ -105,6 +110,6 @@ class TestAPIMethods(unittest.TestCase):
 if __name__ == '__main__':
     logging.info('Beginning nose2 unit tests...')
     import nose2
-    nose2.main()
+    nose2.main(argv=['fake', '--log-capture'])
     logging.info('Tests completed...')
 

@@ -305,11 +305,11 @@ class QGConnector:
                 logger.debug(pprint.pformat(buffblock))
             response = b"".join([buffblock for buffblock in
                 request.iter_content(chunk_size=8192, decode_unicode=False)])
-            logging.debug(pprint.pformat(response))
+            #logging.debug(pprint.pformat(response))
             # for buffblock in request.iter_content(chunk_size=8192, decode_unicode=True):
             #    response_str += unicode(buffblock)
             # response = str(request.content)
-            logger.debug('response text =\n%s' % (response))
+            #logger.debug('response text =\n%s' % (response))
             # Keep track of how many retries.
             retries += 1
             # Check for concurrent scans limit.
