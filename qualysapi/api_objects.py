@@ -112,8 +112,21 @@ class Map(object):
                     self.option_profiles = [OptionProfile(op) for op in child]
 
     def __repr__(self):
+        '''Represent y0'''
         return '<Map name=\'%s\' date=\'%s\' ref=\'%s\' />' % (self.name, \
                 self.date, self.ref)
+
+
+class MapResult(Map):
+    '''The actual results of a map.'''
+    def __init__(self):
+        '''A map result is a subclass of Map but it gets it's values of name,
+        ref, date, domain, status from different fields in a result.'''
+        raise QualysException('This class hasn\'t been implemented yet.')
+
+    def __repr__(self):
+        '''Represent y0'''
+        raise QualysException('This class hasn\'t been implemented yet.')
 
 
 class Scan(object):
@@ -376,10 +389,11 @@ class ImportBuffer(object):
         processes to finish and then return the results, if any.'''
         for csmr in self.running:
             csmr.join()
-
-        return self.results_list
+        # turn this into a list instead of a managed list
+        return list(self.results_list)
 
 
 obj_elem_map = {
     'MAP_REPORT' : Map,
+    'MAP_RESULT' : MapResult,
 }

@@ -1,7 +1,7 @@
 from lxml import objectify, etree
 import qualysapi.api_objects
 from qualysapi.api_objects import *
-from qualysapi.exceptions import NoConnectionError, ParsingBufferException
+from qualysapi.exceptions import *
 from qualysapi.api_methods import api_methods
 import logging
 import pprint
@@ -152,6 +152,79 @@ class QGActions(object):
             groupsArray.append(AssetGroup(group.BUSINESS_IMPACT, group.ID, group.LAST_UPDATE, scanipsArray, scandnsArray, scannersArray, group.TITLE))
 
         return groupsArray
+
+
+    def kickOffMapReports(self, **kwargs):
+        '''
+        This is a type of automation function that should really be used in a
+        process server or manager context.  Consider yourself warned.
+
+        This function gatheres a list of finished maps, turns them into json
+        strings, stores them in redis and then performs a series of automation
+        tasks on them.
+
+        Steps followed:
+        * get a list of finished maps from Qualys.  Serialize
+        each map object as a json string to redis using a key generated from
+        the map name.  This means that only the most recent run of a map with a
+        given name is cached or operated on by default.
+        * after the maps have been cached, a filter is applied to the map
+        objects including or excluding name patterns or date ranges.
+        * the resulting filtered list of maps is handed off to a report running
+        multiprocessing queue which will ensure that reports are started for
+        each of the maps.  Each process will respond to qualys indications of
+        concurrent report quests by sleeping and periodically checking to see
+        if qualys is ready to begin another report.  After a report is started,
+        the process will periodically check to see if the report is finished
+        and then download the report.  IDs will be stored with and associated
+        with the map and report.
+        * each process will update the cache with the current state of the map
+        and report each time it wakes up.  This allows processes which want to
+        consume available or specific map reports to simply check if the report is
+        available for processing against the cache and continue sleeping.
+        * Consumption of specific map reports is outside the purview of this
+        process manager.
+
+        @params
+        include_pattern -- an optional pattern by which to include map names.
+        exclude_pattern -- an optional pattern by which to exclude map names.
+        map_refs -- an optional list of map references to operate on.
+        map_names -- an optional list of map names to operate on.
+        sleep_period -- override the default sleep period for map report
+        checking.  Each processes will sleep for 30 minutes by default.
+        max_processes -- override the default number of processes which will
+        generate map reports and wait for them to complete.
+        runnable_process -- override the ReportManager class with your own
+        class.  @see qualysapi.api_objects.ReportManager for requirements.
+        timeout -- override the default timeout of 24 hours for processes.
+
+        @returns -- a list of @see qualysapi.api_objects.Maps that this processes
+        is or was operating on when called.  If this call is non-blocking then
+        anything other than the name, ref, and map date will almost certainly
+        be out of date with the cache (map report ids will need to be refreshed from
+        the cache, so think of the results returned as useful for reference to
+        state rather than completed states.)
+
+        '''
+
+
+    def fetchMapReport(self, **kwargs):
+        '''
+        Uses the cache to quickly look up the report associated with a specific
+        map ref.
+        '''
+        raise QualysException('Not yet implemented fully.')
+        call = '/api/2.0/fo/report/'
+        params = {
+            'action' : 'fetch',
+            'id'     : kwargs.get('id', 0)
+        }
+        map_reports = kwargs.get('map_reports', None)
+        if map_reports:
+            params['id'] = map_reports[0]
+        else:
+            raise QualysException('Need map refs as report ids to continue.')
+        return self.parseResponse(source=call, data=params)
 
 
     def listReportTemplates(self):

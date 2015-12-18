@@ -19,7 +19,7 @@ class TestAPIMethods(unittest.TestCase):
     '''
     APICache unittest class
 
-    @Params
+    Params
     tf = tempfile
     test_username -- stored if there is a need to use a temporary config during
     the testing process.
@@ -78,22 +78,35 @@ class TestAPIMethods(unittest.TestCase):
         '''Remove the temporary file'''
         if self.tfDestroy: os.remove(os.path.abspath(self.tcfilename))
 
+
     def test_api_init(self):
         ''' Pulls a list of maps '''
         with self.assertRaises(exceptions.NoConnectionError):
             actions = api_actions.QGActions()
 
 
-    def test_map_list(self):
+    def subtest_map_list(self, actions):
         ''' Pulls a list of maps'''
-        actions = api_actions.QGActions(cache_connection =
-                self.cache_instance)
-        #import pdb; pdb.set_trace()
         maps = actions.listMaps(state='Finished')
         self.assertIsNotNone(maps)
         self.assertGreaterEqual(len(maps),1)
         for counter,mapr in enumerate(maps):
             logging.debug('%02d:\r%s' % (counter, mapr))
+        return [maps[0]]
+
+
+    def test_map_list_02_fetch_map(self):
+        '''Fetches a map report given test_map_list having completed with
+        success.'''
+        actions = api_actions.QGActions(cache_connection =
+                self.cache_instance)
+        map_reports = self.subtest_map_list(actions)
+        self.assertIsNotNone(map_reports)
+        self.assertGreaterEqual(len(map_reports),1)
+        mapr = actions.fetchMapReport(map_reports=map_reports)
+        self.assertIsNotNone(mapr)
+        logging.debug(mapr)
+        #now do tests on the map report
 
 
     def test_report_list(self):

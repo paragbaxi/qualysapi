@@ -616,6 +616,37 @@ class APICacheInstance(object):
         return result
 
 
+    def map_to_report_helper(self, *args, **kwargs):
+        '''
+        This special helper is designed for use with async IO, multiprocessing,
+        launching scans, and map references.
+
+        The map_ref is used as a key, and stores information in the cache about
+        the report ID allowing a processes to request the status of a report
+        and update the cache when it is finished.
+
+        Thus there are multiple keys used in this case, built as follows:
+
+        map_name:
+            returns the map reference (most recent specifc map result for a
+            name)
+        map_ref:
+            returns the REPORT ID associted with this map reference.
+        report_id:
+            combines with map_name to link to the most recent report for a
+            given map_name and the STATUS of that report.  (Running, Stopped,
+            Finished, etc...)
+
+        So the above can be specified individually or a list of maps can be
+        sent into this function and the status on all of them will be returned
+        by this function.
+
+        A polling processes is started and periodicially checks on the status
+        of a map report and updates the cache.  This is how you check the
+        status of a map report in process.
+        '''
+
+
     def stream_cache_request(self, *args, **kwargs):
         ''' This implements a stream wrapper around redis, which doesn't handle
         streams.  Eventually this should be handled differently (because of XML
