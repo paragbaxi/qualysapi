@@ -121,8 +121,6 @@ class TestAPIMethods(unittest.TestCase):
 
 #stand-alone test execution
 if __name__ == '__main__':
-    logging.info('Beginning nose2 unit tests...')
     import nose2
     nose2.main(argv=['fake', '--log-capture'])
-    logging.info('Tests completed...')
 

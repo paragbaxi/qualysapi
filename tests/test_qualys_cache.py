@@ -5,7 +5,7 @@ import os
 import unittest
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 # Setup module level logging.
 
 import pudb
@@ -101,7 +101,7 @@ class TestAPICache(unittest.TestCase):
             status = 'Finished',
             report_id = None,
         )
-        self.cache_instance.cache_api_object(obj=mymap, expiration=125)
+        self.cache_instance.cache_api_object(obj=mymap, expiration=5)
         fromcache = self.cache_instance.load_api_object(
             objkey = mymap.getKey(),
             objtype = api_objects.Map
@@ -130,7 +130,23 @@ class TestAPICache(unittest.TestCase):
 
 
     def test_cache_expiration(self):
-        self.assertTrue(False)
+        from qualysapi import api_objects
+        mymap = api_objects.Map(
+            name = 'Bogus Test Map',
+            ref = 'map/12345.bogus',
+            date = '2015-11-19T06:00:39Z',
+            status = 'Finished',
+            report_id = None,
+        )
+        self.cache_instance.cache_api_object(obj=mymap, expiration=1)
+        # sleep for 2 seconds, letting the cache expire the key after 1
+        import time
+        time.sleep(2)
+        fromcache = self.cache_instance.load_api_object(
+            objkey = mymap.getKey(),
+            objtype = api_objects.Map
+        )
+        self.assertIsNone(fromcache)
 
 
     def test_speed(self):
@@ -139,9 +155,6 @@ class TestAPICache(unittest.TestCase):
 
 #stand-alone test execution
 if __name__ == '__main__':
-    # enable debug logging for main
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    # execute
-    unittest.main()
+    import nose2
+    nose2.main(argv=['fake', '--log-capture'])
 
