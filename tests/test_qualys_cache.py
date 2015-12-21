@@ -8,6 +8,8 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 # Setup module level logging.
 
+import pudb
+pu.db
 from qualysapi import qcache, config, exceptions
 
 
@@ -86,6 +88,25 @@ class TestAPICache(unittest.TestCase):
             'api/2.0/fo/report|action=list|state=Finished',
             self.cache_instance.build_redis_key(endpoint, **args)
             )
+
+    def test_api_serialization(self):
+        '''
+        Tests the api object serialize/deserialize functions.
+        '''
+        from qualysapi import api_objects
+        mymap = api_objects.Map(
+            name = 'Bogus Test Map',
+            ref = 'map/12345.bogus',
+            date = '2015-11-19T06:00:39Z',
+            status = 'Finished',
+            report_id = None,
+        )
+        self.cache_instance.cache_api_object(obj=mymap, expiration=125)
+        fromcache = self.cache_instance.load_api_object(
+            objkey = mymap.getKey(),
+            objtype = api_objects.Map
+        )
+        self.assertEqual(mymap, fromcache)
 
 
     def test_cache(self):

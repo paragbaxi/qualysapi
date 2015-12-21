@@ -5,6 +5,7 @@ from qualysapi.exceptions import *
 from qualysapi.api_methods import api_methods
 import logging
 import pprint
+import json
 
 
 def defaultCompletionHandler(IB):
@@ -206,6 +207,8 @@ class QGActions(object):
         state rather than completed states.)
 
         '''
+        maps = self.listMaps()
+
 
 
     def fetchMapReport(self, **kwargs):
@@ -302,13 +305,6 @@ class QGActions(object):
         call = 'map_report_list.php'
         data = {}
         return self.parseResponse(source=call, data=data)
-        #result = self.request(call, data = data)
-        #logging.debug(pprint.pformat(result))
-        #maplist = objectify.fromstring(result)
-        #logging.debug(pprint.pformat(maplist.__dict__))
-        #return [mapr.TITLE for mapr in maplist.MAP_REPORT]
-#        for mapr in maplist.RESPONSE.MAP_REPORT_LIST.MAP_REPORT:
-#            logging.debug(pprint.pformat(mapr))
 
 
     def listScans(self, launched_after="", state="", target="", type="", user_login=""):

@@ -213,6 +213,19 @@ class QualysConnectConfig:
         ''' Returns username from the configfile. '''
         return (self._cfgparse.get('info', 'username'), self._cfgparse.get('info', 'password'))
 
+
     def get_hostname(self):
         ''' Returns hostname. '''
         return self._cfgparse.get('info', 'hostname')
+
+
+    def get_redis_options(self):
+        ''' Returns the redis client configuration options. '''
+        redis_opts = [ 'host', 'port', 'db', 'rpass', 'ruser' ]
+        result = {}
+        for opt in redis_opts:
+            if self._cfgparse.has_option('redis', opt):
+                result[opt] = self._cfgparse.get('redis', opt)
+            else:
+                result[opt] = None
+        return result

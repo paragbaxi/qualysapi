@@ -23,3 +23,10 @@ class ParsingBufferException(QualysException):
     Raised for API calls using a parsing buffer in which the buffer had an
     exception of some kind.
     '''
+
+class QCacheException(Exception):
+    '''
+    Simple cache exception wrapper
+    '''
+    pass
+

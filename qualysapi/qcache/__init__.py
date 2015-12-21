@@ -4,9 +4,13 @@ from .. import api_methods, connect
 import traceback
 import pprint
 import logging
+import json
 from io import BytesIO 
 
 from qualysapi import util
+
+from qualysapi import exceptions
+
 connection_args = {
     'host' : 'localhost',
     'port' : 6379,
@@ -426,8 +430,12 @@ class RedisConfig():
             api_methods.api_methods['2'],
             7200)
     logging.debug(pprint.pformat(__defaults__))
+    qconfig = None
     qusername = None
     qpassword = None
+    rhost = None
+    rport = None
+    rdb = None
     def __init__(
             self,
             qconfig,
@@ -459,6 +467,7 @@ class RedisConfig():
         cache api isn't responsible for making sure that they are
         valid qualys api arguments.
         '''
+        self.qconfig = qconfig
         qauth = qconfig.get_auth()
 
         # Debug output of qualys config stuff...
@@ -470,15 +479,7 @@ class RedisConfig():
         self.qpassword = qauth[1]
         default_expire = kwargs.pop('default_expire', 7200)
         custom_expire = kwargs.pop('custom_expire', {})
-        for (key, args) in custom_expire:
-            pass
-
-
-class QCacheException(Exception):
-    '''
-    Simple cache exception wrapper
-    '''
-    pass
+        self.__defaults__.update(custom_expire)
 
 
 class APICacheInstance(object):
@@ -522,10 +523,19 @@ class APICacheInstance(object):
 
         '''
         if not self.__connection:
+            redis_config  = self.__config.qconfig.get_redis_options()
+            # get the redis config options and update the defaults if the
+            # options are NoneType
+            for key in redis_config.keys():
+                value = redis_config[key]
+                if value is None and connection_args.get(key, None) is not None:
+                    redis_config[key] = connection_args[key]
+                    if key == 'ruser' or key == 'rpass':
+                        debug.warn('redis user/pass are not yet implemented.')
             self.__connection = redis.StrictRedis(
-                    kwargs.get('host', connection_args['host']),
-                    kwargs.get('port', connection_args['port']),
-                    kwargs.get('db', connection_args['db'])
+                    kwargs.get('host', redis_config['host']),
+                    kwargs.get('port', redis_config['port']),
+                    kwargs.get('db', redis_config['db'])
                     )
         return self.__connection
 
@@ -552,12 +562,12 @@ class APICacheInstance(object):
             if len(args):
                 endpoint = util.preformat_call(args[0])
                 if self.__config.__defaults__.get(endpoint, None) is None:
-                    raise QCacheException('first argument for args \'' + endpoint \
+                    raise exceptions.QCacheException('first argument for args \'' + endpoint \
                             + '\' not a valid qualys api endpoint.')
             else:
                 endpoint = kwargs.pop('endpoint', None)
             if not endpoint:
-                raise QCacheException('can\'t find your endpoint in args or keyword args')
+                raise exceptions.QCacheException('can\'t find your endpoint in args or keyword args')
             data = kwargs.get('data', None)
             key = self.build_redis_key(endpoint, **data)
             return conn.delete(key)
@@ -579,12 +589,12 @@ class APICacheInstance(object):
         if len(args):
             endpoint = util.preformat_call(args[0])
             if self.__config.__defaults__.get(endpoint, None) is None:
-                raise QCacheException('first argument for args \'' + endpoint \
+                raise exceptions.QCacheExceptio('first argument for args \'' + endpoint \
                         + '\' not a valid qualys api endpoint.')
         else:
             endpoint = kwargs.pop('endpoint', None)
             if not endpoint:
-                raise QCacheException('can\'t find your endpoint in args or keyword args')
+                raise exceptions.QCacheException('can\'t find your endpoint in args or keyword args')
 
         #check the cache
         data = kwargs.get('data', None)
@@ -616,9 +626,65 @@ class APICacheInstance(object):
         return result
 
 
+    def cache_api_object(self, *args, **kwargs):
+        '''
+        Each type of api object returns a key and defines a representation
+        of itself which can be serialized to the cache.  This function uses
+        those hooks to shove the object into the cache.
+        Params:
+            obj -- required, the object to serialize and cache
+            expiration -- optional.  override the default expiration of 5 days.
+        '''
+        if len(args):
+            obj = args[0]
+        else:
+            obj = kwargs.pop('obj', None)
+        if obj is None:
+            raise exceptions.QCacheException('Can\'t cache NoneType')
+
+        expiration = kwargs.pop('expiration', None)
+        if expiration is None:
+            expiration = 432000 # 5 days in seconds
+        elif isinstance(expiration, str):
+            expiration = int(expiration)
+
+        conn = self.getConnection(**kwargs)
+        # conn.setex(obj.getKey(), json.JSONEncoder(obj), expiration)
+        conn.set(obj.getKey(), repr(obj))
+        conn.expire(obj.getKey(), expiration)
+
+    def load_api_object(self, *args, **kwargs):
+        '''Uses json to serialize and deserialize api objects based ona  key.
+
+        Params:
+        obj -- a prototype api object to be refreshed or loaded from the cache
+        objkey -- required if a prototype is not specified
+        objtype -- an api object type to be used if a prototype is not
+        provided.
+        '''
+        if len(args):
+            shell = args[0]
+        else:
+            objkey = kwargs.pop('objkey', None)
+            objtype = kwargs.pop('objtype', None)
+            obj = kwargs.pop('obj', None)
+            if obj is None and (objtype is None or objkey is None):
+                raise exceptions.QCacheException('You must include an object, \
+                    or a key and object type in order to load an API object.')
+        conn = self.getConnection(**kwargs)
+        if obj is not None:
+            obj.deserialize(json=conn.get(obj.key))
+        else:
+            try:
+                obj = objtype(**(json.loads(str(conn.get(objkey), 'utf-8'))))
+            except TypeError as e:
+                obj = None
+        return obj
+
+
     def map_to_report_helper(self, *args, **kwargs):
         '''
-        This special helper is designed for use with async IO, multiprocessing,
+        This special helper is designed for use with multiprocessing,
         launching scans, and map references.
 
         The map_ref is used as a key, and stores information in the cache about
@@ -636,6 +702,8 @@ class APICacheInstance(object):
             combines with map_name to link to the most recent report for a
             given map_name and the STATUS of that report.  (Running, Stopped,
             Finished, etc...)
+        map:
+            If the caller has a full map it can be passed in as an object
 
         So the above can be specified individually or a list of maps can be
         sent into this function and the status on all of them will be returned
@@ -643,8 +711,18 @@ class APICacheInstance(object):
 
         A polling processes is started and periodicially checks on the status
         of a map report and updates the cache.  This is how you check the
-        status of a map report in process.
+        status of a map report in process for the status.
         '''
+
+        map_name = kwargs.pop('map_name', None)
+        map_ref = kwargs.get('map_ref', None)
+        report_id = kwargs.get('report_id', None)
+        themap = kwargs.pop('map', None)
+
+        if map_name is None and map_ref is None and themap is None:
+            raise exceptions.QCacheException( \
+                    'A map name or map reference is required.')
+        conn = self.getConnection(**kwargs)
 
 
     def stream_cache_request(self, *args, **kwargs):

@@ -2,10 +2,11 @@ import datetime
 import lxml
 import logging
 import pprint
+import json
 from multiprocessing import Process, Pool, Manager, get_context
 from multiprocessing.queues import Queue
 import queue
-from qualysapi.exceptions import ParsingBufferException
+from qualysapi import exceptions
 
 
 
@@ -54,15 +55,79 @@ class ReportTemplate(object):
         self.user = user.LOGIN
 
 class Report(object):
-    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login):
-        self.expiration_datetime = str(expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
-        self.id = int(id)
-        self.launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
-        self.output_format = output_format
-        self.size = size
-        self.status = status.STATE
-        self.type = type
-        self.user_login = user_login
+    '''
+    An object wrapper around qualys report handles.
+
+    Properties:
+
+    NOTE: previously used ordered arguments are depricated.  Right now the
+    class is backwards compatible, but you cannot mix and match.  You have to
+    use the previous named order or keyword arguments, not both.
+
+    expiration_datetime -- required expiration time of the report
+    id -- required id of the report
+    launch_datetime -- when the report was launched
+    output_format -- the output format of the report
+    size -- 
+    status -- current qualys state of the report (scheduled, completed, paused,
+    etc...)
+    type -- report type
+    user_login -- user who requested the report
+    '''
+    expiration_datetime = None
+    id = None
+    launch_datetime = None
+    output_format = None
+    size = None
+    status = None
+    type = None
+    user_login = None
+    def __init__(self, *args, **kwargs):
+        # backwards-compatible ordered argument handling
+        arg_order = [
+            'expiration_datetime',
+            'id',
+            'launch_datetime',
+            'output_format',
+            'size',
+            'status',
+            'type',
+            'user_login',
+        ]
+        # because of the old style handling where STATE is an etree element and
+        # not a string the assumption must be handled before anyhting else...
+        if len(args):
+            [self.setattr(arg, args[n]) for (n,arg) in enumerate(n, arg_order)]
+            # special handling for a single retarded attribute...
+            if self.status is not None:
+                self.status = status.STATE
+
+        # set keyword values, prefer over ordered argument values if both get
+        # supplied
+        for key in arg_order:
+            value = kwargs.pop(key, None)
+            if value is not None:
+                self.setattr(key, value)
+
+        elem = kwargs.pop('elem', None)
+        if elem is not None:
+            # parse an etree element into string arguments
+            self.status = status.STATE
+            #TODO: implement
+            pass
+
+        json = kwargs.pop('json', None)
+        if json is not None:
+            # parse a json dict into arguments
+            #TODO: implement
+            pass
+
+        # post attribute assignment processing
+        self.expiration_datetime = str(self.expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
+        self.launch_datetime = str(self.launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
+        # if id is a string change it to an int (used by other api objects)
+        if isinstance(self.id, str):
+            self.id = int(self.id)
 
     def download(self, conn):
         call = '/api/2.0/fo/report'
@@ -86,16 +151,31 @@ class OptionProfile(object):
 
 
 class Map(object):
+    '''
+    A simple object wrapper around the qualys api concept of a map.
+
+    Params:
     name = None
     ref = None
     date = None
     domain = None
     status = None
+    report_id = None
+    '''
+    name = None
+    ref = None
+    date = None
+    domain = None
+    status = None
+    report_id = None
+
     def __init__(self, *args, **kwargs):
         '''Instantiate a new Map.'''
+
+        #instantiate from an etree element
         elem = kwargs.pop('elem', None)
-        logging.debug('Map with elem\n\t\t%s' % pprint.pformat(elem))
         if elem is not None: #we are being initialized with an lxml element, assume it's in CVE export format
+            logging.debug('Map with elem\n\t\t%s' % pprint.pformat(elem))
             self.ref = elem.get('ref', None)
             self.date = elem.get('date', None)
             self.domain = elem.get('domain', None)
@@ -111,10 +191,44 @@ class Map(object):
                     'OPTION_PROFILE':
                     self.option_profiles = [OptionProfile(op) for op in child]
 
-    def __repr__(self):
-        '''Represent y0'''
+        # instantiate from json
+        json = kwargs.pop('json', None)
+        if json is not None:
+            self.ref = json.get('ref', None)
+            self.date = json.get('date', None)
+            self.domain = json.get('domain', None)
+            self.status = json.get('status', None)
+            self.report_id = json.get('status', None)
+
+        # instance from kwargs
+        for key in kwargs.keys():
+            setattr(self, key, kwargs[key])
+
+    def getKey(self):
+        return self.ref if self.ref is not None else self.name
+
+    def hasReport(self):
+        return self.report_id is not None
+
+    def setReport(self, **kwargs):
+        report_id = kwargs.get('report_id', None)
+        report = kwargs.get('report', None)
+        if report_id is None and report is None:
+            raise exceptions.QualysException('No report or report id.')
+        self.report_id = report_id if report is None else report.id
+
+    def __str__(self):
+        '''Stringify this object.  NOT the same as repr().'''
         return '<Map name=\'%s\' date=\'%s\' ref=\'%s\' />' % (self.name, \
                 self.date, self.ref)
+
+    def __repr__(self):
+        '''Represent y0'''
+        return json.dumps(self.__dict__)
+
+    def __eq__(self, other):
+        '''Instance equality (simple dict key/value comparison'''
+        return self.__dict__ == other.__dict__
 
 
 class MapResult(Map):
@@ -274,7 +388,7 @@ class BufferConsumer(Process):
         self.bite_size = kwargs.get('bite_size', 1000)
         self.queue = kwargs.get('queue', None)
         if self.queue is None:
-            raise ParsingBufferException('Consumer initialized without an input \
+            raise exceptions.ParsingBufferException('Consumer initialized without an input \
                 queue.')
 
         self.results_list = kwargs.get('results_list', None)
@@ -391,6 +505,52 @@ class ImportBuffer(object):
             csmr.join()
         # turn this into a list instead of a managed list
         return list(self.results_list)
+
+
+class ReportRunner(Process):
+    '''
+    Grabs the first available queued report to run and attaches to it, starting
+    the report running and then monitoring it periodically for the status until
+    the report has finished.  If qualys returns with a concurrent scan/report
+    limit, the process will sleep, periodically checking again to see if it can
+    start the report.
+    '''
+    queue = None
+    map_instance = None
+    redis_cache = None
+    def __init__(self, **kwargs):
+        '''
+        initialize this report runner.
+        @Parms
+        queue -- a standard multiprocessing.queue to generate reports on.
+        redis_cache -- An instance of qcache.APICacheInstance This is the cache
+        to use for updating the status of a map-report link (state reporting).
+        '''
+        super(BufferConsumer, self).__init__() #pass to parent
+        self.queue = kwargs.get('queue', None)
+        self.redis_cache = kwargs.get('redis_cache', None)
+        if self.queue is None:
+            raise ReportRunnerException('Runner initialized without an input \
+                queue.')
+        if self.redis_cache is None:
+            raise ReportRunnerException('Runner initialized without a cache \
+                instance in which to report on the status.')
+
+
+    def run(self):
+        '''Begin consuming map references and generating reports on them (also
+        capable of resuming monitoring of running reports).
+        '''
+        done = False
+        while not done:
+            try:
+                self.map_instance = self.queue.get(timeout=1)
+                #see if the map is in the queue already...
+                rconn = self.redis_cache.getConnection()
+            except queue.Empty:
+                logging.debug('Queue timed out, assuming closed.')
+                done = True
+
 
 
 obj_elem_map = {
