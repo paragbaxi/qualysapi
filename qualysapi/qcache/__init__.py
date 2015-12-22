@@ -673,7 +673,7 @@ class APICacheInstance(object):
                     or a key and object type in order to load an API object.')
         conn = self.getConnection(**kwargs)
         if obj is not None:
-            obj.deserialize(json=conn.get(obj.key))
+            obj.refresh(json=conn.get(obj.key))
         else:
             try:
                 obj = objtype(**(json.loads(str(conn.get(objkey), 'utf-8'))))

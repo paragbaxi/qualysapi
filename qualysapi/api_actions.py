@@ -7,6 +7,7 @@ import logging
 import pprint
 import json
 
+from multiprocessing import pool
 
 def defaultCompletionHandler(IB):
     logging.info('Import buffer completed.')
@@ -207,26 +208,33 @@ class QGActions(object):
         state rather than completed states.)
 
         '''
+
+        # verify we have a cache connection since a cache is required for this
+        from qualysapi import qcache
+        if not isinstance(self.conn, qcache.APICacheInstance):
+            raise exceptions.QualysFrameworkException('This method requires \
+                that you use the redis cache.')
         maps = self.listMaps()
+        # cache the maps ...
+        [self.conn.cache_api_object(mapi) for mapi in maps]
+        # instantiate a MapReportProcessingPool
 
 
-
-    def fetchMapReport(self, **kwargs):
+    def fetchReport(self, **kwargs):
         '''
         Uses the cache to quickly look up the report associated with a specific
         map ref.
         '''
-        raise QualysException('Not yet implemented fully.')
         call = '/api/2.0/fo/report/'
         params = {
             'action' : 'fetch',
             'id'     : kwargs.get('id', 0)
         }
-        map_reports = kwargs.get('map_reports', None)
-        if map_reports:
-            params['id'] = map_reports[0]
-        else:
-            raise QualysException('Need map refs as report ids to continue.')
+#        map_reports = kwargs.get('map_reports', None)
+#        if map_reports:
+#            params['id'] = map_reports[0]
+#        else:
+#            raise QualysException('Need map refs as report ids to continue.')
         return self.parseResponse(source=call, data=params)
 
 

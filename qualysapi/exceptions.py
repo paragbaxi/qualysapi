@@ -30,3 +30,9 @@ class QCacheException(Exception):
     '''
     pass
 
+class QualysFrameworkException(QualysException):
+    '''
+    Raised when you attempt to call a framework api method with a standard
+    rather than enhanced qualysapi connection.
+    '''
+    pass

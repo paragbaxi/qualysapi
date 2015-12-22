@@ -9,8 +9,31 @@ import queue
 from qualysapi import exceptions
 
 
+class CacheableQualysObject(object):
+    '''
+    A base class implementing the api framework
+    '''
+    def __init__(self, **kwargs):
+        '''Superclass init function that handles json serializaiton'''
+        if 'json' in kwargs:
+            jsondict = json.loads(kwargs['json'])
+            [setattr(self, key, jsondict[key]) for key in jsondict]
 
-class Host(object):
+
+    def getKey(self):
+        raise exceptions.QualysFrameworkException('You must implement this \
+            function in your base class(es).')
+
+    def __repr__(self):
+        '''Represent y0'''
+        return json.dumps(self.__dict__)
+
+    def __eq__(self, other):
+        '''Instance equality (simple dict key/value comparison'''
+        return self.__dict__ == other.__dict__
+
+
+class Host(CacheableQualysObject):
     def __init__(self, dns, id, ip, last_scan, netbios, os, tracking_method):
         self.dns = str(dns)
         self.id = int(id)
@@ -23,7 +46,7 @@ class Host(object):
         self.os = str(os)
         self.tracking_method = str(tracking_method)
 
-class AssetGroup(object):
+class AssetGroup(CacheableQualysObject):
     def __init__(self, business_impact, id, last_update, scanips, scandns, scanner_appliances, title):
         self.business_impact = str(business_impact)
         self.id = int(id)
@@ -44,7 +67,7 @@ class AssetGroup(object):
         parameters = {'action': 'edit', 'id': self.id, 'set_ips': ips}
         conn.request(call, parameters)
 
-class ReportTemplate(object):
+class ReportTemplate(CacheableQualysObject):
     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
         self.isGlobal = int(isGlobal)
         self.id = int(id)
@@ -54,7 +77,7 @@ class ReportTemplate(object):
         self.type = type
         self.user = user.LOGIN
 
-class Report(object):
+class Report(CacheableQualysObject):
     '''
     An object wrapper around qualys report handles.
 
@@ -136,7 +159,7 @@ class Report(object):
             return conn.request(call, parameters)
 
 
-class OptionProfile(object):
+class OptionProfile(CacheableQualysObject):
     title = None
     is_default = False
     def __init__(self, *args, **kwargs):
@@ -150,7 +173,7 @@ class OptionProfile(object):
             self.is_default = (el.get('option_profile_default', 1) == 0)
 
 
-class Map(object):
+class Map(CacheableQualysObject):
     '''
     A simple object wrapper around the qualys api concept of a map.
 
@@ -172,6 +195,9 @@ class Map(object):
     def __init__(self, *args, **kwargs):
         '''Instantiate a new Map.'''
 
+        #superclass handles json serialized properties
+        super(Map, self).__init__(**kwargs)
+
         #instantiate from an etree element
         elem = kwargs.pop('elem', None)
         if elem is not None: #we are being initialized with an lxml element, assume it's in CVE export format
@@ -190,15 +216,6 @@ class Map(object):
                 if lxml.etree.QName(child.tag).localname.upper() == \
                     'OPTION_PROFILE':
                     self.option_profiles = [OptionProfile(op) for op in child]
-
-        # instantiate from json
-        json = kwargs.pop('json', None)
-        if json is not None:
-            self.ref = json.get('ref', None)
-            self.date = json.get('date', None)
-            self.domain = json.get('domain', None)
-            self.status = json.get('status', None)
-            self.report_id = json.get('status', None)
 
         # instance from kwargs
         for key in kwargs.keys():
@@ -222,13 +239,6 @@ class Map(object):
         return '<Map name=\'%s\' date=\'%s\' ref=\'%s\' />' % (self.name, \
                 self.date, self.ref)
 
-    def __repr__(self):
-        '''Represent y0'''
-        return json.dumps(self.__dict__)
-
-    def __eq__(self, other):
-        '''Instance equality (simple dict key/value comparison'''
-        return self.__dict__ == other.__dict__
 
 
 class MapResult(Map):
@@ -243,7 +253,7 @@ class MapResult(Map):
         raise QualysException('This class hasn\'t been implemented yet.')
 
 
-class Scan(object):
+class Scan(CacheableQualysObject):
     def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title, type, user_login):
         self.assetgroups = assetgroups
         self.duration = str(duration)
@@ -507,7 +517,7 @@ class ImportBuffer(object):
         return list(self.results_list)
 
 
-class ReportRunner(Process):
+class MapReportRunner(Process):
     '''
     Grabs the first available queued report to run and attaches to it, starting
     the report running and then monitoring it periodically for the status until
@@ -544,9 +554,18 @@ class ReportRunner(Process):
         done = False
         while not done:
             try:
-                self.map_instance = self.queue.get(timeout=1)
-                #see if the map is in the queue already...
-                rconn = self.redis_cache.getConnection()
+                map_instance = self.queue.get(timeout=1)
+                # see if the map we are working on has a report associated.
+                while map_instance.report_id is None:
+                    # check the cash to see if we are out of date...
+                    rconn = self.redis_cache.getConnection()
+                    rconn.load_api_object(obj=map_instance)
+                    # recheck, and if still none then attempt to generate a
+                    # report for the map_instance.
+                    if map_instance.report_id is None:
+                        pass
+
+
             except queue.Empty:
                 logging.debug('Queue timed out, assuming closed.')
                 done = True

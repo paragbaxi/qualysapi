@@ -95,7 +95,7 @@ class TestAPIMethods(unittest.TestCase):
         return [maps[0]]
 
 
-    def test_map_list_02_fetch_map(self):
+    def test_fetch_report(self):
         '''Fetches a map report given test_map_list having completed with
         success.'''
         actions = api_actions.QGActions(cache_connection =
@@ -103,7 +103,7 @@ class TestAPIMethods(unittest.TestCase):
         map_reports = self.subtest_map_list(actions)
         self.assertIsNotNone(map_reports)
         self.assertGreaterEqual(len(map_reports),1)
-        mapr = actions.fetchMapReport(map_reports=map_reports)
+        mapr = actions.fetchReport(id=1882082)
         self.assertIsNotNone(mapr)
         logging.debug(mapr)
         #now do tests on the map report
