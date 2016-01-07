@@ -9,6 +9,10 @@ import queue
 from qualysapi import exceptions
 
 
+def jsonify(obj):
+    return obj.__dict__
+
+
 class CacheableQualysObject(object):
     '''
     A base class implementing the api framework
@@ -26,7 +30,7 @@ class CacheableQualysObject(object):
 
     def __repr__(self):
         '''Represent y0'''
-        return json.dumps(self.__dict__)
+        return json.dumps(self.__dict__, default=jsonify)
 
     def __eq__(self, other):
         '''Instance equality (simple dict key/value comparison'''
@@ -544,6 +548,10 @@ class Map(CacheableQualysObject):
         #superclass handles json serialized properties
         super(Map, self).__init__(**kwargs)
 
+        if 'json' in kwargs:
+            # our option profiles will be dicts... resolve
+            self.option_profiles = [OptionProfile(json=json.dumps(op)) for op in
+                self.option_profiles]
         #instantiate from an etree element
         elem = kwargs.pop('elem', None)
         if elem is not None: #we are being initialized with an lxml element, assume it's in CVE export format
@@ -592,10 +600,6 @@ class MapResult(Map):
     def __init__(self):
         '''A map result is a subclass of Map but it gets it's values of name,
         ref, date, domain, status from different fields in a result.'''
-        raise QualysException('This class hasn\'t been implemented yet.')
-
-    def __repr__(self):
-        '''Represent y0'''
         raise QualysException('This class hasn\'t been implemented yet.')
 
 
