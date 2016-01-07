@@ -159,15 +159,361 @@ class Report(CacheableQualysObject):
             return conn.request(call, parameters)
 
 
+class QKBVuln(CacheableQualysObject):
+    '''
+    A class respresentation of a Qualys Knowledge Base entry.
+    Params:
+    qid -- the qualys id
+    vtype -- the qualys vuln type identifier
+    severity -- the qualys severity
+    title -- a human readable title-length description of the vulnerability
+    vcat -- a qualys-specific category for the vulnerability
+    usermod_date -- the most recent date that this vuln was modified by the auth account manager
+    servicemod_date -- the most recent date that this vuln was modified by the service
+    publ_date -- the date that this vuln was published
+    bugtraq_listing -- mozilla bugtraq information. A list of Bugtraq objects
+    patch_avail -- Boolean conversion of QKB 0/1 value.  Indicates a known patch is available.
+    diagnosis -- The Qualys service-provided evalution.
+    diagnosis_notes -- Admin/user account diagnosis recommendation notes.
+    consequence -- Service provided projected exploit fallout description.
+    consequence_notes -- Admin/user account notes on consequences.
+    solution -- Qualys/Service recommended remediation.
+    solution_notes -- Admin/user solution notes.
+    pci_mustfix -- PCI compliance fix mandated (boolean)
+    pci_reasons -- optional depending on query argument to provide pci pass/fail reasons.
+    a list of PCIReason objects.
+    cvss -- a CVSS object.
+    affected_software -- An ordered list (KQB ordering) of specific affected
+    software (VulnSoftware class instances)
+    assoc_vendors -- An unordered dictionary of software vendors associated
+    with any software associated with this vulnerability.  The dictionary is
+    key=vendor_id, value=VulnVendor
+    compliance_notice_list -- A service-provided list of SLA/Standards that are
+    or may be affected by this vulnerability.  Ordered list of Compliance
+    objects, ordered as sent from qualys.
+    known_exploits -- a list of correlated known exploits (Exploit obj)
+    known_malware -- a list of known malware using exploits (Malware obj)
+    remote_detectable -- boolean
+    auth_type_list -- a list of auth types that can be used to detect
+    vulnerability.  AuthType objects.
+    '''
+    qid                    = None
+    vtype                  = None
+    severity               = None
+    title                  = None
+    vcat                   = None
+    usermod_date           = None
+    servicemod_date        = None
+    publ_date              = None
+    patch_avail            = False
+    diagnosis              = None
+    diagnosis_notes        = None
+    consequence            = None
+    consequence_notes      = None
+    solution               = None
+    solution_notes         = None
+    pci_mustfix            = False
+    cvss                   = None
+    remote_detectable      = False
+    # lists
+    bugtraq_listing        = []
+    cve_list               = []
+    pci_reasons            = []
+    affected_software      = []
+    vendor_list            = []
+    compliance_notice_list = []
+    known_exploits         = []
+    known_malware          = []
+    auth_type_list         = []
+
+    class PCIReason(CacheableQualysObject):
+        '''
+        Class to hold information for PCI compliance failure associated with a
+        vulnerability.
+        '''
+        pass
+
+    class CVE(CacheableQualysObject):
+        '''
+        CVE metadata encoding wrapper object and helpers.
+        '''
+        cve_id = None
+        url    = None
+
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml    = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj = lxml.objectify.fromstring(xml)
+
+            if xmlobj:
+                self.cve_id = getattr(xmlobj, 'ID', None)
+                self.url    = getattr(xmlobj, 'URL', None)
+            else:
+                self.cve_id = kwargs.pop('ID', None)
+                self.url    = kwargs.pop('URL', None)
+
+    class CVSS(CacheableQualysObject):
+        '''
+        CVSS metadata encoding wrapper object and helpers.
+        '''
+        pass
+
+    class VulnSoftware(CacheableQualysObject):
+        '''
+        Information on known associated software.
+        '''
+        product   = None
+        vendor_id = None
+
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml    = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj = lxml.objectify.fromstring(xml)
+
+            if xmlobj:
+                self.product   = getattr(xmlobj, 'PRODUCT', None)
+                self.vendor_id = getattr(xmlobj, 'VENDOR', None)
+            else:
+                self.product   = kwargs.pop('PRODUCT', None)
+                self.vendor_id = kwargs.pop('VENDOR', None)
+
+    class VulnVendor(CacheableQualysObject):
+        '''
+        Information on vendors associated with software.
+        '''
+        vendor_id = None
+        url       = None
+
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml    = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj = lxml.objectify.fromstring(xml)
+
+            if xmlobj:
+                self.vendor_id = getattr(xmlobj, 'ID', None)
+                self.url       = getattr(xmlobj, 'URL', None)
+            else:
+                self.vendor_id = kwargs.pop('ID', None)
+                self.url       = kwargs.pop('URL', None)
+
+    class Compliance(CacheableQualysObject):
+        '''
+        Information about a specific associated compliance failure association
+        with a vulnerability.
+        '''
+        # TYPE, SECTION, DESCRIPTION
+        ctype       = None
+        csection    = None
+        description = None
+
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj =  lxml.objectify.fromstring(xml)
+
+            if xmlobj:
+                self.ctype       = getattr(xmlobj, 'TYPE', None)
+                self.csection    = getattr(xmlobj, 'SECTION', None)
+                self.description = getattr(xmlobj, 'DESCRIPTION', None)
+            else:
+                self.ctype       = kwargs.pop('TYPE', None)
+                self.csection    = kwargs.pop('SECTION', None)
+                self.description = kwargs.pop('DESCRIPTION', None)
+
+    class Exploit(CacheableQualysObject):
+        '''
+        Information about a specific exploit associated with a vulnerability.
+        '''
+        pass
+
+    class Malware(CacheableQualysObject):
+        '''
+        Information about a specific piece of malware using a known exploit
+        associated with this vulnerability.
+        '''
+        pass
+
+    class AuthType(CacheableQualysObject):
+        '''
+        Types of authentication used to (or that can be used in association
+        with detection, exploitation or malware introduction of a
+        vulnerability.
+        '''
+        pass
+
+    class Bugtraq(CacheableQualysObject):
+        '''
+        A single bugtraq metadata set
+        '''
+        bugid = None
+        url = None
+
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj =  lxml.objectify.fromstring(xml)
+
+            if xmlobj:
+                self.bugid = getattr(xmlobj, 'ID', None)
+                self.url   = getattr(xmlobj, 'URL', None)
+            else:
+                self.bugid = kwargs.pop('ID', None)
+                self.url   = kwargs.pop('URL', None)
+
+    def __init__(self, *args, **kwargs):
+        '''gracefully handle xml passed in as a blind ordered argument binary
+        string.
+
+        Otherwise operate with dictionaries/keyword arguments.
+        '''
+        if 'xmlobj' in kwargs:
+            xmlobj = kwargs.pop('xmlobj')
+        elif len(args) or 'xml' in kwargs:
+            # we assume xml binary string
+            xml = args[0] if len(args) else kwargs.pop('xml')
+            xmlobj =  lxml.objectify.fromstring(xml)
+
+        if xmlobj:
+            self.qid               = getattr(xmlobj, 'QID', None)
+            self.vtype             = getattr(xmlobj, 'VULN_TYPE', None)
+            self.severity          = getattr(xmlobj, 'SEVERITY_LEVEL', None)
+            self.title             = getattr(xmlobj, 'TITLE', None)
+            self.vcat              = getattr(xmlobj, 'CATEGORY', None)
+            self.usermod_date      = getattr(xmlobj, 'LAST_CUSTOMIZATION', None)
+            self.servicemod_date   = getattr(xmlobj, 'LAST_SERVICE_MODIFICATION_DATETIME', None)
+            self.publ_date         = getattr(xmlobj, 'PUBLISHED_DATETIME', None)
+            self.patch_avail       = \
+                False if int(getattr(xmlobj, 'PATCHABLE', 0)) else True
+            self.diagnosis         = getattr(xmlobj, 'DIAGNOSIS', None)
+            self.diagnosis_notes   = getattr(xmlobj, 'DIAGNOSIS_COMMENT', None)
+            self.consequence       = getattr(xmlobj, 'CONSEQUENCE', None)
+            self.consequence_notes = getattr(xmlobj, 'CONSEQUENCE_COMMENT', None)
+            self.solution          = getattr(xmlobj, 'SOLUTION', None)
+            self.solution_notes    = getattr(xmlobj, 'SOLUTION_COMMENT', None)
+            self.pci_mustfix       = \
+                False if int(getattr(xmlobj, 'PCI_FLAG', 0)) else True
+            self.cvss              = CVSS(xmlobj = getattr(xmlobj, 'CVSS', None))
+            # lists / subparse objects
+            self.bugtraq_listing   = \
+                    [ Bugtraq(xmlobj = item) for item in getattr(xmlobj,
+                        'BUGTRAQ_LIST', []) ]
+            self.cve_list          = \
+                    [ CVE(xmlobj = item) for item in getattr(xmlobj,
+                        'CVE_LIST', [])]
+            self.pci_reasons = \
+                    [ PCIReason(xmlobj = item) for item in getattr(xmlobj,
+                        'PCI_REASONS', [])]
+            self.affected_software = \
+                    [ VulnSoftware(xmlobj = item) for item in getattr(xmlobj,
+                        'SOFTWARE_LIST', [])]
+            self.vendor_list       = \
+                    [ VulnVendor(xmlobj = item) for item in getattr(xmlobj,
+                        'VENDOR_REFERENCE_LIST', [])]
+            self.compliance_notice_list = \
+                    [ Compliance(xmlobj = item) for item in getattr(xmlobj,
+                        'COMPLIANCE_LIST', [])]
+
+            # correlation is a bit more tricky
+            correlation             = getattr(xmlobj, 'CORRELATION', None)
+            if correlation:
+                # reverse the source/mw|ex nesting to mw.source and ex.source
+                for exsource in getattr( correlation, 'EXPLOITS', []):
+                    self.known_exploits.extend( (
+                        Exploit(
+                            src = exsource.EXPLT_SRC,
+                            ref = explt.REF,
+                            desc = explt.DESC,
+                            link = explt.LINK)
+                        for explt in expltsource.EXPLT_LIST ) )
+                # the DTD and XPATH conflict in the docs.  Needs to be verified
+                for mwsource in getattr( correlation, 'MALWARE', []):
+                    self.known_malware.extend( (
+                        Malware(
+                            src = mwsource.MW_SRC,
+                            mwid = mwinfo.MW_ID,
+                            mwtype = mwinfo.MW_TYPE,
+                            platform = mwinfo.MW_PLATFORM,
+                            alias = mwinfo.MW_PLATFORM,
+                            rating = mwinfo.MW_PLATFORM,
+                            link = mwinfo.MW_PLATFORM )
+                        for mwinfo in mwsource.MW_LIST ) )
+
+
+            self.auth_type_list      = \
+                    [ AuthType(xmlobj = item) for item in getattr(xmlobj,
+                        'DISCOVERY', [])]
+        else:
+            # we assume standard kwarg arguments
+            self.qid               = kwargs.pop('QID', None)
+            self.vtype             = kwargs.pop('VULN_TYPE', None)
+            self.severity          = kwargs.pop('SEVERITY_LEVEL', None)
+            self.title             = kwargs.pop('TITLE', None)
+            self.vcat              = kwargs.pop('CATEGORY', None)
+            self.usermod_date      = kwargs.pop('LAST_CUSTOMIZATION', None)
+            self.servicemod_date   = kwargs.pop('LAST_SERVICE_MODIFICATION_DATETIME', None)
+            self.publ_date         = kwargs.pop('PUBLISHED_DATETIME', None)
+            self.patch_avail       = \
+                False if int(kwargs.pop('PATCHABLE', 0)) else True
+            self.diagnosis         = kwargs.pop('DIAGNOSIS', None)
+            self.diagnosis_notes   = kwargs.pop('DIAGNOSIS_COMMENT', None)
+            self.consequence       = kwargs.pop('CONSEQUENCE', None)
+            self.consequence_notes = kwargs.pop('CONSEQUENCE_COMMENT', None)
+            self.solution          = kwargs.pop('SOLUTION', None)
+            self.solution_notes    = kwargs.pop('SOLUTION_COMMENT', None)
+            self.pci_mustfix       = \
+                False if int(kwargs.pop('PCI_FLAG', 0)) else True
+            self.cvss              = CVSS(xmlobj = kwargs.pop('CVSS', None))
+            # lists / subparse objects
+            #TODO: make this graceful
+            raise exceptions.QualysFrameworkException('Not yet implemented: \
+                kwargs lists grace.')
+#             self.bugtraq_listing        = self.parse_bugtraqs(
+#                     elem = kwargs.pop('BUGTRAQ_LIST', None))
+#             self.cve_list               = self.parse_cve_list(
+#                     elem = kwargs.pop('CVE_LIST', None))
+#             self.pci_reasons            = self.parse_pci_reasons(
+#                     elem = kwargs.pop('PCI_REASONS', None))
+#             self.affected_software      = self.parse_affected_software(
+#                     elem = kwargs.pop('SOFTWARE_LIST', None))
+#             self.vendor_list            = self.parse_vendor_list(
+#                     elem = kwargs.pop('VENDOR_REFERENCE_LIST', None))
+#             self.compliance_notice_list = self.parse_compliance_notice_list(
+#                     elem = kwargs.pop('COMPLIANCE_LIST', None))
+#             self.known_exploits         = self.parse_known_exploits(
+#                     elem = kwargs.pop('CORRELATION', None))
+#             self.known_malware          = self.parse_known_malware(
+#                     elem = kwargs.pop('MALWARE', None))
+#             self.auth_type_list         = self.parse_auth_type_list(
+#                     elem = kwargs.pop('DISCOVERY', None))
+
+
 class OptionProfile(CacheableQualysObject):
     title = None
     is_default = False
     def __init__(self, *args, **kwargs):
         el = None
+
+        # args or kwargs...
         if len(args):
             el = args[0]
         elif kwargs.get('elem', None):
             el = kwargs.get('elem')
+
         if el is not None:
             self.title = el.text
             self.is_default = (el.get('option_profile_default', 1) == 0)
@@ -571,7 +917,7 @@ class MapReportRunner(Process):
                 done = True
 
 
-
+# element to api_object mapping
 obj_elem_map = {
     'MAP_REPORT' : Map,
     'MAP_RESULT' : MapResult,
