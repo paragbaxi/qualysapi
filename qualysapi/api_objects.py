@@ -199,7 +199,7 @@ class QKBVuln(CacheableQualysObject):
     known_malware -- a list of known malware using exploits (Malware obj)
     remote_detectable -- boolean
     auth_type_list -- a list of auth types that can be used to detect
-    vulnerability.  AuthType objects.
+    vulnerability.  Strings.
     '''
     qid                    = None
     vtype                  = None
@@ -262,8 +262,204 @@ class QKBVuln(CacheableQualysObject):
     class CVSS(CacheableQualysObject):
         '''
         CVSS metadata encoding wrapper object and helpers.
+        ##CVSS element DTD:
+        ```xml
+        <!ELEMENT CVSS (BASE, TEMPORAL?, ACCESS?, IMPACT?,
+                        AUTHENTICATION?, EXPLOITABILITY?,
+                        REMEDIATION_LEVEL?, REPORT_CONFIDENCE?)>
+          <!ELEMENT BASE (#PCDATA)>
+            <!ATTLIST BASE source CDATA #IMPLIED>
+          <!ELEMENT TEMPORAL (#PCDATA)>
+          <!ELEMENT ACCESS (VECTOR?, COMPLEXITY?)>
+            <!ELEMENT VECTOR (#PCDATA)>
+            <!ELEMENT COMPLEXITY (#PCDATA)>
+          <!ELEMENT IMPACT (CONFIDENTIALITY?, INTEGRITY?, AVAILABILITY?)>
+            <!ELEMENT CONFIDENTIALITY (#PCDATA)>
+            <!ELEMENT INTEGRITY (#PCDATA)>
+            <!ELEMENT AVAILABILITY (#PCDATA)>
+          <!ELEMENT AUTHENTICATION (#PCDATA)>
+          <!ELEMENT EXPLOITABILITY (#PCDATA)>
+          <!ELEMENT REMEDIATION_LEVEL (#PCDATA)>
+          <!ELEMENT REPORT_CONFIDENCE (#PCDATA)>
+        ```
+        Parameters:
+
+        base -- BASE element.  CVSS base score.  (A CVSS base score assigned to
+        the vulnerability. (This element appears only when the CVSS Scoring
+        feature is turned on in the user’s subscription and the API request is
+        for “Basic” details or “All” details.)
+        temporal_score -- TEMPORAL element.  A CVSS temporal score. (This
+        element appears only when the CVSS Scoring feature is turned on in the
+        user’s subscription and the API request is for “Basic” details or “All”
+        details.)
+        access -- ACCESS element/class.
+        impact -- IMPACT element/class.
+        authentication    -- AUTHENTICATION child element.  A CVSS
+        authentication metric. This metric measures the number of times an
+        attacker must authenticate to a target in order to exploit a
+        vulnerability. The value is: Undefined, Non required, Require single
+        instance, or Require multiple instances. See “CVSS V2 Sub Metrics
+        Mapping” below. (This element appears only when the CVSS Scoring
+        feature is turned on in the user’s subscription and the API
+        request includes the parameter details=All.)
+        exploitability    -- EXPLOITABILITY child element.  A CVSS
+        exploitability metric. This metric measures the current state of
+        exploit techniques or code availability. The value is: Undefined,
+        Unproven, Proof-of- concept, Functional, or Widespread. See “CVSS V2
+        Sub Metrics Mapping” below. (This element appears only when the CVSS
+        Scoring feature is turned on in the user’s subscription and the
+        API request includes the parameter details=All.)
+        remediation_level -- REMEDIATION_LEVEL child element.  A CVSS
+        remediation level metric. The remediation level of a vulnerability is
+        an important factor for prioritization. The value is: Undefined,
+        Official-fix, Temporary-fix, Workaround, or Unavailable. See “CVSS V2
+        Sub Metrics Mapping” below. (This element appears only when the CVSS
+        Scoring feature is turned on in the user’s subscription and the
+        API request includes the parameter details=All.)
+        report_confidence -- REPORT_CONFIDENCE child element.  A CVSS report
+        confidence metric. This metric measures the degree of confidence in the
+        existence of the vulnerability and the credibility of the known
+        technical details. The value is: Undefined, Not confirmed,
+        Uncorroborated, or Confirmed. See “CVSS V2 Sub Metrics Mapping” below.
+        (This element appears only when the CVSS Scoring feature is turned on
+        in the user’s subscription and the API request includes the parameter
+        details=All.)
         '''
-        pass
+
+        base = None
+        temporal = None
+        access = None
+        impact = None
+        authentication = None
+        exploitability = None
+        remediation_level = None
+        report_confidence = None
+        product   = None
+        vendor_id = None
+
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml    = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj = lxml.objectify.fromstring(xml)
+
+            if xmlobj:
+                self.base              = getattr(xmlobj, 'BASE', None)
+                self.temporal          = getattr(xmlobj, 'TEMPORAL', None)
+                self.access            = \
+                        CVSSAccess(getattr(xmlobj, 'ACCESS', None))
+                self.impact            = \
+                        CVSSImpact(getattr(xmlobj, 'IMPACT', None))
+                self.authentication    = getattr(xmlobj, 'AUTHENTICATION', None)
+                self.exploitability    = getattr(xmlobj, 'EXPLOITABILITY', None)
+                self.remediation_level = getattr(xmlobj, 'REMEDIATION_LEVEL', None)
+                self.report_confidence = getattr(xmlobj, 'REPORT_CONFIDENCE', None)
+            else:
+                self.base              = kwargs.pop('BASE', None)
+                self.temporal          = kwargs.pop('TEMPORAL', None)
+                self.access            = \
+                        CVSSAccess(**(kwargs.pop('ACCESS', None)))
+                self.impact            = \
+                        CVSSImpact(**(kwargs.pop('IMPACT', None)))
+                self.authentication    = kwargs.pop('AUTHENTICATION', None)
+                self.exploitability    = kwargs.pop('EXPLOITABILITY', None)
+                self.remediation_level = kwargs.pop('REMEDIATION_LEVEL', None)
+                self.report_confidence = kwargs.pop('REPORT_CONFIDENCE', None)
+
+        class CVSSImpact(CacheableQualysObject):
+            '''
+            CVSS impacted areas.
+
+            Params:
+
+            confidentiality -- CONFIDENTIALITY child element.  A CVSS
+            confidentiality impact metric. This metric measures the impact on
+            confidentiality of a successfully exploited vulnerability. The
+            value is: Undefined, None, Partial, or Complete. See “CVSS V2 Sub
+            Metrics Mapping” below. (This element appears only when the CVSS
+            Scoring feature is turned on in the user’s subscription and the API
+            request includes the parameter details=All.)
+            integrity -- INTEGRITY child element.  A CVSS integrity impact
+            metric. This metric measures the impact to integrity of a
+            successfully exploited vulnerability. The value is: Undefined,
+            None, Partial, or Complete. See “CVSS V2 Sub Metrics Mapping”
+            below. (This element appears only when the CVSS Scoring feature is
+            turned on in the user’s subscription and the API request includes
+            the parameter details=All.)
+            availability -- AVAILABILITY child element.  A CVSS availability
+            impact metric. This metric measures the impact to availability of a
+            successfully exploited vulnerability. The value is: Undefined,
+            None, Partial, or Complete. See “CVSS V2 Sub Metrics Mapping”
+            below. (This element appears only when the CVSS Scoring feature is
+            turned on in the user’s subscription and the API request includes
+            the parameter details=All.)
+            '''
+            confidentiality = None
+            integrity       = None
+            availability    = None
+
+            def __init__(self, **kwargs):
+                if 'xmlobj' in kwargs:
+                    xmlobj = kwargs.pop('xmlobj')
+                elif len(args) or 'xml' in kwargs:
+                    # we assume xml binary string
+                    xml    = args[0] if len(args) else kwargs.pop('xml')
+                    xmlobj = lxml.objectify.fromstring(xml)
+
+                if xmlobj:
+                    confidentiality = getattr(xmlobj, 'CONFIDENTIALITY', None)
+                    integrity       = getattr(xmlobj, 'INTEGRITY', None)
+                    availability    = getattr(xmlobj, 'AVAILABILITY', None)
+                else:
+                    confidentiality = kwargs.pop('CONFIDENTIALITY', None)
+                    integrity       = kwargs.pop('INTEGRITY', None)
+                    availability    = kwargs.pop('AVAILABILITY', None)
+
+
+        class CVSSAccess(CacheableQualysObject):
+            '''
+            A tuple of data, but made an object because of feature and
+            extension desireability.
+
+            Params:
+
+            vector -- A CVSS access vector metric. This metric reflects how the
+            vulnerability is exploited. The more remote an attacker can be to
+            attack a host, the greater the vulnerability score. The value is
+            one of the following: Network, Adjacent Network, Local Access, or
+            Undefined. See “CVSS V2 Sub Metrics Mapping” below. (This element
+            appears only when the CVSS Scoring feature is turned on in the
+            user’s subscription and the API request includes the parameter
+            details=All.)
+            complexity -- A CVSS access complexity metric. This metric measures
+            the complexity of the attack required to exploit the vulnerability
+            once an attacker has gained access to the target system. The value
+            is one of the following: Undefined, Low, Medium, or High. See “CVSS
+            V2 Sub Metrics Mapping” below. (This element appears only when the
+            CVSS Scoring feature is turned on in the user’s subscription and
+            the API request includes the parameter details=All.)
+
+            '''
+            vector = None
+            complexity = None
+
+            def __init__(self, **kwargs):
+                if 'xmlobj' in kwargs:
+                    xmlobj = kwargs.pop('xmlobj')
+                elif len(args) or 'xml' in kwargs:
+                    # we assume xml binary string
+                    xml    = args[0] if len(args) else kwargs.pop('xml')
+                    xmlobj = lxml.objectify.fromstring(xml)
+
+                if xmlobj:
+                    vector     = getattr(xmlobj, 'VECTOR', None)
+                    complexity = getattr(xmlobj, 'COMPLEXITY', None)
+                else:
+                    vector     = kwargs.pop('VECTOR', None)
+                    complexity = kwargs.pop('COMPLEXITY', None)
+
 
     class VulnSoftware(CacheableQualysObject):
         '''
@@ -340,22 +536,73 @@ class QKBVuln(CacheableQualysObject):
         '''
         Information about a specific exploit associated with a vulnerability.
         '''
-        pass
+        src  = None
+        ref  = None
+        desc = None
+        link = None
+
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj =  lxml.objectify.fromstring(xml)
+
+            # source must come from kwargs
+            self.src = kwargs.pop('SRC', None)
+            if not self.src:
+                raise exceptions.QualysFrameworkException('Source must be \
+                    included as a keyword argument to this class.')
+
+            if xmlobj:
+                self.ref  = getattr(xmlobj, 'REF',  None )
+                self.desc = getattr(xmlobj, 'DESC', None )
+                self.link = getattr(xmlobj, 'LINK', None )
+
+            else:
+                self.ref  = kwargs.pop('REF',  None )
+                self.desc = kwargs.pop('DESC', None )
+                self.link = kwargs.pop('LINK', None )
 
     class Malware(CacheableQualysObject):
         '''
         Information about a specific piece of malware using a known exploit
         associated with this vulnerability.
         '''
-        pass
+        mwid     = None
+        mwtype   = None
+        platform = None
+        alias    = None
+        rating   = None
 
-    class AuthType(CacheableQualysObject):
-        '''
-        Types of authentication used to (or that can be used in association
-        with detection, exploitation or malware introduction of a
-        vulnerability.
-        '''
-        pass
+        def __init__(self, **kwargs):
+            if 'xmlobj' in kwargs:
+                xmlobj = kwargs.pop('xmlobj')
+            elif len(args) or 'xml' in kwargs:
+                # we assume xml binary string
+                xml = args[0] if len(args) else kwargs.pop('xml')
+                xmlobj =  lxml.objectify.fromstring(xml)
+
+            # source must come from kwargs
+            self.src = kwargs.pop('SRC', None)
+            if not self.src:
+                raise exceptions.QualysFrameworkException('Source must be \
+                    included as a keyword argument to this class.')
+
+            if xmlobj:
+                self.mwid     = getattr(xmlobj, 'MW_ID',       None )
+                self.mwtype   = getattr(xmlobj, 'MW_TYPE',     None )
+                self.platform = getattr(xmlobj, 'MW_PLATFORM', None )
+                self.alias    = getattr(xmlobj, 'MW_PLATFORM', None )
+                self.rating   = getattr(xmlobj, 'MW_PLATFORM', None )
+
+            else:
+                self.mwid     = kwargs.pop('MW_ID',       None )
+                self.mwtype   = kwargs.pop('MW_TYPE',     None )
+                self.platform = kwargs.pop('MW_PLATFORM', None )
+                self.alias    = kwargs.pop('MW_PLATFORM', None )
+                self.rating   = kwargs.pop('MW_PLATFORM', None )
 
     class Bugtraq(CacheableQualysObject):
         '''
@@ -457,10 +704,13 @@ class QKBVuln(CacheableQualysObject):
                             link = mwinfo.MW_PLATFORM )
                         for mwinfo in mwsource.MW_LIST ) )
 
-
-            self.auth_type_list      = \
-                    [ AuthType(xmlobj = item) for item in getattr(xmlobj,
-                        'DISCOVERY', [])]
+            #remote boolean ? +authtype list if false.
+            if hasattr(xmlobj, 'DISCOVERY'):
+                self.remote_detectable = \
+                        False if xmlobj.DISCOVERY.REMOTE else True
+                self.auth_type_list      = \
+                        [ auth_type for auth_type in
+                            getattr(xmlobj.DISCOVERY, 'AUTH_TYPE_LIST', [])]
         else:
             # we assume standard kwarg arguments
             self.qid               = kwargs.pop('QID', None)
@@ -486,24 +736,6 @@ class QKBVuln(CacheableQualysObject):
             #TODO: make this graceful
             raise exceptions.QualysFrameworkException('Not yet implemented: \
                 kwargs lists grace.')
-#             self.bugtraq_listing        = self.parse_bugtraqs(
-#                     elem = kwargs.pop('BUGTRAQ_LIST', None))
-#             self.cve_list               = self.parse_cve_list(
-#                     elem = kwargs.pop('CVE_LIST', None))
-#             self.pci_reasons            = self.parse_pci_reasons(
-#                     elem = kwargs.pop('PCI_REASONS', None))
-#             self.affected_software      = self.parse_affected_software(
-#                     elem = kwargs.pop('SOFTWARE_LIST', None))
-#             self.vendor_list            = self.parse_vendor_list(
-#                     elem = kwargs.pop('VENDOR_REFERENCE_LIST', None))
-#             self.compliance_notice_list = self.parse_compliance_notice_list(
-#                     elem = kwargs.pop('COMPLIANCE_LIST', None))
-#             self.known_exploits         = self.parse_known_exploits(
-#                     elem = kwargs.pop('CORRELATION', None))
-#             self.known_malware          = self.parse_known_malware(
-#                     elem = kwargs.pop('MALWARE', None))
-#             self.auth_type_list         = self.parse_auth_type_list(
-#                     elem = kwargs.pop('DISCOVERY', None))
 
 
 class OptionProfile(CacheableQualysObject):
