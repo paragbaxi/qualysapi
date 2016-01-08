@@ -594,15 +594,15 @@ class QKBVuln(CacheableQualysObject):
                 self.mwid     = getattr(xmlobj, 'MW_ID',       None )
                 self.mwtype   = getattr(xmlobj, 'MW_TYPE',     None )
                 self.platform = getattr(xmlobj, 'MW_PLATFORM', None )
-                self.alias    = getattr(xmlobj, 'MW_PLATFORM', None )
-                self.rating   = getattr(xmlobj, 'MW_PLATFORM', None )
+                self.alias    = getattr(xmlobj, 'MW_ALIAS',    None )
+                self.rating   = getattr(xmlobj, 'MW_RATING',   None )
 
             else:
                 self.mwid     = kwargs.pop('MW_ID',       None )
                 self.mwtype   = kwargs.pop('MW_TYPE',     None )
                 self.platform = kwargs.pop('MW_PLATFORM', None )
-                self.alias    = kwargs.pop('MW_PLATFORM', None )
-                self.rating   = kwargs.pop('MW_PLATFORM', None )
+                self.alias    = kwargs.pop('MW_ALIAS',    None )
+                self.rating   = kwargs.pop('MW_RATING',   None )
 
     class Bugtraq(CacheableQualysObject):
         '''
