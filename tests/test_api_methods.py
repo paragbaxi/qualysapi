@@ -105,6 +105,8 @@ class TestAPIMethods(unittest.TestCase):
         self.assertGreaterEqual(len(map_reports),1)
         mapr = actions.fetchReport(id=1882082)
         self.assertIsNotNone(mapr)
+        self.assertGreaterEqual(len(mapr),1)
+        self.assertIsInstance(mapr[0], api_objects.MapReport)
         logging.debug(mapr)
         #now do tests on the map report
 
