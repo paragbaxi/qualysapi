@@ -46,3 +46,4 @@ config.ini
 .idea
 .qcrc.swp
 integration-config.cfg
+dump.rdb

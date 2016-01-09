@@ -1096,7 +1096,9 @@ class ImportBuffer(object):
         for csmr in self.running:
             csmr.join()
         # turn this into a list instead of a managed list
-        return list(self.results_list)
+        result = list(self.results_list)
+        del self.results_list[:]
+        return result
 
 
 class MapReportRunner(Process):
