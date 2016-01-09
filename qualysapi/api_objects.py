@@ -1091,8 +1091,11 @@ class ImportBuffer(object):
 
 
     def finish(self):
-        '''Notifies the buffer that we are done filling it, forces it wait for
-        processes to finish and then return the results, if any.'''
+        '''
+        Notifies the buffer that we are done filling it.
+        This command binds to any processes still running and lets them
+        finish and then copies and flushes the managed results list.
+        '''
         for csmr in self.running:
             csmr.join()
         # turn this into a list instead of a managed list
@@ -1154,6 +1157,12 @@ class MapReportRunner(Process):
                 logging.debug('Queue timed out, assuming closed.')
                 done = True
 
+class MapReport(CacheableQualysObject):
+    '''
+    A class to wrap an actual map report given a report format.
+    This will probably be a stub class.
+    '''
+    pass
 
 # element to api_object mapping
 obj_elem_map = {
