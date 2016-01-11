@@ -244,17 +244,18 @@ class QKBVuln(CacheableQualysObject):
         cve_id = None
         url    = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml    = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj = lxml.objectify.fromstring(xml)
+                elem = lxml.objectify.fromstring(xml)
 
-            if xmlobj:
-                self.cve_id = getattr(xmlobj, 'ID', None)
-                self.url    = getattr(xmlobj, 'URL', None)
+            if elem:
+                self.cve_id = getattr(elem, 'ID', None)
+                self.url    = getattr(elem, 'URL', None)
             else:
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
@@ -337,32 +338,34 @@ class QKBVuln(CacheableQualysObject):
         product   = None
         vendor_id = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml    = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj = lxml.objectify.fromstring(xml)
+                elem = lxml.objectify.fromstring(xml)
 
-            if xmlobj:
-                self.base              = getattr(xmlobj, 'BASE', None)
-                self.temporal          = getattr(xmlobj, 'TEMPORAL', None)
+            if elem:
+                self.base              = getattr(elem, 'BASE', None)
+                self.temporal          = getattr(elem, 'TEMPORAL', None)
                 self.access            = \
-                        CVSSAccess(getattr(xmlobj, 'ACCESS', None))
+                        CVSSAccess(getattr(elem, 'ACCESS', None))
                 self.impact            = \
-                        CVSSImpact(getattr(xmlobj, 'IMPACT', None))
-                self.authentication    = getattr(xmlobj, 'AUTHENTICATION', None)
-                self.exploitability    = getattr(xmlobj, 'EXPLOITABILITY', None)
-                self.remediation_level = getattr(xmlobj, 'REMEDIATION_LEVEL', None)
-                self.report_confidence = getattr(xmlobj, 'REPORT_CONFIDENCE', None)
+                        CVSSImpact(getattr(elem, 'IMPACT', None))
+                self.authentication    = getattr(elem, 'AUTHENTICATION', None)
+                self.exploitability    = getattr(elem, 'EXPLOITABILITY', None)
+                self.remediation_level = getattr(elem, 'REMEDIATION_LEVEL', None)
+                self.report_confidence = getattr(elem, 'REPORT_CONFIDENCE', None)
             else:
                 self.base              = kwargs.pop('BASE', None)
                 self.temporal          = kwargs.pop('TEMPORAL', None)
                 self.access            = \
-                        CVSSAccess(**(kwargs.pop('ACCESS', None)))
+                        self.CVSSAccess(**(kwargs.pop('ACCESS', {})))
                 self.impact            = \
-                        CVSSImpact(**(kwargs.pop('IMPACT', None)))
+                        self.CVSSImpact(**(kwargs.pop('IMPACT', {})))
                 self.authentication    = kwargs.pop('AUTHENTICATION', None)
                 self.exploitability    = kwargs.pop('EXPLOITABILITY', None)
                 self.remediation_level = kwargs.pop('REMEDIATION_LEVEL', None)
@@ -400,18 +403,20 @@ class QKBVuln(CacheableQualysObject):
             integrity       = None
             availability    = None
 
-            def __init__(self, **kwargs):
-                if 'xmlobj' in kwargs:
-                    xmlobj = kwargs.pop('xmlobj')
+            def __init__(self, *args, **kwargs):
+
+                elem = None
+                if 'elem' in kwargs:
+                    elem = kwargs.pop('elem')
                 elif len(args) or 'xml' in kwargs:
                     # we assume xml binary string
                     xml    = args[0] if len(args) else kwargs.pop('xml')
-                    xmlobj = lxml.objectify.fromstring(xml)
+                    elem = lxml.objectify.fromstring(xml)
 
-                if xmlobj:
-                    confidentiality = getattr(xmlobj, 'CONFIDENTIALITY', None)
-                    integrity       = getattr(xmlobj, 'INTEGRITY', None)
-                    availability    = getattr(xmlobj, 'AVAILABILITY', None)
+                if elem:
+                    confidentiality = getattr(elem, 'CONFIDENTIALITY', None)
+                    integrity       = getattr(elem, 'INTEGRITY', None)
+                    availability    = getattr(elem, 'AVAILABILITY', None)
                 else:
                     confidentiality = kwargs.pop('CONFIDENTIALITY', None)
                     integrity       = kwargs.pop('INTEGRITY', None)
@@ -445,17 +450,19 @@ class QKBVuln(CacheableQualysObject):
             vector = None
             complexity = None
 
-            def __init__(self, **kwargs):
-                if 'xmlobj' in kwargs:
-                    xmlobj = kwargs.pop('xmlobj')
+            def __init__(self, *args, **kwargs):
+
+                elem = None
+                if 'elem' in kwargs:
+                    elem = kwargs.pop('elem')
                 elif len(args) or 'xml' in kwargs:
                     # we assume xml binary string
                     xml    = args[0] if len(args) else kwargs.pop('xml')
-                    xmlobj = lxml.objectify.fromstring(xml)
+                    elem = lxml.objectify.fromstring(xml)
 
-                if xmlobj:
-                    vector     = getattr(xmlobj, 'VECTOR', None)
-                    complexity = getattr(xmlobj, 'COMPLEXITY', None)
+                if elem:
+                    vector     = getattr(elem, 'VECTOR', None)
+                    complexity = getattr(elem, 'COMPLEXITY', None)
                 else:
                     vector     = kwargs.pop('VECTOR', None)
                     complexity = kwargs.pop('COMPLEXITY', None)
@@ -468,17 +475,19 @@ class QKBVuln(CacheableQualysObject):
         product   = None
         vendor_id = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml    = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj = lxml.objectify.fromstring(xml)
+                elem = lxml.objectify.fromstring(xml)
 
-            if xmlobj:
-                self.product   = getattr(xmlobj, 'PRODUCT', None)
-                self.vendor_id = getattr(xmlobj, 'VENDOR', None)
+            if elem:
+                self.product   = getattr(elem, 'PRODUCT', None)
+                self.vendor_id = getattr(elem, 'VENDOR', None)
             else:
                 self.product   = kwargs.pop('PRODUCT', None)
                 self.vendor_id = kwargs.pop('VENDOR', None)
@@ -490,17 +499,19 @@ class QKBVuln(CacheableQualysObject):
         vendor_id = None
         url       = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml    = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj = lxml.objectify.fromstring(xml)
+                elem = lxml.objectify.fromstring(xml)
 
-            if xmlobj:
-                self.vendor_id = getattr(xmlobj, 'ID', None)
-                self.url       = getattr(xmlobj, 'URL', None)
+            if elem:
+                self.vendor_id = getattr(elem, 'ID', None)
+                self.url       = getattr(elem, 'URL', None)
             else:
                 self.vendor_id = kwargs.pop('ID', None)
                 self.url       = kwargs.pop('URL', None)
@@ -515,18 +526,20 @@ class QKBVuln(CacheableQualysObject):
         csection    = None
         description = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj =  lxml.objectify.fromstring(xml)
+                elem =  lxml.objectify.fromstring(xml)
 
-            if xmlobj:
-                self.ctype       = getattr(xmlobj, 'TYPE', None)
-                self.csection    = getattr(xmlobj, 'SECTION', None)
-                self.description = getattr(xmlobj, 'DESCRIPTION', None)
+            if elem:
+                self.ctype       = getattr(elem, 'TYPE', None)
+                self.csection    = getattr(elem, 'SECTION', None)
+                self.description = getattr(elem, 'DESCRIPTION', None)
             else:
                 self.ctype       = kwargs.pop('TYPE', None)
                 self.csection    = kwargs.pop('SECTION', None)
@@ -541,13 +554,15 @@ class QKBVuln(CacheableQualysObject):
         desc = None
         link = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj =  lxml.objectify.fromstring(xml)
+                elem =  lxml.objectify.fromstring(xml)
 
             # source must come from kwargs
             self.src = kwargs.pop('SRC', None)
@@ -555,10 +570,10 @@ class QKBVuln(CacheableQualysObject):
                 raise exceptions.QualysFrameworkException('Source must be \
                     included as a keyword argument to this class.')
 
-            if xmlobj:
-                self.ref  = getattr(xmlobj, 'REF',  None )
-                self.desc = getattr(xmlobj, 'DESC', None )
-                self.link = getattr(xmlobj, 'LINK', None )
+            if elem:
+                self.ref  = getattr(elem, 'REF',  None )
+                self.desc = getattr(elem, 'DESC', None )
+                self.link = getattr(elem, 'LINK', None )
 
             else:
                 self.ref  = kwargs.pop('REF',  None )
@@ -576,13 +591,15 @@ class QKBVuln(CacheableQualysObject):
         alias    = None
         rating   = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj =  lxml.objectify.fromstring(xml)
+                elem =  lxml.objectify.fromstring(xml)
 
             # source must come from kwargs
             self.src = kwargs.pop('SRC', None)
@@ -590,12 +607,12 @@ class QKBVuln(CacheableQualysObject):
                 raise exceptions.QualysFrameworkException('Source must be \
                     included as a keyword argument to this class.')
 
-            if xmlobj:
-                self.mwid     = getattr(xmlobj, 'MW_ID',       None )
-                self.mwtype   = getattr(xmlobj, 'MW_TYPE',     None )
-                self.platform = getattr(xmlobj, 'MW_PLATFORM', None )
-                self.alias    = getattr(xmlobj, 'MW_ALIAS',    None )
-                self.rating   = getattr(xmlobj, 'MW_RATING',   None )
+            if elem:
+                self.mwid     = getattr(elem, 'MW_ID',       None )
+                self.mwtype   = getattr(elem, 'MW_TYPE',     None )
+                self.platform = getattr(elem, 'MW_PLATFORM', None )
+                self.alias    = getattr(elem, 'MW_ALIAS',    None )
+                self.rating   = getattr(elem, 'MW_RATING',   None )
 
             else:
                 self.mwid     = kwargs.pop('MW_ID',       None )
@@ -611,17 +628,19 @@ class QKBVuln(CacheableQualysObject):
         bugid = None
         url = None
 
-        def __init__(self, **kwargs):
-            if 'xmlobj' in kwargs:
-                xmlobj = kwargs.pop('xmlobj')
+        def __init__(self, *args, **kwargs):
+
+            elem = None
+            if 'elem' in kwargs:
+                elem = kwargs.pop('elem')
             elif len(args) or 'xml' in kwargs:
                 # we assume xml binary string
                 xml = args[0] if len(args) else kwargs.pop('xml')
-                xmlobj =  lxml.objectify.fromstring(xml)
+                elem =  lxml.objectify.fromstring(xml)
 
-            if xmlobj:
-                self.bugid = getattr(xmlobj, 'ID', None)
-                self.url   = getattr(xmlobj, 'URL', None)
+            if elem:
+                self.bugid = getattr(elem, 'ID', None)
+                self.url   = getattr(elem, 'URL', None)
             else:
                 self.bugid = kwargs.pop('ID', None)
                 self.url   = kwargs.pop('URL', None)
@@ -632,55 +651,56 @@ class QKBVuln(CacheableQualysObject):
 
         Otherwise operate with dictionaries/keyword arguments.
         '''
-        if 'xmlobj' in kwargs:
-            xmlobj = kwargs.pop('xmlobj')
+        elem = None
+        if 'elem' in kwargs:
+            elem = kwargs.pop('elem')
         elif len(args) or 'xml' in kwargs:
             # we assume xml binary string
             xml = args[0] if len(args) else kwargs.pop('xml')
-            xmlobj =  lxml.objectify.fromstring(xml)
+            elem =  lxml.objectify.fromstring(xml)
 
-        if xmlobj:
-            self.qid               = getattr(xmlobj, 'QID', None)
-            self.vtype             = getattr(xmlobj, 'VULN_TYPE', None)
-            self.severity          = getattr(xmlobj, 'SEVERITY_LEVEL', None)
-            self.title             = getattr(xmlobj, 'TITLE', None)
-            self.vcat              = getattr(xmlobj, 'CATEGORY', None)
-            self.usermod_date      = getattr(xmlobj, 'LAST_CUSTOMIZATION', None)
-            self.servicemod_date   = getattr(xmlobj, 'LAST_SERVICE_MODIFICATION_DATETIME', None)
-            self.publ_date         = getattr(xmlobj, 'PUBLISHED_DATETIME', None)
+        if elem:
+            self.qid               = getattr(elem, 'QID', None)
+            self.vtype             = getattr(elem, 'VULN_TYPE', None)
+            self.severity          = getattr(elem, 'SEVERITY_LEVEL', None)
+            self.title             = getattr(elem, 'TITLE', None)
+            self.vcat              = getattr(elem, 'CATEGORY', None)
+            self.usermod_date      = getattr(elem, 'LAST_CUSTOMIZATION', None)
+            self.servicemod_date   = getattr(elem, 'LAST_SERVICE_MODIFICATION_DATETIME', None)
+            self.publ_date         = getattr(elem, 'PUBLISHED_DATETIME', None)
             self.patch_avail       = \
-                False if int(getattr(xmlobj, 'PATCHABLE', 0)) else True
-            self.diagnosis         = getattr(xmlobj, 'DIAGNOSIS', None)
-            self.diagnosis_notes   = getattr(xmlobj, 'DIAGNOSIS_COMMENT', None)
-            self.consequence       = getattr(xmlobj, 'CONSEQUENCE', None)
-            self.consequence_notes = getattr(xmlobj, 'CONSEQUENCE_COMMENT', None)
-            self.solution          = getattr(xmlobj, 'SOLUTION', None)
-            self.solution_notes    = getattr(xmlobj, 'SOLUTION_COMMENT', None)
+                False if int(getattr(elem, 'PATCHABLE', 0)) else True
+            self.diagnosis         = getattr(elem, 'DIAGNOSIS', None)
+            self.diagnosis_notes   = getattr(elem, 'DIAGNOSIS_COMMENT', None)
+            self.consequence       = getattr(elem, 'CONSEQUENCE', None)
+            self.consequence_notes = getattr(elem, 'CONSEQUENCE_COMMENT', None)
+            self.solution          = getattr(elem, 'SOLUTION', None)
+            self.solution_notes    = getattr(elem, 'SOLUTION_COMMENT', None)
             self.pci_mustfix       = \
-                False if int(getattr(xmlobj, 'PCI_FLAG', 0)) else True
-            self.cvss              = CVSS(xmlobj = getattr(xmlobj, 'CVSS', None))
+                False if int(getattr(elem, 'PCI_FLAG', 0)) else True
+            self.cvss              = self.CVSS(elem = getattr(elem, 'CVSS', None))
             # lists / subparse objects
             self.bugtraq_listing   = \
-                    [ Bugtraq(xmlobj = item) for item in getattr(xmlobj,
+                    [ self.Bugtraq(elem = item) for item in getattr(elem,
                         'BUGTRAQ_LIST', []) ]
             self.cve_list          = \
-                    [ CVE(xmlobj = item) for item in getattr(xmlobj,
+                    [ self.CVE(elem = item) for item in getattr(elem,
                         'CVE_LIST', [])]
             self.pci_reasons = \
-                    [ PCIReason(xmlobj = item) for item in getattr(xmlobj,
+                    [ self.PCIReason(elem = item) for item in getattr(elem,
                         'PCI_REASONS', [])]
             self.affected_software = \
-                    [ VulnSoftware(xmlobj = item) for item in getattr(xmlobj,
+                    [ self.VulnSoftware(elem = item) for item in getattr(elem,
                         'SOFTWARE_LIST', [])]
             self.vendor_list       = \
-                    [ VulnVendor(xmlobj = item) for item in getattr(xmlobj,
+                    [ self.VulnVendor(elem = item) for item in getattr(elem,
                         'VENDOR_REFERENCE_LIST', [])]
             self.compliance_notice_list = \
-                    [ Compliance(xmlobj = item) for item in getattr(xmlobj,
+                    [ self.Compliance(elem = item) for item in getattr(elem,
                         'COMPLIANCE_LIST', [])]
 
             # correlation is a bit more tricky
-            correlation             = getattr(xmlobj, 'CORRELATION', None)
+            correlation             = getattr(elem, 'CORRELATION', None)
             if correlation:
                 # reverse the source/mw|ex nesting to mw.source and ex.source
                 for exsource in getattr( correlation, 'EXPLOITS', []):
@@ -705,12 +725,12 @@ class QKBVuln(CacheableQualysObject):
                         for mwinfo in mwsource.MW_LIST ) )
 
             #remote boolean ? +authtype list if false.
-            if hasattr(xmlobj, 'DISCOVERY'):
+            if hasattr(elem, 'DISCOVERY'):
                 self.remote_detectable = \
-                        False if xmlobj.DISCOVERY.REMOTE else True
+                        False if elem.DISCOVERY.REMOTE else True
                 self.auth_type_list      = \
                         [ auth_type for auth_type in
-                            getattr(xmlobj.DISCOVERY, 'AUTH_TYPE_LIST', [])]
+                            getattr(elem.DISCOVERY, 'AUTH_TYPE_LIST', [])]
         else:
             # we assume standard kwarg arguments
             self.qid               = kwargs.pop('QID', None)
@@ -731,7 +751,7 @@ class QKBVuln(CacheableQualysObject):
             self.solution_notes    = kwargs.pop('SOLUTION_COMMENT', None)
             self.pci_mustfix       = \
                 False if int(kwargs.pop('PCI_FLAG', 0)) else True
-            self.cvss              = CVSS(xmlobj = kwargs.pop('CVSS', None))
+            self.cvss              = self.CVSS(elem = kwargs.pop('CVSS', None))
             # lists / subparse objects
             #TODO: make this graceful
             raise exceptions.QualysFrameworkException('Not yet implemented: \
@@ -1165,7 +1185,10 @@ class MapReport(CacheableQualysObject):
     pass
 
 # element to api_object mapping
+# this is temporary in lieu of an object which allows for user-override of
+# parse object (subclass parse consumers)
 obj_elem_map = {
     'MAP_REPORT' : Map,
     'MAP_RESULT' : MapResult,
+    'VULN' : QKBVuln,
 }

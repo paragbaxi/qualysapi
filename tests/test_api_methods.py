@@ -4,6 +4,7 @@ import tempfile
 import os
 import unittest
 import logging
+import pprint
 
 # Setup module level logging. -- workaround nose
 # logging.basicConfig(level=logging.DEBUG)
@@ -73,17 +74,14 @@ class TestAPIMethods(unittest.TestCase):
                 remember_me=True)
         self.cache_instance = qcache.APICacheInstance(qconf)
 
-
     def tearDown(self):
         '''Remove the temporary file'''
         if self.tfDestroy: os.remove(os.path.abspath(self.tcfilename))
-
 
     def test_api_init(self):
         ''' Pulls a list of maps '''
         with self.assertRaises(exceptions.NoConnectionError):
             actions = api_actions.QGActions()
-
 
     def subtest_map_list(self, actions):
         ''' Pulls a list of maps'''
@@ -94,6 +92,17 @@ class TestAPIMethods(unittest.TestCase):
             logging.debug('%02d:\r%s' % (counter, mapr))
         return [maps[0]]
 
+    def test_kqb_parser_fromfile(self):
+        '''Tests the distributed parser against a static sample file.'''
+        fname = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                'test_data')
+        fname = os.path.join( fname, 'tinykb.xml')
+        actions = api_actions.QGActions(cache_connection =
+                self.cache_instance)
+        qkbobs = actions.queryQKB(file=fname)
+        self.assertGreaterEqual(len(qkbobs),1)
+        logging.debug(pprint.pformat(qkbobs))
 
     def test_fetch_report(self):
         '''Fetches a map report given test_map_list having completed with

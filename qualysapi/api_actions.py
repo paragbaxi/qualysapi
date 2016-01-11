@@ -75,15 +75,22 @@ class QGActions(object):
         handled by the buffer consumers as a callback rather than a threaded
         parse consumer.
         '''
+
         source = kwargs.pop('source', None)
         if source is None:
             raise QualysException('No source file or URL or raw stream found.')
+        #select the response file-like object
+        response = None
+        if isinstance(source, str):
+            response = self.stream_request(source, **kwargs)
+        else:
+            response = source
+
 
 
         block = kwargs.pop('block', False)
         callback = kwargs.pop('callback', None)
 
-        response = self.stream_request(source, **kwargs)
         context = etree.iterparse(response, events=('end',))
 
         if self.import_buffer is None:
@@ -154,6 +161,45 @@ class QGActions(object):
             groupsArray.append(AssetGroup(group.BUSINESS_IMPACT, group.ID, group.LAST_UPDATE, scanipsArray, scandnsArray, scannersArray, group.TITLE))
 
         return groupsArray
+
+
+    def queryQKB(self, **kwargs):
+        '''
+        Pulls down a set of Qualys Knowledge Base entries in XML and hands them
+        off to the parser/consumer framework.
+
+        Parms:
+        quids -- a list of Qualys QIDs to pull QKB entries for.  Limits the
+        result set.  Can be empty or none if pulling all.
+        all -- boolean.  Causes quids to be ignored if set.  Pulls the entire
+        knowledge base.
+        changes_since -- an inclusive subset of new and modified entries since
+        a specific date.  Can be a datetime (which will be converted to a
+        string query parameter) or a string formatted as Qualys expects
+        .  It is up to the calling function to ensure strings are correct if
+        you choose to use them.
+        file -- a special (but useful) case in which a file should be used to
+        load the input.  In this case the entire file is parsed, regardless of
+        the other parameters.
+
+        Retuns of this function depend on the parse consumers.  A list of
+        objects or None.
+        '''
+        if 'quids' in kwargs:
+            raise exceptions.QualysFrameworkException('Not yet implemented.')
+        elif 'all' in kwargs:
+            raise exceptions.QualysFrameworkException('Not yet implemented.')
+        elif 'changes_since' in kwargs:
+            raise exceptions.QualysFrameworkException('Not yet implemented.')
+        else:
+            if 'file' not in kwargs:
+                raise exceptions.QualysFrameworkException('You must provide at\
+                least some parameters to this function.')
+            sourcefile = open(kwargs.pop('file'), 'rb')
+            result = self.parseResponse(source=sourcefile)
+            sourcefile.close()
+
+        return result
 
 
     def kickOffMapReports(self, **kwargs):

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE KNOWLEDGE_BASE_VULN_LIST_OUTPUT SYSTEM "https://qualysapi.qualys.com/api/2.0/fo/knowledge_base/vuln/knowledge_base_vuln_list_output.dtd">
+<KNOWLEDGE_BASE_VULN_LIST_OUTPUT>
+  <RESPONSE>
+    <DATETIME>2015-09-01T15:28:54Z</DATETIME>
+<!-- keep-alive for KNOWLEDGE_BASE_VULN_LIST_OUTPUT  -->
+<!-- keep-alive for KNOWLEDGE_BASE_VULN_LIST_OUTPUT  -->
+    <VULN_LIST>
+      <VULN>
+        <QID>6</QID>
+        <VULN_TYPE>Information Gathered</VULN_TYPE>
+        <SEVERITY_LEVEL>1</SEVERITY_LEVEL>
+        <TITLE><![CDATA[DNS Host Name]]></TITLE>
+        <CATEGORY>Information gathering</CATEGORY>
+        <LAST_SERVICE_MODIFICATION_DATETIME>1999-01-01T08:00:00Z</LAST_SERVICE_MODIFICATION_DATETIME>
+        <PUBLISHED_DATETIME>1999-01-01T08:00:00Z</PUBLISHED_DATETIME>
+        <PATCHABLE>0</PATCHABLE>
+        <DIAGNOSIS><![CDATA[The fully qualified domain name of this host, if it was obtained from a DNS server, is displayed in the RESULT section.]]></DIAGNOSIS>
+        <PCI_FLAG>0</PCI_FLAG>
+        <DISCOVERY>
+          <REMOTE>1</REMOTE>
+        </DISCOVERY>
+      </VULN>
+      <VULN>
+        <QID>9</QID>
+        <VULN_TYPE>Information Gathered</VULN_TYPE>
+        <SEVERITY_LEVEL>2</SEVERITY_LEVEL>
+        <TITLE><![CDATA[Open RPC Services List]]></TITLE>
+        <CATEGORY>RPC</CATEGORY>
+        <LAST_SERVICE_MODIFICATION_DATETIME>1999-01-01T08:00:00Z</LAST_SERVICE_MODIFICATION_DATETIME>
+        <PUBLISHED_DATETIME>1999-01-01T08:00:00Z</PUBLISHED_DATETIME>
+        <PATCHABLE>0</PATCHABLE>
+        <DIAGNOSIS><![CDATA[A port scanner was used to draw a map of all the RPC services accessible from the Internet.]]></DIAGNOSIS>
+        <CONSEQUENCE><![CDATA[Unauthorized users can subsequently test vulnerabilities related to each of the services open.]]></CONSEQUENCE>
+        <SOLUTION><![CDATA[Shut down any unknown or unused service on the list. To remove all RPC services, you cannot simply filter port 111 at the firewall because port 111 (the "portmap" service) only shows which ports the RPC services are listening on. Therefore, it cannot block access to these services. Disable the RPC services at the server level because each listens on an ephemeral UDP or TCP port.]]></SOLUTION>
+        <PCI_FLAG>0</PCI_FLAG>
+        <DISCOVERY>
+          <REMOTE>1</REMOTE>
+        </DISCOVERY>
+      </VULN>
+      <VULN>
+        <QID>11</QID>
+        <VULN_TYPE>Vulnerability</VULN_TYPE>
+        <SEVERITY_LEVEL>2</SEVERITY_LEVEL>
+        <TITLE><![CDATA[Hidden RPC Services]]></TITLE>
+        <CATEGORY>RPC</CATEGORY>
+        <LAST_SERVICE_MODIFICATION_DATETIME>1999-01-01T08:00:00Z</LAST_SERVICE_MODIFICATION_DATETIME>
+        <PUBLISHED_DATETIME>1999-01-01T08:00:00Z</PUBLISHED_DATETIME>
+        <PATCHABLE>0</PATCHABLE>
+        <DIAGNOSIS><![CDATA[The Portmapper/Rpcbind listens on port 111 and stores an updated list of registered RPC services running on the server (RPC name, version and port number). It acts as a "gateway" for clients wanting to connect to any RPC daemon. 
+<P>
+When the portmapper/rpcbind is removed or firewalled, standard RPC client programs fail to obtain the portmapper list.  However, by sending carefully crafted packets, it's possible to determine which RPC programs are listening on which port. This technique is known as direct RPC scanning. It's used to bypass portmapper/rpcbind in order to find RPC programs running on a port (TCP or UDP ports). On Linux servers, RPC services are typically listening on privileged ports (below 1024), whereas on Solaris, RPC services are on temporary ports (starting with port 32700).]]></DIAGNOSIS>
+        <CONSEQUENCE><![CDATA[Unauthorized users can build a list of RPC services running on the host. If they discover vulnerable RPC services on the host, they then can exploit them.
+
+]]></CONSEQUENCE>
+        <SOLUTION><![CDATA[Firewalling the portmapper port or removing the portmapper service is not sufficient to prevent unauthorized users from accessing the RPC daemons. You should remove all RPC services that are not strictly required on this host. 
+
+]]></SOLUTION>
+        <CVSS>
+          <BASE source="service">5</BASE>
+          <TEMPORAL>3.6</TEMPORAL>
+        </CVSS>
+        <PCI_FLAG>1</PCI_FLAG>
+        <DISCOVERY>
+          <REMOTE>1</REMOTE>
+        </DISCOVERY>
+      </VULN>
+      <VULN>
+        <QID>32</QID>
+        <VULN_TYPE>Information Gathered</VULN_TYPE>
+        <SEVERITY_LEVEL>2</SEVERITY_LEVEL>
+        <TITLE><![CDATA[Darxite Banner]]></TITLE>
+        <CATEGORY>General remote services</CATEGORY>
+        <LAST_SERVICE_MODIFICATION_DATETIME>1999-01-01T08:00:00Z</LAST_SERVICE_MODIFICATION_DATETIME>
+        <PUBLISHED_DATETIME>2000-11-22T18:29:32Z</PUBLISHED_DATETIME>
+        <PATCHABLE>0</PATCHABLE>
+        <PCI_FLAG>0</PCI_FLAG>
+        <DISCOVERY>
+          <REMOTE>1</REMOTE>
+        </DISCOVERY>
+      </VULN>
+      <VULN>
+        <QID>1000</QID>
+        <VULN_TYPE>Potential Vulnerability</VULN_TYPE>
+        <SEVERITY_LEVEL>4</SEVERITY_LEVEL>
+        <TITLE><![CDATA[Potential UDP Backdoor]]></TITLE>
+        <CATEGORY>Backdoors and trojan horses</CATEGORY>
+        <LAST_SERVICE_MODIFICATION_DATETIME>2009-06-04T21:40:32Z</LAST_SERVICE_MODIFICATION_DATETIME>
+        <PUBLISHED_DATETIME>1999-01-01T08:00:00Z</PUBLISHED_DATETIME>
+        <PATCHABLE>0</PATCHABLE>
+        <DIAGNOSIS><![CDATA[There are known backdoors that use specific port numbers. At least one of these ports was found open on this host.  This may indicate the presence of a backdoor; however, it's also possible that this port is being used by a legitimate service, such as a Unix or Windows RPC.]]></DIAGNOSIS>
+        <CONSEQUENCE><![CDATA[If a backdoor is present on your system, then unauthorized users can log in to your system undetected, execute unauthorized commands, and leave the host vulnerable to other unauthorized users. Malicious users may also use your host to access other hosts to perform a coordinated Denial of Service attack.  
+<P>
+Some well-known backdoors are &quot;BackOrifice&quot;, &quot;Netbus&quot; and &quot;Netspy&quot;.  You should be able to find more information on these backdoors on the <A HREF="http://www.cert.org" TARGET="_blank">CERT Coordination Center's Web site (www.cert.org)</A>.
+]]></CONSEQUENCE>
+        <SOLUTION><![CDATA[Call a security specialist and test this host for backdoors.  If a backdoor is found, then the host may need to be re-installed. ]]></SOLUTION>
+        <COMPLIANCE_LIST>
+          <COMPLIANCE>
+            <TYPE>CobIT</TYPE>
+            <SECTION><![CDATA[DS5.9]]></SECTION>
+            <DESCRIPTION><![CDATA[Malicious Software Prevention, Detection and Correction
+Ensure that preventive, detective and corrective measures are in place (especially up-to-date security patches and virus control) across the organization to protect information systems and technology from Malware (viruses, worms, spyware, spam, internally developed fraudulent software, etc.).
+]]></DESCRIPTION>
+          </COMPLIANCE>
+          <COMPLIANCE>
+            <TYPE>HIPAA</TYPE>
+            <SECTION><![CDATA[164.306 and 164.312]]></SECTION>
+            <DESCRIPTION><![CDATA[Insuring that Malware is not present on hosts addresses section(s) 164.306 and 164.312 requirements for securing critical system files and services and insuring system integrity.]]></DESCRIPTION>
+            <GUY>David White</GUY>
+          </COMPLIANCE>
+        </COMPLIANCE_LIST>
+        <PCI_FLAG>1</PCI_FLAG>
+        <DISCOVERY>
+          <REMOTE>1</REMOTE>
+        </DISCOVERY>
+      </VULN>
+    </VULN_LIST>
+  </RESPONSE>
+</KNOWLEDGE_BASE_VULN_LIST_OUTPUT>
+<!-- CONFIDENTIAL AND PROPRIETARY INFORMATION. Qualys provides the QualysGuard Service "As Is," without any warranty of any kind. Qualys makes no warranty that the information contained in this report is complete or error-free. Copyright 2015, Qualys, Inc. //--> 
