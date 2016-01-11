@@ -99,6 +99,16 @@ class QGActions(object):
         source = kwargs.pop('source', None)
         if source is None:
             raise QualysException('No source file or URL or raw stream found.')
+
+        block = kwargs.pop('block', True)
+        callback = kwargs.pop('completion_callback', None)
+        #TODO: consider passing in an import_buffer for thread management reuse
+        #of this object
+        #TODO: consider replacing this requirement
+        if not block and not callback:
+            raise exceptions.QualysFrameworkException("A callback outlet is \
+            required for nonblocking calls to the parser/consumer framework.")
+
         #select the response file-like object
         response = None
         if isinstance(source, str):
@@ -106,6 +116,10 @@ class QGActions(object):
         else:
             response = source
 
+        if self.import_buffer is None:
+            self.import_buffer = ImportBuffer(callback=callback)
+        else:
+            self.import_buffer.setCallback(callback)
 
         block = kwargs.pop('block', True)
         callback = kwargs.pop('completion_callback', None)
@@ -113,14 +127,8 @@ class QGActions(object):
             raise exceptions.QualysFrameworkException("A callback outlet is \
             required for nonblocking calls to the parser/consumer framework.")
 
-        context = etree.iterparse(response, events=('end',))
-
-        if self.import_buffer is None:
-            self.import_buffer = ImportBuffer(callback=callback)
-        else:
-            self.import_buffer.setCallback(callback)
-
         clear_ok = False
+        context = etree.iterparse(response, events=('end',))
         for event, elem in context:
             #Use QName to avoid specifying or stripping the namespace, which we don't need
             if etree.QName(elem.tag).localname.upper() in obj_elem_map:
@@ -129,7 +137,7 @@ class QGActions(object):
             if clear_ok:
                 elem.clear() #don't fill up a dom we don't need.
                 clear_ok = False
-        return self.import_buffer.finish() if block else None
+        return self.import_buffer.finish() if block else self.import_buffer
 
 
     def getHost(host):
