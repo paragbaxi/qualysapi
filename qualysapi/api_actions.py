@@ -9,6 +9,21 @@ import json
 
 from multiprocessing import pool
 
+from threading import Thread, Event
+
+
+# two essential methods here include creating a semaphore-based local threading
+# or multiprocessing pool which is capable of monitoring and dispatching
+# callbacks to calling instances when both parsing and consumption complete.
+
+# In the default implementation the calls are blocking and perform a single
+# request, parse the response, and then wait for parse consumption to finish.
+# This isn't ideal, however, as there are often cases where multiple requests
+# could be sent off at the same time and handled asynchronously.  The
+# methods below wrap thread pools or process pools for asynchronous
+# multi-request parsing/consuming by a single calling program.
+
+
 def defaultCompletionHandler(IB):
     logging.info('Import buffer completed.')
     logging.info(repr(IB))
@@ -63,14 +78,19 @@ class QGActions(object):
         API DTDs properly.
 
         @Params
-        source -- a filename or url to an xml file or an open stream.
+        source -- An api endpoint (mapped using the api_methods sets) or an IO
+        source.  If this is an instance of str it is treated as an api
+        endpoint, otherwise it is treated as a file-like object yielding binary
+        xml data.  This should be sufficient to allow any kind of
+        processing while still being convenient for standard uses.
         block -- an optional parameter which binds the caller to the parse
         buffer for consumption.  It is generally assumed by the design that
         parse consumers will handle themselves internally and that this method
         can return once it kicks off an action.  When block is set to True,
         however, this method will join the parse buffer and wait for the
-        consumers to clear the queue before returning.
-        result_handler -- an optional method that gets called when consumption
+        consumers to clear the queue before returning.  By default this is true
+        for ease of implementation.
+        completion_callback -- an optional method that gets called when consumption
         of a parse completes.  This method will receive all of the objects
         handled by the buffer consumers as a callback rather than a threaded
         parse consumer.
@@ -87,14 +107,19 @@ class QGActions(object):
             response = source
 
 
-
-        block = kwargs.pop('block', False)
-        callback = kwargs.pop('callback', None)
+        block = kwargs.pop('block', True)
+        callback = kwargs.pop('completion_callback', None)
+        if not block and not callback:
+            raise exceptions.QualysFrameworkException("A callback outlet is \
+            required for nonblocking calls to the parser/consumer framework.")
 
         context = etree.iterparse(response, events=('end',))
 
         if self.import_buffer is None:
-            self.import_buffer = ImportBuffer()
+            self.import_buffer = ImportBuffer(callback=callback)
+        else:
+            self.import_buffer.setCallback(callback)
+
         clear_ok = False
         for event, elem in context:
             #Use QName to avoid specifying or stripping the namespace, which we don't need
@@ -104,7 +129,7 @@ class QGActions(object):
             if clear_ok:
                 elem.clear() #don't fill up a dom we don't need.
                 clear_ok = False
-        return self.import_buffer.finish()
+        return self.import_buffer.finish() if block else None
 
 
     def getHost(host):

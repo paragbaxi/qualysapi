@@ -5,6 +5,7 @@ import pprint
 import json
 from multiprocessing import Process, Pool, Manager, get_context
 from multiprocessing.queues import Queue
+
 import queue
 from qualysapi import exceptions
 
@@ -1054,6 +1055,8 @@ class ImportBuffer(object):
     results_list = None
     running = []
 
+    callback = None
+
 
     def __init__(self, *args, **kwargs):
         '''
@@ -1076,6 +1079,9 @@ class ImportBuffer(object):
         but not really useful in its optional form since it really just fills
         up a threadsafe list taken from the buffer.  By default this is set to
         a BufferConsumer(results_list=self.results_list).
+        callback -- a method intended to receive results.  Allows using the
+        finish method as a bind-only hook for pools with callbacks for result
+        processing.
         '''
         tlimit = kwargs.pop('trigger_limit', None)
         if tlimit is not None:
@@ -1094,6 +1100,8 @@ class ImportBuffer(object):
         if self.consumer is None:
             self.consumer = BufferConsumer
 
+        self.callback = kwargs.pop('callback', None)
+
 
     def add(self, item):
         '''Place a new object into the buffer'''
@@ -1109,6 +1117,9 @@ class ImportBuffer(object):
             if not csmr.is_alive():
                 self.running.remove(csmr)
 
+    def setCallback(self, callback):
+        '''set or replace a callback in an existing buffer instance.'''
+        self.callback = callback
 
     def finish(self):
         '''
@@ -1121,7 +1132,10 @@ class ImportBuffer(object):
         # turn this into a list instead of a managed list
         result = list(self.results_list)
         del self.results_list[:]
-        return result
+        if self.callback:
+            return self.callback(result)
+        else:
+            return result
 
 
 class MapReportRunner(Process):
