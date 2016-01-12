@@ -201,8 +201,9 @@ class QGActions(object):
         Pulls down a set of Qualys Knowledge Base entries in XML and hands them
         off to the parser/consumer framework.
 
-        Parms:
-        quids -- a list of Qualys QIDs to pull QKB entries for.  Limits the
+        Params:
+
+        qids -- a list of Qualys QIDs to pull QKB entries for.  Limits the
         result set.  Can be empty or none if pulling all.
         all -- boolean.  Causes quids to be ignored if set.  Pulls the entire
         knowledge base.
@@ -210,10 +211,25 @@ class QGActions(object):
         a specific date.  Can be a datetime (which will be converted to a
         string query parameter) or a string formatted as Qualys expects
         .  It is up to the calling function to ensure strings are correct if
-        you choose to use them.
+        you choose to use them.  This brackets all of the XX_after variables.
+        changes_before -- an inclusive subset old entries.  This brackets all
+        of the XX_before variables.
+        details -- defaults to 'All' but you can specify 'Basic' or 'None'.
+        range -- A tuple of qids.  (Min,Max).  Shorthand for a specific list.
+        only_patchable -- Boolean.  Limits the results to only QKB entries that
+        have known patches.
+        show_pci_reasons -- False by default.  You have to have this in your
+        sub for it to be safe.
         file -- a special (but useful) case in which a file should be used to
         load the input.  In this case the entire file is parsed, regardless of
         the other parameters.
+        discovery_method -- 'RemoteAndAuthenticated' by default, but valid
+        options are:
+            *'Remote'
+            *'Authenticated'
+            *'RemoteOnly'
+            *'AuthenticatedOnly'
+            *'RemoteAndAuthenticated'
 
         Retuns of this function depend on the parse consumers.  A list of
         objects or None.

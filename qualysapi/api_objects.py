@@ -6,6 +6,8 @@ import json
 from multiprocessing import Process, Pool, Manager, get_context
 from multiprocessing.queues import Queue
 
+from threading import Thread, Event
+
 import queue
 from qualysapi import exceptions
 
@@ -1197,6 +1199,28 @@ class MapReport(CacheableQualysObject):
     This will probably be a stub class.
     '''
     pass
+
+class RequestDispatchMonitorServer(object):
+    '''This class is intended to kick off a number of requests to qualys which
+    may return results immediately but require additional requests and result
+    checking before the tasks can complete.  As such it will create a thread
+    pool and a very nice low-priority thread to check until the report is
+    ready.'''
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def getServerMetrics(self, *args, **kwargs):
+        pass
+
+    def addRequest(self, *args, **kwargs):
+        pass
+
+    def addCallback(self, request, callback):
+        '''Bind a callback to a request.'''
+        pass
+
+
 
 # element to api_object mapping
 # this is temporary in lieu of an object which allows for user-override of
