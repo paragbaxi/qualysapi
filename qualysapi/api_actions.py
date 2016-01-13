@@ -251,7 +251,7 @@ class QGActions(object):
         return result
 
 
-    def kickOffMapReports(self, **kwargs):
+    def launchMapReports(self, **kwargs):
         '''
         This is a type of automation function that should really be used in a
         process server or manager context.  Consider yourself warned.
@@ -289,11 +289,6 @@ class QGActions(object):
         map_names -- an optional list of map names to operate on.
         sleep_period -- override the default sleep period for map report
         checking.  Each processes will sleep for 30 minutes by default.
-        max_processes -- override the default number of processes which will
-        generate map reports and wait for them to complete.
-        runnable_process -- override the ReportManager class with your own
-        class.  @see qualysapi.api_objects.ReportManager for requirements.
-        timeout -- override the default timeout of 24 hours for processes.
 
         @returns -- a list of @see qualysapi.api_objects.Maps that this processes
         is or was operating on when called.  If this call is non-blocking then
@@ -310,9 +305,66 @@ class QGActions(object):
             raise exceptions.QualysFrameworkException('This method requires \
                 that you use the redis cache.')
         maps = self.listMaps()
-        # cache the maps ...
-        [self.conn.cache_api_object(mapi) for mapi in maps]
-        # instantiate a MapReportProcessingPool
+        # filter the list to only include those we want
+        if include_pattern in kwargs:
+            #TODO: compile regex and filter matches
+            pass
+        if exclude_pattern in kwargs:
+            #TODO: compile regex and filter matches
+            pass
+
+        if 'map_refs' in kwargs:
+            maps[:] = [mapr for mapr in maps if mapr.map_ref in \
+                    kwargs.get('map_refs', []) ]
+
+        if 'map_names' in kwargs:
+            maps[:] = [mapr for mapr in maps if mapr.name in \
+                kwargs.get('map_names', []) ]
+
+        # we should now have a specific subset to generate reports on...
+
+
+    def startMapReportOnMap(self, mapr, **kwargs):
+        '''Generates a report on a map.
+        Parameters:
+        mapr -- the map result to generate a report against
+        at least one of:
+            template_id -- (Optional) the report template ID to use.  Required.
+            template_name -- (Optional) the name of the template to use. (look
+            up ID)
+            use_default_template -- (Optional) boolean.  Look up the
+            default map report template and load the template_id from it.
+        '''
+
+        # figure out our template_id
+        template_id = 0
+        if 'template_id' in kwargs:
+            template_id = kwargs.get('template_id', 0)
+        elif 'template_name' in kwargs or kwargs.get('use_default_template',
+                False):
+            # get the list of tempaltes
+            template_list = self.listReportTemplates()
+            for template in template_list:
+                if template.report_type == 'Map':
+                    if template.title == kwargs.get('template_title', None):
+                        template_id = template.template_id
+                    elif template.is_default and kwargs.get('use_default_template',
+                            False):
+                        tempalte_id = template.template_id
+                    if not template_id:
+                        break
+        else:
+            raise exceptions.QualysFrameworkException('You need one of a \
+                    template_id, template_name or use_default_template to \
+                    generate a report from a map result.')
+
+
+        call = '/api/2.0/fo/report/'
+        params = {
+            'action'      : 'launch',
+            'template_id' : template_id,
+        }
+        self.request('')
 
 
     def fetchReport(self, **kwargs):
@@ -322,8 +374,8 @@ class QGActions(object):
         '''
         call = '/api/2.0/fo/report/'
         params = {
-            'action' : 'fetch',
-            'id'     : kwargs.get('id', 0)
+            'action' : 'launch',
+            ''     : kwargs.get('id', 0)
         }
 #        map_reports = kwargs.get('map_reports', None)
 #        if map_reports:
@@ -334,14 +386,9 @@ class QGActions(object):
 
 
     def listReportTemplates(self):
+        '''Load a list of report templates'''
         call = 'report_template_list.php'
-        rtData = objectify.fromstring(self.request(call))
-        templatesArray = []
-
-        for template in rtData.REPORT_TEMPLATE:
-            templatesArray.append(ReportTemplate(template.GLOBAL, template.ID, template.LAST_UPDATE, template.TEMPLATE_TYPE, template.TITLE, template.TYPE, template.USER))
-
-        return templatesArray
+        return self.parseResponse(source=call, data=None)
 
     def listReports(self, id=0):
         call = '/api/2.0/fo/report'
@@ -408,7 +455,6 @@ class QGActions(object):
         call = 'map_report_list.php'
         data = {}
         return self.parseResponse(source=call, data=data)
-
 
     def listScans(self, launched_after="", state="", target="", type="", user_login=""):
         #'launched_after' parameter accepts a date in the format: YYYY-MM-DD

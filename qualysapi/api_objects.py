@@ -71,16 +71,16 @@ class AssetGroup(CacheableQualysObject):
         call = '/api/2.0/fo/asset/group/'
         parameters = {'action': 'edit', 'id': self.id, 'set_ips': ips}
         conn.request(call, parameters)
-
-class ReportTemplate(CacheableQualysObject):
-    def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
-        self.isGlobal = int(isGlobal)
-        self.id = int(id)
-        self.last_update = str(last_update).replace('T', ' ').replace('Z', '').split(' ')
-        self.template_type = template_type
-        self.title = title
-        self.type = type
-        self.user = user.LOGIN
+# replaced
+# class ReportTemplate(CacheableQualysObject):
+#     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
+#         self.isGlobal = int(isGlobal)
+#         self.id = int(id)
+#         self.last_update = str(last_update).replace('T', ' ').replace('Z', '').split(' ')
+#         self.template_type = template_type
+#         self.title = title
+#         self.type = type
+#         self.user = user.LOGIN
 
 class Report(CacheableQualysObject):
     '''
@@ -847,7 +847,6 @@ class Map(CacheableQualysObject):
                 self.date, self.ref)
 
 
-
 class MapResult(Map):
     '''The actual results of a map.'''
     def __init__(self):
@@ -1138,41 +1137,37 @@ class ImportBuffer(object):
             return result
 
 
-class MapReportRunner(Process):
+class MapReportRunner(QualysStatusMonitor):
     '''
-    Grabs the first available queued report to run and attaches to it, starting
-    the report running and then monitoring it periodically for the status until
-    the report has finished.  If qualys returns with a concurrent scan/report
-    limit, the process will sleep, periodically checking again to see if it can
-    start the report.
+    Take a map_report ID and kick off a report.  Monitor the progress of the
+    report until finished and then pull in the report and process it.
     '''
-    queue = None
     map_instance = None
-    redis_cache = None
     def __init__(self, **kwargs):
         '''
         initialize this report runner.
         @Parms
-        queue -- a standard multiprocessing.queue to generate reports on.
-        redis_cache -- An instance of qcache.APICacheInstance This is the cache
-        to use for updating the status of a map-report link (state reporting).
+        map_instance
+
+        Parent Params:
+        qconfig -- the current api configuration from the parent threadpool.
         '''
-        super(BufferConsumer, self).__init__() #pass to parent
-        self.queue = kwargs.get('queue', None)
-        self.redis_cache = kwargs.get('redis_cache', None)
-        if self.queue is None:
-            raise ReportRunnerException('Runner initialized without an input \
-                queue.')
-        if self.redis_cache is None:
-            raise ReportRunnerException('Runner initialized without a cache \
-                instance in which to report on the status.')
+        if 'map_instance' not in kwargs:
+            raise exceptions.QualysFrameworkException('A map instance is \
+            required for the report runner to monitor and update.')
+        self.map_instance = kwargs.pop('map_instance')
 
+        super(QualysStatusMonitor, self).__init__(qconfig, **kwargs) #pass to parent
 
-    def run(self):
+    def singleRequestResponse(self):
         '''Begin consuming map references and generating reports on them (also
         capable of resuming monitoring of running reports).
         '''
-        done = False
+        if not self.map_instance.report_id:
+            # we haven't started or don't know a report id for this map.  Let's
+            # take care of that.
+            pass
+
         while not done:
             try:
                 map_instance = self.queue.get(timeout=1)
@@ -1247,7 +1242,6 @@ class QualysStatusMonitor(Thread):
         thread.  I can\'t think of any reason for not doing that here, but this
         is an API...'''
         pass
-
 
 
 class RequestDispatchMonitorServer(object):
@@ -1344,6 +1338,105 @@ class RequestDispatchMonitorServer(object):
             raise threading.ThreadError('Our children are misbehaving!')
 
 
+class QualysUser(cacheableQualysObject):
+    ''' Common shared wrapper class for a User representation of the User
+    element.
+    <!ELEMENT LOGIN     (# PCDATA)>
+    <!ELEMENT FIRSTNAME (# PCDATA)>
+    <!ELEMENT LASTNAME  (# PCDATA)>
+    Params
+    login     -- username
+    firstname -- frist... name
+    lastname  -- last... name
+    '''
+    login     = ''
+    firstname = ''
+    lastname  = ''
+    def __init__(self, *args, **kwargs):
+
+        elem = None
+        if 'elem' in kwargs:
+            elem = kwargs.pop('elem')
+        elif len(args) or 'xml' in kwargs:
+            # we assume xml binary string
+            xml = args[0] if len(args) else kwargs.pop('xml')
+            elem =  lxml.objectify.fromstring(xml)
+
+        if elem:
+            self.login     = getattr(elem, 'LOGIN',     None )
+            self.firstname = getattr(elem, 'FIRSTNAME', None )
+            self.lastname  = getattr(elem, 'LASTNAME',  None )
+        else:
+            self.login     = kwargs.pop('LOGIN',     None )
+            self.firstname = kwargs.pop('FIRSTNAME', None )
+            self.lastname  = kwargs.pop('LASTNAME',  None )
+
+
+
+class ReportTemplate(CacheableQualysObject):
+    ''' Wrapper class for a report template
+
+    DTD:
+    <!ELEMENT REPORT_TEMPLATE (ID,
+        TYPE,
+        TEMPLATE_TYPE,
+        TITLE,
+        USER,
+        LAST_UPDATE,
+        GLOBAL,
+        DEFAULT?)>
+    <!ELEMENT ID (#PCDATA)>
+    <!ELEMENT TYPE (#PCDATA)>
+    <!ELEMENT TEMPLATE_TYPE (#PCDATA)>
+    <!ELEMENT TITLE (#PCDATA)>
+    <!ELEMENT USER (LOGIN, FIRSTNAME, LASTNAME)>
+    <!ELEMENT LAST_UPDATE (#PCDATA)>
+    <!ELEMENT GLOBAL (#PCDATA)>
+    <!ELEMENT DEFAULT (#PCDATA)>
+
+    Params:
+
+
+    '''
+    template_id    = None
+    report_type   = None
+    template_type = None
+    title         = None
+    user          = None
+    last_update   = None
+    is_global     = False
+    is_default    = False
+
+    def __init__(self, *args, **kwargs):
+
+        elem = None
+        if 'elem' in kwargs:
+            elem = kwargs.pop('elem')
+        elif len(args) or 'xml' in kwargs:
+            # we assume xml binary string
+            xml = args[0] if len(args) else kwargs.pop('xml')
+            elem =  lxml.objectify.fromstring(xml)
+
+        if elem:
+            self.template_id    = getattr(elem, 'ID', self.template_id)
+            self.report_type   = getattr(elem, 'TYPE', self.report_type)
+            self.template_type = getattr(elem, 'TEMPLATE_TYPE', self.template_type)
+            self.title         = getattr(elem, 'TITLE', self.title)
+            self.user          = getattr(elem, 'USER', self.user)
+            self.last_update   = getattr(elem, 'LAST_UPDATE', self.last_update)
+            self.is_global     = getattr(elem, 'GLOBAL', self.is_global)
+            self.is_default    = getattr(elem, 'DEFAULT', self.is_default)
+        else:
+            self.template_id    = kwargs.pop('ID', self.template_id)
+            self.report_type   = kwargs.pop('TYPE', self.report_type)
+            self.template_type = kwargs.pop('TEMPLATE_TYPE', self.template_type)
+            self.title         = kwargs.pop('TITLE', self.title)
+            self.user = \
+                    QualysUser(**(kwargs.pop('USER', {})))
+            self.last_update   = kwargs.pop('LAST_UPDATE', self.last_update)
+            self.is_global     = kwargs.pop('GLOBAL', self.is_global)
+            self.is_default    = kwargs.pop('DEFAULT', self.is_default)
+
 
 # element to api_object mapping
 # this is temporary in lieu of an object which allows for user-override of
@@ -1352,4 +1445,6 @@ obj_elem_map = {
     'MAP_REPORT' : Map,
     'MAP_RESULT' : MapResult,
     'VULN' : QKBVuln,
+    'REPORT_TEMPLATE': ReportTemplate,
+
 }
