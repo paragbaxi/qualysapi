@@ -6,9 +6,7 @@ import json
 from multiprocessing import Process, Pool, Manager, get_context
 from multiprocessing.queues import Queue
 
-from threading import Thread, Event
-
-import queue
+import threading
 from qualysapi import exceptions
 
 
@@ -1200,25 +1198,150 @@ class MapReport(CacheableQualysObject):
     '''
     pass
 
+
+class QualysStatusMonitor(Thread):
+    '''A threading class designed specifically to use semaphore pools to
+    connect to the request sockets and chec for finished reports and map
+    reqports as well as scans and maps.'''
+    pool_sema = None
+    qualys_config = None
+    callbacks = None
+    api_actions = None
+    nice_time = 30
+
+    __suicide = threading.Event
+
+    def __init__(self, qconfig, **kwargs):
+        ''' Explicit parent constructor.  No ambiguity or flexability here, all
+        child classes must pass in the config.
+
+        Parametrs:
+        qconfig -- the configuration for the request to the qualysapi
+        nice_time -- (Optional) override the niceness time before checking the
+        qualysapi again for this particular request.
+        '''
+        self.qualys_config = qconfig
+        self.nice_time = kwargs.pop('nice_time', self.nice_time)
+
+    def setPool(self, pool):
+        '''Pre-run configuration of the semaphore for the conneciton pool.'''
+        self.pool_sema = pool
+
+    def singleRequestResponse(self):
+        '''This is the method ot override in your implementation.'''
+        raise exceptions.QualysFrameworkException('Abstract thread subclass. \
+            You need to implement your own subclass.')
+
+    def commitSuicide(self):
+        self.__suicide.set()
+
+    def run(self):
+        '''Begin running and monitoring.'''
+        while not self.__suicide.wait(timeout=self.nice_time):
+            self.singleRequestResponse()
+
+    def getMetrics(self):
+        '''An abstract stub method for children to override if they wish.
+        Please use good sense and make this read-only on any internal
+        metrics so that it is thread safe regardless of the state of the
+        thread.  I can\'t think of any reason for not doing that here, but this
+        is an API...'''
+        pass
+
+
+
 class RequestDispatchMonitorServer(object):
     '''This class is intended to kick off a number of requests to qualys which
     may return results immediately but require additional requests and result
     checking before the tasks can complete.  As such it will create a thread
     pool and a very nice low-priority thread to check until the report is
-    ready.'''
+    ready.
+
+    It makes no sense to use async request here since we aren't waiting for the
+    request response but rather polling the API in a nice way for a specific
+    response.'''
+
+    monitors=[]
+    pool_sema=None
+    kill_timeout=5 # wait 5 seconds for threads to suicide
 
     def __init__(self, *args, **kwargs):
-        pass
+        ''' Simple interface to threading out multiple QualysStatusMonitor
+        classes.  We build out a thread pool of them and then keep an eye on
+        them and clean them up when they finish.  This class is not designed to
+        be subclassed or to do anything with results.  If you want that,
+        your're going to have to write your own threadpool manager.
+
+        Params:
+        request_proxies -- A list of QualysStatusMonitor or subclasses.
+        max_sockets -- (Optional)  The maximum number of concurrent requests to
+        allow to qualys API servers.  This is default at 10.
+        callback -- (Optional) A callback that recieves a result set of
+        objects when the monitored qualys process finishes and returns actual
+        results.  This is discouraged in favor of subclassing a consumer
+        process, but for small result sets or tasks requiring more than one
+        result set it can be useful or even necessary.
+        '''
+        max_sockets = 20
+        request_proxies = None
+        if len(args):
+            request_proxies = args[0]
+        else:
+            request_proxies = kwargs.pop('request_proxies', [])
+
+        if not request_proxies: # should catch none or []
+            raise exceptions.QualysFrameworkException('You have to pass in \
+                    QualysStatusMonitor objects or subclasses...')
+
+        # maximum request sockets...
+        self.max_sockets = kwargs.pop('max_sockets', self.max_sockets)
+        self.pool_sema = threading.BoundedSemaphore(value=max_sockets)
+        for proxy in request_proxies:
+            if not issubclass(proxy, QualysStatusMonitor):
+                raise exceptions.QualysFrameworkException('\'%s\' is not a \
+                subclass of QualysStatusMonitor.' % type(proxy).__name__)
+            else:
+                self.monitors.append(proxy)
+                proxy.setPool(self.pool_sema)
+                proxy.start()
 
     def getServerMetrics(self, *args, **kwargs):
-        pass
+        '''Get some metrics from the running request proxies.  It is assumed
+        that child classes will handle any required locking for metrics or at
+        least make their metrics read-only for this method so that a threadlock
+        isn't required.'''
 
-    def addRequest(self, *args, **kwargs):
-        pass
+        metrics_results = []
+        for proxy in self.monitors:
+            metrics_results.append(proxy.getMetrics())
+        return metrics_results
 
-    def addCallback(self, request, callback):
-        '''Bind a callback to a request.'''
-        pass
+    def addRequest(self, proxy):
+        '''push another request proxy thread onto the running stack.'''
+        if not issubclass(proxy, QualysStatusMonitor):
+            raise exceptions.QualysFrameworkException('\'%s\' is not a \
+            subclass of QualysStatusMonitor.' % type(proxy).__name__)
+        else:
+            self.monitors.append(proxy)
+            proxy.setPool(self.pool_sema)
+            proxy.start()
+
+    def forceThreadCheck(self, *args, **kwargs):
+        ''' Check the status of managed threads.  This overrides the server
+        default monitoring and forces and immediate check. '''
+        self.monitors[:] = [x for x in self.monitors if x.is_running()]
+
+    def killServices(self, *args, **kwargs):
+        ''' attempt a nice shutdown of the thread request pool. '''
+        for threadx in self.monitors:
+            threadx.commitSuicide()
+
+        for threadx in self.monitors:
+            threadx.join(self.kill_timeout)
+
+        self.forceThreadCheck()
+        if len(self.monitors):
+            raise threading.ThreadError('Our children are misbehaving!')
 
 
 
