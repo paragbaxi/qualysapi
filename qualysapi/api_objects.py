@@ -1338,7 +1338,40 @@ class RequestDispatchMonitorServer(object):
             raise threading.ThreadError('Our children are misbehaving!')
 
 
-class QualysUser(cacheableQualysObject):
+class SimpleReturnResponse(object):
+    '''A wrapper for qualys responses to api commands (as opposed to requests).
+
+    Properties:
+    response_time -- Response header timestamp.
+    response_text -- Response header text.
+    response_items -- A list of key/value pairs returned with the header.
+    '''
+    reponse_time   = None
+    response_text  = None
+    response_items = {}
+
+    def __init__(self, *args, **kwargs):
+        elem = None
+        if 'elem' in kwargs:
+            elem = kwargs.pop('elem')
+        elif len(args) or 'xml' in kwargs:
+            # we assume xml binary string
+            xml = args[0] if len(args) else kwargs.pop('xml')
+            elem =  lxml.objectify.fromstring(xml)
+
+        if elem:
+            self.reponse_time   = getattr(elem, 'DATETIME',     None )
+            self.response_text  = getattr(elem, 'TEXT', None )
+            self.response_items = dict(((item.KEY, item.VALUE) for item in \
+                getattr(elem, 'ITEM_LIST', [])))
+        else:
+            self.reponse_time   = kwargs.pop('DATETIME',     None )
+            self.response_text  = kwargs.pop('TEXT', None )
+            self.response_items = dict(((item.KEY, item.VALUE) for item in \
+                kwargs.pop('ITEM_LIST', [])))
+
+
+class QualysUser(CacheableQualysObject):
     ''' Common shared wrapper class for a User representation of the User
     element.
     <!ELEMENT LOGIN     (# PCDATA)>
@@ -1353,7 +1386,6 @@ class QualysUser(cacheableQualysObject):
     firstname = ''
     lastname  = ''
     def __init__(self, *args, **kwargs):
-
         elem = None
         if 'elem' in kwargs:
             elem = kwargs.pop('elem')

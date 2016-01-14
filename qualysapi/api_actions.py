@@ -327,13 +327,29 @@ class QGActions(object):
     def startMapReportOnMap(self, mapr, **kwargs):
         '''Generates a report on a map.
         Parameters:
-        mapr -- the map result to generate a report against
+        mapr -- the map result to generate a report against.  Can be a string
+        map_ref but a map result object is really preferred.
+        domain -- one of domain or ip_restriction are required for map reports.
+        You can use the asset domain list for this parameter.  If this
+        parameter is excluded 'none' is substituted but a lack of an IP range
+        list will result in an api exception.
+        ip_restriction -- Either a string of ips acceptable to qualys or a list
+        of IP range objects.  These objects provide a reasonably uniform way to
+        specify ranges.
         at least one of:
             template_id -- (Optional) the report template ID to use.  Required.
             template_name -- (Optional) the name of the template to use. (look
             up ID)
             use_default_template -- (Optional) boolean.  Look up the
             default map report template and load the template_id from it.
+
+        report_title -- (Optional) Specify a name for this report.
+        output_format -- (Optional) Default is xml.  Options are pdf, html,
+        mht, xml or csv.  This API only supports parsing of xml format, the
+        rest must be downloaded and saved or viewed.
+        hide_header -- (Optional) Tell the API to remove report header info.
+        Optional.  By default this isn't set at all.
+        comp_mapr -- (Optional) A map result to compare against.
         '''
 
         # figure out our template_id
@@ -351,20 +367,67 @@ class QGActions(object):
                     elif template.is_default and kwargs.get('use_default_template',
                             False):
                         tempalte_id = template.template_id
-                    if not template_id:
+                    if not template_id: # false if not 0
                         break
         else:
             raise exceptions.QualysFrameworkException('You need one of a \
                     template_id, template_name or use_default_template to \
                     generate a report from a map result.')
 
+        report_title = kwargs.pop('report_title', None)
+        comp_mapr = kwargs.pop('comp_mapr', None)
+        if not report_title:
+            mapr_name = mapr.name if not isinstance(mapr, str) else str(mapr)
+            comp_mapr_name = None
+            if comp_mapr:
+                comp_mapr_name = comp_mapr.name if not isinstance(comp_mapr, \
+                        str) else str(comp_mapr)
+
+            report_title = '%s - api generated' % (mapr_name)
+            if comp_mapr_name:
+                report_title = '%s vs. %s' % (comp_mapr_name, report_title)
+
+        output_format = kwargs.pop('output_format', 'xml')
 
         call = '/api/2.0/fo/report/'
         params = {
             'action'      : 'launch',
             'template_id' : template_id,
+            'report_title' : report_title,
+            'output_format' : output_format,
+            'report_type' : 'Map',
+            'domain' : kwargs.pop('domain', 'none'),
         }
-        self.request('')
+
+        if 'hide_header' in kwargs:
+            # accept boolean type or direct parameter
+            if isinstance(kwargs.get('hide_header'), str):
+                params['hide_header'] = kwargs.get('hide_header')
+            else:
+                params['hide_header'] = '0' if not kwargs.get('hide_header') \
+                        else '1'
+
+        if 'ip_restriction' in kwargs:
+            if isinstance(kwargs.get('ip_restriction'), str):
+                params['ip_restriction'] = kwargs.pop('ip_restriction')
+            else:
+                params['ip_restriction'] = ','.join((
+                    str(iprange) for iprange in
+                    kwargs.pop('ip_restriction')))
+        elif params['domain'] == 'none':
+            raise exceptions.QualysException('Map reports require either a \
+            domain name or an ip_restriction collection of IPs and/or ranges. \
+            You specified no domain and no ips.')
+
+        params['report_refs'] = mapr.ref if not isinstance(mapr, str) else \
+            str(mapr)
+
+        if comp_mapr:
+            params['report_refs'] = '%s,%s' % (params['report_refs'], \
+                    comp_mapr.ref if not isinstance(comp_mapr, str) else \
+                    str(comp_mapr))
+
+        self.request(call, data=params)
 
 
     def fetchReport(self, **kwargs):
