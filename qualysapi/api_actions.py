@@ -336,12 +336,15 @@ class QGActions(object):
         ip_restriction -- Either a string of ips acceptable to qualys or a list
         of IP range objects.  These objects provide a reasonably uniform way to
         specify ranges.
-        at least one of:
-            template_id -- (Optional) the report template ID to use.  Required.
-            template_name -- (Optional) the name of the template to use. (look
-            up ID)
-            use_default_template -- (Optional) boolean.  Look up the
-            default map report template and load the template_id from it.
+        template_id -- (Optional) the report template ID to use.  Required.
+        template_name -- (Optional) the name of the template to use. (look
+        up ID)
+        use_default_template -- (Optional) boolean.  Look up the
+        default map report template and load the template_id from it.
+        Note: If none of the above are sent then the configuration option
+        default template is used.  That will either be 'Unknown Device Report'
+        or whatever you have in your config for the map_template configuration
+        option under the report_templates configuration section.
 
         report_title -- (Optional) Specify a name for this report.
         output_format -- (Optional) Default is xml.  Options are pdf, html,
@@ -365,15 +368,18 @@ class QGActions(object):
                 False):
             # get the list of tempaltes
             template_list = self.listReportTemplates()
+            use_default_template = kwargs.get('use_default_template', False)
+            template_title = kwargs.get('template_title',
+                    self.conn.getConfig().getReportTemplate())
             for template in template_list:
-                if template.report_type == 'Map':
-                    if template.title == kwargs.get('template_title', None):
-                        template_id = template.template_id
-                    elif template.is_default and kwargs.get('use_default_template',
-                            False):
-                        tempalte_id = template.template_id
-                    if not template_id: # false if not 0
-                        break
+                if use_default_template and \
+                    template.is_default and \
+                    template.report_type == 'Map':
+                    template_id = template.template_id
+                elif template.title == template_title:
+                    tempalte_id = template.template_id
+                if not template_id: # false if not 0
+                    break
         else:
             raise exceptions.QualysFrameworkException('You need one of a \
                     template_id, template_name or use_default_template to \

@@ -17,8 +17,8 @@ import qualysapi.settings as qcs
 def connect(**kwargs):
 
     defaults = {
-        'config_file' : qcs.default_filename,
-        'remember_me' : False,
+        'config_file'        : qcs.default_filename,
+        'remember_me'        : False,
         'remember_me_always' : False
     }
     defaults.update(kwargs)
@@ -34,6 +34,7 @@ def connect(**kwargs):
             conf.get_auth(),
             conf.get_hostname(),
             conf.proxies,
-            conf.max_retries)
+            conf.max_retries,
+            config=conf)
     logging.info("Finished building connector.")
     return connect

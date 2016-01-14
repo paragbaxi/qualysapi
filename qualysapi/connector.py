@@ -22,9 +22,6 @@ from qualysapi import util
 from qualysapi.exceptions import QualysAuthenticationException
 from qualysapi.api_methods import api_methods
 
-
-
-
 # Setup module level logging.
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -41,24 +38,36 @@ class QGConnector:
     """ Qualys Connection class which allows requests to the QualysGuard API using HTTP-Basic Authentication (over SSL).
 
     """
-
-
-    def __init__(self, auth, server='qualysapi.qualys.com', proxies=None, max_retries=3):
+    __auth                 = None
+    __server               = 'qualysapi.qualys.com'
+    __rate_limit_remaining = defaultdict(int)
+    __proxies              = None
+    __session              = None
+    def __init__(self,
+            auth,
+            **kwargs):
         # Read username & password from file, if possible.
         self.auth = auth
         # Remember QualysGuard API server.
-        self.server = server
+        if 'server' in kwargs:
+            self.server = kwargs['server']
         # Remember rate limits per call.
-        self.rate_limit_remaining = defaultdict(int)
-        self.proxies = proxies
+        if 'rate_limit_remaining' in kwargs:
+            self.rate_limit_remaining = kwargs['rate_limit_remaining']
+        self.proxies = kwargs.get('proxies', None)
         logger.debug('proxies = \n%s' % proxies)
         # Set up requests max_retries.
         logger.debug('max_retries = \n%s' % max_retries)
         self.session = requests.Session()
+        max_retries = kwargs.get('max_retries', 3)
         http_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
         https_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
         self.session.mount('http://', http_max_retries)
         self.session.mount('https://', https_max_retries)
+
+        # new kwargs handling/options
+        if 'config' in kwargs:
+            self.config = kwargs.get('config')
 
 
     def __call__(self):
@@ -433,3 +442,6 @@ class QGConnector:
         response.raise_for_status()
         response.raw.decode_content = True
         return response.raw
+
+    def getConfig(self):
+        return self.config

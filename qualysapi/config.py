@@ -204,20 +204,24 @@ class QualysConnectConfig:
                 self._cfgparse.write(config_file)
                 config_file.close()
 
+        # Use default map_template (if one isn't provided).
+        if not self._cfgparse.has_option('report_templates', 'map_template'):
+            if self._cfgparse.has_option('DEFAULT', 'map_template'):
+                map_template = self._cfgparse.get('DEFAULT', 'map_template')
+                self._cfgparse.set('report_templates', 'map_template', map_template)
+            else:
+                raise Exception("No 'map_template' set. QualysConnect does not know who to connect to.")
 
     def get_config(self):
         return self._cfgparse
-
 
     def get_auth(self):
         ''' Returns username from the configfile. '''
         return (self._cfgparse.get('info', 'username'), self._cfgparse.get('info', 'password'))
 
-
     def get_hostname(self):
         ''' Returns hostname. '''
         return self._cfgparse.get('info', 'hostname')
-
 
     def get_redis_options(self):
         ''' Returns the redis client configuration options. '''
@@ -229,3 +233,9 @@ class QualysConnectConfig:
             else:
                 result[opt] = None
         return result
+
+    def getMapTemplate(self):
+        return self._cfgfile.get('report_templates', 'map_template')
+
+    def getReportTemplate(self):
+        return self._cfgfile.get('report_templates', 'report_template')
