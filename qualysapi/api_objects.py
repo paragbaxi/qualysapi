@@ -1137,6 +1137,56 @@ class ImportBuffer(object):
             return result
 
 
+class QualysStatusMonitor(threading.Thread):
+    '''A threading class designed specifically to use semaphore pools to
+    connect to the request sockets and chec for finished reports and map
+    reqports as well as scans and maps.'''
+    pool_sema = None
+    qualys_config = None
+    callbacks = None
+    api_actions = None
+    nice_time = 30
+
+    __suicide = threading.Event
+
+    def __init__(self, qconfig, **kwargs):
+        ''' Explicit parent constructor.  No ambiguity or flexability here, all
+        child classes must pass in the config.
+
+        Parametrs:
+        qconfig -- the configuration for the request to the qualysapi
+        nice_time -- (Optional) override the niceness time before checking the
+        qualysapi again for this particular request.
+        '''
+        self.qualys_config = qconfig
+        self.nice_time = kwargs.pop('nice_time', self.nice_time)
+
+    def setPool(self, pool):
+        '''Pre-run configuration of the semaphore for the conneciton pool.'''
+        self.pool_sema = pool
+
+    def singleRequestResponse(self):
+        '''This is the method ot override in your implementation.'''
+        raise exceptions.QualysFrameworkException('Abstract thread subclass. \
+            You need to implement your own subclass.')
+
+    def commitSuicide(self):
+        self.__suicide.set()
+
+    def run(self):
+        '''Begin running and monitoring.'''
+        while not self.__suicide.wait(timeout=self.nice_time):
+            self.singleRequestResponse()
+
+    def getMetrics(self):
+        '''An abstract stub method for children to override if they wish.
+        Please use good sense and make this read-only on any internal
+        metrics so that it is thread safe regardless of the state of the
+        thread.  I can\'t think of any reason for not doing that here, but this
+        is an API...'''
+        pass
+
+
 class MapReportRunner(QualysStatusMonitor):
     '''
     Take a map_report ID and kick off a report.  Monitor the progress of the
@@ -1192,56 +1242,6 @@ class MapReport(CacheableQualysObject):
     This will probably be a stub class.
     '''
     pass
-
-
-class QualysStatusMonitor(Thread):
-    '''A threading class designed specifically to use semaphore pools to
-    connect to the request sockets and chec for finished reports and map
-    reqports as well as scans and maps.'''
-    pool_sema = None
-    qualys_config = None
-    callbacks = None
-    api_actions = None
-    nice_time = 30
-
-    __suicide = threading.Event
-
-    def __init__(self, qconfig, **kwargs):
-        ''' Explicit parent constructor.  No ambiguity or flexability here, all
-        child classes must pass in the config.
-
-        Parametrs:
-        qconfig -- the configuration for the request to the qualysapi
-        nice_time -- (Optional) override the niceness time before checking the
-        qualysapi again for this particular request.
-        '''
-        self.qualys_config = qconfig
-        self.nice_time = kwargs.pop('nice_time', self.nice_time)
-
-    def setPool(self, pool):
-        '''Pre-run configuration of the semaphore for the conneciton pool.'''
-        self.pool_sema = pool
-
-    def singleRequestResponse(self):
-        '''This is the method ot override in your implementation.'''
-        raise exceptions.QualysFrameworkException('Abstract thread subclass. \
-            You need to implement your own subclass.')
-
-    def commitSuicide(self):
-        self.__suicide.set()
-
-    def run(self):
-        '''Begin running and monitoring.'''
-        while not self.__suicide.wait(timeout=self.nice_time):
-            self.singleRequestResponse()
-
-    def getMetrics(self):
-        '''An abstract stub method for children to override if they wish.
-        Please use good sense and make this read-only on any internal
-        metrics so that it is thread safe regardless of the state of the
-        thread.  I can\'t think of any reason for not doing that here, but this
-        is an API...'''
-        pass
 
 
 class RequestDispatchMonitorServer(object):

@@ -97,7 +97,7 @@ class QGActions(object):
         '''
 
         source = kwargs.pop('source', None)
-        if source is None:
+        if not source:
             raise QualysException('No source file or URL or raw stream found.')
 
         block = kwargs.pop('block', True)
@@ -458,8 +458,8 @@ class QGActions(object):
         '''
         call = '/api/2.0/fo/report/'
         params = {
-            'action' : 'launch',
-            ''     : kwargs.get('id', 0)
+            'action'    : 'launch',
+            'id' : kwargs.get('id', 0)
         }
 #        map_reports = kwargs.get('map_reports', None)
 #        if map_reports:

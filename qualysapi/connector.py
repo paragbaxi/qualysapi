@@ -50,16 +50,16 @@ class QGConnector:
         self.auth = auth
         # Remember QualysGuard API server.
         if 'server' in kwargs:
-            self.server = kwargs['server']
+            self.__server = kwargs['server']
         # Remember rate limits per call.
         if 'rate_limit_remaining' in kwargs:
-            self.rate_limit_remaining = kwargs['rate_limit_remaining']
+            self.__rate_limit_remaining = kwargs['rate_limit_remaining']
         self.proxies = kwargs.get('proxies', None)
-        logger.debug('proxies = \n%s' % proxies)
+        logger.debug('proxies = \n%s' % self.proxies)
         # Set up requests max_retries.
+        max_retries = kwargs.get('max_retries', 3)
         logger.debug('max_retries = \n%s' % max_retries)
         self.session = requests.Session()
-        max_retries = kwargs.get('max_retries', 3)
         http_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
         https_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
         self.session.mount('http://', http_max_retries)
@@ -126,16 +126,16 @@ class QGConnector:
         # Set base url depending on API version.
         if api_version == 1:
             # QualysGuard API v1 url.
-            url = "https://%s/msp/" % (self.server,)
+            url = "https://%s/msp/" % (self.__server,)
         elif api_version == 2:
             # QualysGuard API v2 url.
-            url = "https://%s/" % (self.server,)
+            url = "https://%s/" % (self.__server,)
         elif api_version == 'was':
             # QualysGuard REST v3 API url (Portal API).
-            url = "https://%s/qps/rest/3.0/" % (self.server,)
+            url = "https://%s/qps/rest/3.0/" % (self.__server,)
         elif api_version == 'am':
             # QualysGuard REST v1 API url (Portal API).
-            url = "https://%s/qps/rest/1.0/" % (self.server,)
+            url = "https://%s/qps/rest/1.0/" % (self.__server,)
         else:
             raise Exception("Unknown QualysGuard API Version Number (%s)" % (api_version,))
         logger.debug("Base url =\n%s" % (url))
@@ -293,8 +293,8 @@ class QGConnector:
             #
             # Remember how many times left user can make against api_call.
             try:
-                self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
-                logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
+                self.__rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
+                logger.debug('rate limit for api_call, %s = %s' % (api_call, self.__rate_limit_remaining[api_call]))
             except KeyError as e:
                 # Likely a bad api_call.
                 logger.debug(e)
