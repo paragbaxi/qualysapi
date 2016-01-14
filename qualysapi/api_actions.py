@@ -350,6 +350,11 @@ class QGActions(object):
         hide_header -- (Optional) Tell the API to remove report header info.
         Optional.  By default this isn't set at all.
         comp_mapr -- (Optional) A map result to compare against.
+
+        Return tuple (mapr, report_id):
+            if mapr is a map result object, the report_id property will be set.
+            Either way, a tuple is returned with mapr and report_id at 0,1
+            respectively.
         '''
 
         # figure out our template_id
@@ -427,7 +432,17 @@ class QGActions(object):
                     comp_mapr.ref if not isinstance(comp_mapr, str) else \
                     str(comp_mapr))
 
-        self.request(call, data=params)
+        response = self.parseResponse(source=call, data=params)
+        if not len(response) and isinstance(response[0], SimpleReturnResponse):
+            response = response[0]
+            if response.hasItem('ID'):
+                report_id = response.getItemValue('ID')
+                if not isinstance(mapr, str):
+                    mapr.report_id = report_id
+                return (mapr, report_id)
+        # if we get here, something is wrong.
+        raise exceptions.QualysFrameworkException('Unexpected API \
+            response.\n%s' % (pprint.pformat(response)))
 
 
     def fetchReport(self, **kwargs):

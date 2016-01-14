@@ -1338,16 +1338,18 @@ class RequestDispatchMonitorServer(object):
             raise threading.ThreadError('Our children are misbehaving!')
 
 
-class SimpleReturnResponse(object):
+class SimpleReturnResponse(CacheableQualysObject):
     '''A wrapper for qualys responses to api commands (as opposed to requests).
 
     Properties:
     response_time -- Response header timestamp.
     response_text -- Response header text.
-    response_items -- A list of key/value pairs returned with the header.
+    response_items -- A list of key/value pairs returned with the header.  This
+    isn't private, but it should be considered protected.  Mostly.
     '''
     reponse_time   = None
     response_text  = None
+    response_code  = None
     response_items = {}
 
     def __init__(self, *args, **kwargs):
@@ -1360,15 +1362,35 @@ class SimpleReturnResponse(object):
             elem =  lxml.objectify.fromstring(xml)
 
         if elem:
-            self.reponse_time   = getattr(elem, 'DATETIME',     None )
-            self.response_text  = getattr(elem, 'TEXT', None )
+            self.reponse_time   = getattr(elem, 'DATETIME', None )
+            self.response_code  = getattr(elem, 'CODE',     None )
+            self.response_text  = getattr(elem, 'TEXT',     None )
             self.response_items = dict(((item.KEY, item.VALUE) for item in \
                 getattr(elem, 'ITEM_LIST', [])))
         else:
-            self.reponse_time   = kwargs.pop('DATETIME',     None )
-            self.response_text  = kwargs.pop('TEXT', None )
+            self.reponse_time   = kwargs.pop('DATETIME', None )
+            self.response_code  = kwargs.pop('CODE',     None )
+            self.response_text  = kwargs.pop('TEXT',     None )
             self.response_items = dict(((item.KEY, item.VALUE) for item in \
                 kwargs.pop('ITEM_LIST', [])))
+
+    def getStatus(self):
+        '''A wrapper around the response status attribute that should handle
+        all of the various api responses the same.'''
+        # TODO: implement
+        raise exceptions.QualysFrameworkException('Not yet implemented.')
+
+    def hasItem(self, key):
+        '''Check for a key/value pair'''
+        return True if key in self.response_items else False
+
+    def getItemValue(self, key, default=None):
+        '''hook for dict.get to callers'''
+        return self.response_items.get(key, default)
+
+    def getItemKeys(self):
+        '''hook for dict.keys to callers'''
+        return self.response_items.keys()
 
 
 class QualysUser(CacheableQualysObject):
@@ -1478,5 +1500,5 @@ obj_elem_map = {
     'MAP_RESULT' : MapResult,
     'VULN' : QKBVuln,
     'REPORT_TEMPLATE': ReportTemplate,
-
+    'SESPONSE': SimpleReturnResponse,
 }

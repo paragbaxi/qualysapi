@@ -352,9 +352,13 @@ class QGConnector:
         return response
 
     def stream_request(self, api_call, **kwargs):
-        """ Return QualysGuard API response as
-            lxml ElementTree parsing iterator for large resopnses.
-
+        """ Return QualysGuard API response as a raw input stream.  This is a
+        single request and does not handle concurrent requests.  It is a
+        redesigned version of the original request method and is intended for
+        use with the framework.  It is not cacheable directly and this is
+        intentional since most of the instances where this would be used would
+        be used should cache individual result objects and not the massive xml
+        response.
         """
         data = kwargs.pop(None)
         api_version = kwargs.pop(None)
@@ -397,17 +401,9 @@ class QGConnector:
         # Format data, if applicable.
         if data is not None:
             data = self.format_payload(api_version, data)
-        # Make request at least once (more if concurrent_retry is enabled).
-        retries = 0
-
         # this call should be results/maps oriented for large domains and/or maps and/or asset groups so
         # there really is no need or benefit to using concurrent scans here...
-#         while retries <= concurrent_scans_retries:
-#             # Make request.
-#             logger.debug('url =\n%s' % (str(url)))
-#             logger.debug('data =\n%s' % (str(data)))
-#             logger.debug('headers =\n%s' % (str(headers)))
-#             # use a stream-based non-blocking request
+        # use a stream-based non-blocking request
         if http_method == 'get':
             # GET
             logger.debug('GET request.')
@@ -430,27 +426,6 @@ class QGConnector:
                     proxies=self.proxies,
                     stream=True
                 )
-#             logger.debug('response headers =\n%s' % (str(request.headers)))
-#             #
-#             # Remember how many times left user can make against api_call.
-#             try:
-#                 self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
-#                 logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
-#             except KeyError as e:
-#                 # Likely a bad api_call.
-#                 logger.debug(e)
-#                 pass
-#             except TypeError as e:
-#                 # Likely an asset search api_call.
-#                 logger.debug(e)
-#                 pass
-#             # Response received.
-#             # let's not do this mmmkay?
-#             # response = str(request.content)
-#             # handle the debug stuff a bit better (perhaps the first chunk)
-#             # logger.debug('response text =\n%s' % (response))
-#             # Keep track of how many retries.
-#             retries += 1
         if request.status_code == 401:
             request.close()
             raise QualysAuthenticationException('Bad Qualys username or \
