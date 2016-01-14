@@ -32,9 +32,9 @@ def connect(**kwargs):
             qcconf.QualysConnectConfig(**defaults))
     connect = qcconn.QGConnector(
             conf.get_auth(),
-            conf.get_hostname(),
-            conf.proxies,
-            conf.max_retries,
+            hostname=conf.get_hostname(),
+            proxies=conf.proxies,
+            max_retries=conf.max_retries,
             config=conf)
     logging.info("Finished building connector.")
     return connect
