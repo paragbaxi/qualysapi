@@ -106,13 +106,20 @@ class BufferConsumer(multiprocessing.Process):
 
         self.results_list = kwargs.get('results_list', None)
 
+    def singleItemHandler(self, item):
+        '''Override method for child classes to handle individual items.
+
+        This method does nothing but return the item without processing.
+        '''
+        return item
+
     def run(self):
-        '''a processes that consumes a queue in bite-sized chunks
-        This class and method should be overridden by child implementations in
-        order to actually do something useful with results.
+        '''Consumes the queue in the framework, passing off each item to the
+        ItemHandler method.
 
         NOTE: by default this class will consume any/all RESPONSE
-        (SimpleReturnResponse) objects by default.
+        (SimpleReturnResponse) objects by default if not implemented in a child
+        class.
         '''
         done = False
         while not done:
@@ -120,7 +127,9 @@ class BufferConsumer(multiprocessing.Process):
                 item = self.queue.get(timeout=3)
                 #the base class just logs this stuff
                 if self.results_list is not None:
-                    self.results_list.append(item)
+                    rval = self.singleItemHandler(item)
+                    if rval:
+                        self.results_list.append(rval)
             except queue.Empty:
                 logging.debug('Queue timed out and empty, assuming closed.')
                 if self.queue.empty():
