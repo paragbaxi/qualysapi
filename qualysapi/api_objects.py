@@ -1089,7 +1089,7 @@ class ReportTemplate(CacheableQualysObject):
             elem =  lxml.objectify.fromstring(xml)
 
         if elem:
-            self.template_id    = getattr(elem, 'ID', self.template_id)
+            self.template_id   = getattr(elem, 'ID', self.template_id)
             self.report_type   = getattr(elem, 'TYPE', self.report_type)
             self.template_type = getattr(elem, 'TEMPLATE_TYPE', self.template_type)
             self.title         = getattr(elem, 'TITLE', self.title)

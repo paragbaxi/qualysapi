@@ -148,7 +148,7 @@ class ImportBuffer(object):
         comitted to the database will be detected by another process.
         Obviously.
     '''
-    queue = BufferQueue(ctx=multiprocessing.get_context())
+    queue = None
     stats = BufferStats()
     consumer = None
 
@@ -205,6 +205,8 @@ class ImportBuffer(object):
             self.consumer = BufferConsumer
 
         self.callback = kwargs.pop('callback', None)
+
+        self.queue = BufferQueue(ctx=multiprocessing.get_context())
 
 
     def add(self, item):
