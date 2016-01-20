@@ -97,3 +97,12 @@ qualysapi.version module
     :show-inheritance:
 
 
+qualysapi.smpapi module
+------------------------
+
+.. automodule:: qualysapi.smpapi
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
