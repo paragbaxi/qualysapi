@@ -342,22 +342,24 @@ class QGConnector:
                     print('Alert! Ran out of concurrent_scans_retries!')
                     logger.critical('Alert! Ran out of concurrent_scans_retries!')
                     return False
-        # Check to see if there was an error.
-        try:
-            request.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            # Error
-            # only do this logging if we don't know the reason for the
-            # exception (have already handled it IOTW)
-            logger.exception('Error! Received a 4XX client error or 5XX server error response.')
-            logger.error('    Content = \n%s' % response)
-            logger.error('    Headers = \n%s' % str(request.headers))
-            request.raise_for_status()
-        if b'<RETURN status="FAILED" number="2007">' in response:
-            logger.error('Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).')
-            logger.error('    Content = \n%s' % response)
-            logger.error('    Headers = \n%s' % str(request.headers))
-        request.close()
+        # QualysAPI lies.  400 errors aren't supposed to be thrown for API
+        # errors (like missing arguments).
+        if not (b'<SIMPLE_RETURN>' in response):
+            # Check to see if there was a REAL error.
+            try:
+                request.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                # only do this logging if we don't know the reason for the
+                # exception (have already handled it IOTW)
+                logger.exception('Error! Received a 4XX client error or 5XX server error response.')
+                logger.error('    Content = \n%s' % response)
+                logger.error('    Headers = \n%s' % str(request.headers))
+                request.raise_for_status()
+            if b'<RETURN status="FAILED" number="2007">' in response:
+                logger.error('Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).')
+                logger.error('    Content = \n%s' % response)
+                logger.error('    Headers = \n%s' % str(request.headers))
+            request.close()
         return response
 
     def stream_request(self, api_call, **kwargs):

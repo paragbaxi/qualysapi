@@ -64,7 +64,27 @@ class QGActions(object):
 
     def parseResponse(self, call, data=None):
         '''single-thread/process parseResponse.'''
+        # TODO: when you implement this, remember to incldue the improved
+        # response checker
+        # self.checkResults(results)
         raise exceptions.QualysFrameworkException('Not yet implemented.')
+
+    def checkResults(self, results):
+        '''check for actionable response errors'''
+        api_response = None
+        if not results:
+            raise exceptions.QualysFrameworkException('Got a NoneType from the \
+                parser.')
+        if isinstance(results, list) and \
+            len(results) > 0 and \
+            issubclass(type(results[0]),SimpleReturnResponse):
+            api_response = results[0]
+        elif issubclass(type(results), SimpleReturnResponse):
+            api_response = results
+
+        if api_response:
+            api_response.raiseAPIExceptions()
+        return results
 
     def getHost(host):
         call = '/api/2.0/fo/asset/host/'
@@ -265,7 +285,7 @@ class QGActions(object):
 #            params['id'] = map_reports[0]
 #        else:
 #            raise QualysException('Need map refs as report ids to continue.')
-        return self.parseResponse(source=call, data=params)
+        results = self.parseResponse(source=call, data=params)
 
     def queryQKB(self, **kwargs):
         '''

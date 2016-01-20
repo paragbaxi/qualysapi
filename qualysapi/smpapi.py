@@ -18,8 +18,11 @@ from qualysapi import exceptions
 from qualysapi.api_objects import *
 from qualysapi.api_actions import QGActions
 
+# for exceptions
+import queue
 
-class BufferQueue(Queue):
+
+class BufferQueue(multiprocessing.queues.Queue):
     '''A thread/process safe queue for append/pop operations with the import
     buffer.  Initially this is just a wrapper around a collections deque but in
     the future it will be based off of multiprocess queue for access across
@@ -107,17 +110,21 @@ class BufferConsumer(multiprocessing.Process):
         '''a processes that consumes a queue in bite-sized chunks
         This class and method should be overridden by child implementations in
         order to actually do something useful with results.
+
+        NOTE: by default this class will consume any/all RESPONSE
+        (SimpleReturnResponse) objects by default.
         '''
         done = False
         while not done:
             try:
-                item = self.queue.get(timeout=0.5)
+                item = self.queue.get(timeout=3)
                 #the base class just logs this stuff
                 if self.results_list is not None:
                     self.results_list.append(item)
             except queue.Empty:
-                logging.debug('Queue timed out, assuming closed.')
-                done = True
+                logging.debug('Queue timed out and empty, assuming closed.')
+                if self.queue.empty():
+                    done = True
 
 
 class ImportBuffer(object):
@@ -224,6 +231,10 @@ class ImportBuffer(object):
         This command binds to any processes still running and lets them
         finish and then copies and flushes the managed results list.
         '''
+        # close the queue and wait until it is consumed
+        self.queue.close()
+        self.queue.join_thread()
+        # make sure the consumers are done consuming the queue
         for csmr in self.running:
             csmr.join()
         # turn this into a list instead of a managed list
@@ -388,7 +399,7 @@ class RequestDispatchMonitorServer(object):
         self.max_sockets = kwargs.pop('max_sockets', self.max_sockets)
         self.pool_sema = threading.BoundedSemaphore(value=max_sockets)
         for proxy in request_proxies:
-            if not issubclass(proxy, QualysStatusMonitor):
+            if not issubclass(type(proxy), QualysStatusMonitor):
                 raise exceptions.QualysFrameworkException('\'%s\' is not a \
                 subclass of QualysStatusMonitor.' % type(proxy).__name__)
             else:
@@ -409,7 +420,7 @@ class RequestDispatchMonitorServer(object):
 
     def addRequest(self, proxy):
         '''push another request proxy thread onto the running stack.'''
-        if not issubclass(proxy, QualysStatusMonitor):
+        if not issubclass(type(proxy), QualysStatusMonitor):
             raise exceptions.QualysFrameworkException('\'%s\' is not a \
             subclass of QualysStatusMonitor.' % type(proxy).__name__)
         else:
@@ -504,10 +515,11 @@ class QGSMPActions(QGActions):
         else:
             response = source
 
-        if self.import_buffer is None:
-            self.import_buffer = ImportBuffer(callback=callback)
-        else:
-            self.import_buffer.setCallback(callback)
+        # queue issues, always new queue
+        # if self.import_buffer is None:
+        import_buffer = ImportBuffer(callback=callback)
+        # else:
+        #     self.import_buffer.setCallback(callback)
 
         block = kwargs.pop('block', True)
         callback = kwargs.pop('completion_callback', None)
@@ -520,12 +532,18 @@ class QGSMPActions(QGActions):
         for event, elem in context:
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             if lxml.etree.QName(elem.tag).localname.upper() in obj_elem_map:
-                self.import_buffer.add(obj_elem_map[lxml.etree.QName(elem.tag).localname.upper()](elem=elem))
+                import_buffer.add(obj_elem_map[lxml.etree.QName(elem.tag).localname.upper()](elem=elem))
                 clear_ok = True
             if clear_ok:
                 elem.clear() #don't fill up a dom we don't need.
                 clear_ok = False
-        return self.import_buffer.finish() if block else self.import_buffer
+        results = import_buffer.finish() if block else import_buffer
+        if not results:
+            #debug
+            import pudb
+            pu.db
+        self.checkResults(results)
+        return results
 
 
     def launchMapReports(self, **kwargs):

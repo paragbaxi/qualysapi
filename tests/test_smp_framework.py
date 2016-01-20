@@ -13,8 +13,8 @@ from qualysapi import qcache, config, exceptions
 from qualysapi import smpapi, api_objects
 
 #pudb nice debugger
-import pudb
-pu.db
+# import pudb
+# pu.db
 
 class TestAPIMethods(unittest.TestCase):
     '''
@@ -112,11 +112,11 @@ class TestAPIMethods(unittest.TestCase):
         map_reports = self.subtest_map_list(actions)
         self.assertIsNotNone(map_reports)
         self.assertGreaterEqual(len(map_reports),1)
-        mapr = actions.fetchReport(id=1882082)
-        self.assertIsNotNone(mapr)
-        self.assertGreaterEqual(len(mapr),1)
-        self.assertIsInstance(mapr[0], api_objects.MapReport)
-        logging.debug(mapr)
+        map_reports = actions.fetchReport(id=1882082)
+        self.assertIsNotNone(map_reports)
+        self.assertGreaterEqual(len(map_reports),1)
+        self.assertIsInstance(map_reports[0], api_objects.MapReport)
+        logging.debug(map_reports)
         #now do tests on the map report
 
 

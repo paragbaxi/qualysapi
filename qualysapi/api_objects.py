@@ -31,7 +31,11 @@ class CacheableQualysObject(object):
 
     def __repr__(self):
         '''Represent y0'''
-        return json.dumps(self.__dict__, default=jsonify)
+        try:
+            return json.dumps(self.__dict__, default=jsonify)
+        except:
+            raise exceptions.QualysFrameworkException('jsonifying the class \
+                failed!')
 
     def __eq__(self, other):
         '''Instance equality (simple dict key/value comparison'''
@@ -942,8 +946,11 @@ class SimpleReturnResponse(CacheableQualysObject):
     response_text  = None
     response_code  = None
     response_items = {}
+    __is_error = False
+    __err_msg = None
 
     def __init__(self, *args, **kwargs):
+        super(SimpleReturnResponse, self).__init__(**kwargs)
         elem = None
         if 'elem' in kwargs:
             elem = kwargs.pop('elem')
@@ -964,13 +971,17 @@ class SimpleReturnResponse(CacheableQualysObject):
             self.response_text  = kwargs.pop('TEXT',     None )
             self.response_items = dict(((item.KEY, item.VALUE) for item in \
                 kwargs.pop('ITEM_LIST', [])))
+        # do a self-check to engage the framework
+        self.checkStatus()
 
-    def getStatus(self):
+    def checkStatus(self, raiseApiException = False):
         '''A wrapper around the response status attribute that should handle
         all of the various api responses the same.'''
-        # TODO: implement
-        raise exceptions.QualysFrameworkException('Not yet implemented.')
-
+        if self.response_text and 'Missing required parameter' in \
+            self.response_text:
+            self.__is_error = True
+            self.__err_msg = 'A required parameter was missing from the API  \
+                request'
     def hasItem(self, key):
         '''Check for a key/value pair'''
         return True if key in self.response_items else False
@@ -990,7 +1001,14 @@ class SimpleReturnResponse(CacheableQualysObject):
         conditions that include response codes, different response texts and
         anything else useful for a unilateral true/false.
         '''
-        return True if self.response_text != 'Failed' else False
+        return True if not self.__is_error else False
+
+
+    def raiseAPIExceptions(self):
+        ''' raise any Qualys API exceptions '''
+        if self.__is_error:
+            raise exceptions.QualysException(self.__err_msg)
+
 
 class QualysUser(CacheableQualysObject):
     ''' Common shared wrapper class for a User representation of the User
@@ -1099,5 +1117,5 @@ obj_elem_map = {
     'MAP_RESULT' : MapResult,
     'VULN' : QKBVuln,
     'REPORT_TEMPLATE': ReportTemplate,
-    'SESPONSE': SimpleReturnResponse,
+    'RESPONSE': SimpleReturnResponse,
 }
