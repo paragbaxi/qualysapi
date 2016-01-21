@@ -5,7 +5,7 @@
 
 # bring in just the objects we will be working with a lot
 import datetime
-import lxml
+from lxml import etree
 import logging
 import pprint
 import json
@@ -21,6 +21,8 @@ from qualysapi.api_actions import QGActions
 # for exceptions
 import queue
 
+#debug
+import pudb
 
 class BufferQueue(multiprocessing.queues.Queue):
     '''A thread/process safe queue for append/pop operations with the import
@@ -176,10 +178,12 @@ class ImportBuffer(object):
         Creates a new import buffer.
 
         @Params
-        completion_callback -- Required.  A function that gets called when the buffer has
+        completion_callback -- Required.  A function that gets called when the
+        buffer has
         been flushed and all consumers have finished.  Must allow keyword
         arguments list.
-        consumer_callback -- Optional.  a function that gets called each time a consumer
+        consumer_callback -- Optional.  a function that gets called each time a
+        consumer
         completes but the buffer hasn't been clearned or finished.
         trigger_limit -- set the consumer triggering limit.  The default is
         5000.
@@ -538,20 +542,16 @@ class QGSMPActions(QGActions):
             raise exceptions.QualysFrameworkException("A callback outlet is \
             required for nonblocking calls to the parser/consumer framework.")
 
-        clear_ok = False
-        context = lxml.etree.iterparse(response, events=('end',))
+        context = etree.iterparse(response, events=('end',))
         for event, elem in context:
             # Use QName to avoid specifying or stripping the namespace, which we don't need
-            if lxml.etree.QName(elem.tag).localname.upper() in obj_elem_map:
-                import_buffer.add(obj_elem_map[lxml.etree.QName(elem.tag).localname.upper()](elem=elem))
-                clear_ok = True
-            if clear_ok:
+            stag = etree.QName(elem.tag).localname.upper()
+            if stag in obj_elem_map:
+                import_buffer.add(obj_elem_map[stag](elem=elem))
                 elem.clear() #don't fill up a dom we don't need.
-                clear_ok = False
         results = import_buffer.finish() if block else import_buffer
         if not results:
             #debug
-            import pudb
             pu.db
         self.checkResults(results)
         return results

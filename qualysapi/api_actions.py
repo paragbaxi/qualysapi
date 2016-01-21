@@ -275,6 +275,9 @@ class QGActions(object):
         Uses the cache to quickly look up the report associated with a specific
         map ref.
         '''
+        #debug
+        import pudb
+        pu.db
         call = '/api/2.0/fo/report/'
         params = {
             'action'    : 'launch',
@@ -353,18 +356,38 @@ class QGActions(object):
         if id == 0:
             parameters = {'action': 'list'}
 
-            repData = objectify.fromstring(self.request(call, data=parameters)).RESPONSE
+            repData = objectify.fromstring(
+                    self.request(call, data=parameters)).RESPONSE
             reportsArray = []
 
             for report in repData.REPORT_LIST.REPORT:
-                reportsArray.append(Report(report.EXPIRATION_DATETIME, report.ID, report.LAUNCH_DATETIME, report.OUTPUT_FORMAT, report.SIZE, report.STATUS, report.TYPE, report.USER_LOGIN))
+                reportsArray.append(
+                        Report(report.EXPIRATION_DATETIME,
+                            report.ID,
+                            report.LAUNCH_DATETIME,
+                            report.OUTPUT_FORMAT,
+                            report.SIZE,
+                            report.STATUS,
+                            report.TYPE,
+                            report.USER_LOGIN
+                            )
+                    )
 
             return reportsArray
 
         else:
             parameters = {'action': 'list', 'id': id}
-            repData = objectify.fromstring(self.request(call, data=parameters)).RESPONSE.REPORT_LIST.REPORT
-            return Report(repData.EXPIRATION_DATETIME, repData.ID, repData.LAUNCH_DATETIME, repData.OUTPUT_FORMAT, repData.SIZE, repData.STATUS, repData.TYPE, repData.USER_LOGIN)
+            repData = objectify.fromstring(
+                    self.request(call, data=parameters)
+                    ).RESPONSE.REPORT_LIST.REPORT
+            return Report(repData.EXPIRATION_DATETIME,
+                    repData.ID,
+                    repData.LAUNCH_DATETIME,
+                    repData.OUTPUT_FORMAT,
+                    repData.SIZE,
+                    repData.STATUS,
+                    repData.TYPE,
+                    repData.USER_LOGIN)
 
 
     def notScannedSince(self, days):

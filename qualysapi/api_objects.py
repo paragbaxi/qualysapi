@@ -13,6 +13,9 @@ from qualysapi import exceptions
 def jsonify(obj):
     return obj.__dict__
 
+def cdata_elem(elem, attr, default=None):
+    '''Utility funciton to gracefully handle child elements.'''
+    return elem.text if getattr(elem, attr, default) else default
 
 class CacheableQualysObject(object):
     '''
@@ -23,7 +26,6 @@ class CacheableQualysObject(object):
         if 'json' in kwargs:
             jsondict = json.loads(kwargs['json'])
             [setattr(self, key, jsondict[key]) for key in jsondict]
-
 
     def getKey(self):
         raise exceptions.QualysFrameworkException('You must implement this \
@@ -258,9 +260,9 @@ class QKBVuln(CacheableQualysObject):
                 xml    = args[0] if len(args) else kwargs.pop('xml')
                 elem = lxml.objectify.fromstring(xml)
 
-            if elem:
-                self.cve_id = getattr(elem, 'ID', None)
-                self.url    = getattr(elem, 'URL', None)
+            if elem is not None:
+                self.cve_id = cdata_elem(elem, 'ID', None)
+                self.url    = cdata_elem(elem, 'URL', None)
             else:
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
@@ -353,17 +355,17 @@ class QKBVuln(CacheableQualysObject):
                 xml    = args[0] if len(args) else kwargs.pop('xml')
                 elem = lxml.objectify.fromstring(xml)
 
-            if elem:
-                self.base              = getattr(elem, 'BASE', None)
-                self.temporal          = getattr(elem, 'TEMPORAL', None)
+            if elem is not None:
+                self.base              = cdata_elem(elem, 'BASE', None)
+                self.temporal          = cdata_elem(elem, 'TEMPORAL', None)
                 self.access            = \
-                        CVSSAccess(getattr(elem, 'ACCESS', None))
+                        CVSSAccess(cdata_elem(elem, 'ACCESS', None))
                 self.impact            = \
-                        CVSSImpact(getattr(elem, 'IMPACT', None))
-                self.authentication    = getattr(elem, 'AUTHENTICATION', None)
-                self.exploitability    = getattr(elem, 'EXPLOITABILITY', None)
-                self.remediation_level = getattr(elem, 'REMEDIATION_LEVEL', None)
-                self.report_confidence = getattr(elem, 'REPORT_CONFIDENCE', None)
+                        CVSSImpact(cdata_elem(elem, 'IMPACT', None))
+                self.authentication    = cdata_elem(elem, 'AUTHENTICATION', None)
+                self.exploitability    = cdata_elem(elem, 'EXPLOITABILITY', None)
+                self.remediation_level = cdata_elem(elem, 'REMEDIATION_LEVEL', None)
+                self.report_confidence = cdata_elem(elem, 'REPORT_CONFIDENCE', None)
             else:
                 self.base              = kwargs.pop('BASE', None)
                 self.temporal          = kwargs.pop('TEMPORAL', None)
@@ -418,10 +420,10 @@ class QKBVuln(CacheableQualysObject):
                     xml    = args[0] if len(args) else kwargs.pop('xml')
                     elem = lxml.objectify.fromstring(xml)
 
-                if elem:
-                    confidentiality = getattr(elem, 'CONFIDENTIALITY', None)
-                    integrity       = getattr(elem, 'INTEGRITY', None)
-                    availability    = getattr(elem, 'AVAILABILITY', None)
+                if elem is not None:
+                    confidentiality = cdata_elem(elem, 'CONFIDENTIALITY', None)
+                    integrity       = cdata_elem(elem, 'INTEGRITY', None)
+                    availability    = cdata_elem(elem, 'AVAILABILITY', None)
                 else:
                     confidentiality = kwargs.pop('CONFIDENTIALITY', None)
                     integrity       = kwargs.pop('INTEGRITY', None)
@@ -465,9 +467,9 @@ class QKBVuln(CacheableQualysObject):
                     xml    = args[0] if len(args) else kwargs.pop('xml')
                     elem = lxml.objectify.fromstring(xml)
 
-                if elem:
-                    vector     = getattr(elem, 'VECTOR', None)
-                    complexity = getattr(elem, 'COMPLEXITY', None)
+                if elem is not None:
+                    vector     = cdata_elem(elem, 'VECTOR', None)
+                    complexity = cdata_elem(elem, 'COMPLEXITY', None)
                 else:
                     vector     = kwargs.pop('VECTOR', None)
                     complexity = kwargs.pop('COMPLEXITY', None)
@@ -490,9 +492,9 @@ class QKBVuln(CacheableQualysObject):
                 xml    = args[0] if len(args) else kwargs.pop('xml')
                 elem = lxml.objectify.fromstring(xml)
 
-            if elem:
-                self.product   = getattr(elem, 'PRODUCT', None)
-                self.vendor_id = getattr(elem, 'VENDOR', None)
+            if elem is not None:
+                self.product   = cdata_elem(elem, 'PRODUCT', None)
+                self.vendor_id = cdata_elem(elem, 'VENDOR', None)
             else:
                 self.product   = kwargs.pop('PRODUCT', None)
                 self.vendor_id = kwargs.pop('VENDOR', None)
@@ -514,9 +516,9 @@ class QKBVuln(CacheableQualysObject):
                 xml    = args[0] if len(args) else kwargs.pop('xml')
                 elem = lxml.objectify.fromstring(xml)
 
-            if elem:
-                self.vendor_id = getattr(elem, 'ID', None)
-                self.url       = getattr(elem, 'URL', None)
+            if elem is not None:
+                self.vendor_id = cdata_elem(elem, 'ID', None)
+                self.url       = cdata_elem(elem, 'URL', None)
             else:
                 self.vendor_id = kwargs.pop('ID', None)
                 self.url       = kwargs.pop('URL', None)
@@ -541,10 +543,10 @@ class QKBVuln(CacheableQualysObject):
                 xml = args[0] if len(args) else kwargs.pop('xml')
                 elem =  lxml.objectify.fromstring(xml)
 
-            if elem:
-                self.ctype       = getattr(elem, 'TYPE', None)
-                self.csection    = getattr(elem, 'SECTION', None)
-                self.description = getattr(elem, 'DESCRIPTION', None)
+            if elem is not None:
+                self.ctype       = cdata_elem(elem, 'TYPE', None)
+                self.csection    = cdata_elem(elem, 'SECTION', None)
+                self.description = cdata_elem(elem, 'DESCRIPTION', None)
             else:
                 self.ctype       = kwargs.pop('TYPE', None)
                 self.csection    = kwargs.pop('SECTION', None)
@@ -575,10 +577,10 @@ class QKBVuln(CacheableQualysObject):
                 raise exceptions.QualysFrameworkException('Source must be \
                     included as a keyword argument to this class.')
 
-            if elem:
-                self.ref  = getattr(elem, 'REF',  None )
-                self.desc = getattr(elem, 'DESC', None )
-                self.link = getattr(elem, 'LINK', None )
+            if elem is not None:
+                self.ref  = cdata_elem(elem, 'REF',  None )
+                self.desc = cdata_elem(elem, 'DESC', None )
+                self.link = cdata_elem(elem, 'LINK', None )
 
             else:
                 self.ref  = kwargs.pop('REF',  None )
@@ -612,12 +614,12 @@ class QKBVuln(CacheableQualysObject):
                 raise exceptions.QualysFrameworkException('Source must be \
                     included as a keyword argument to this class.')
 
-            if elem:
-                self.mwid     = getattr(elem, 'MW_ID',       None )
-                self.mwtype   = getattr(elem, 'MW_TYPE',     None )
-                self.platform = getattr(elem, 'MW_PLATFORM', None )
-                self.alias    = getattr(elem, 'MW_ALIAS',    None )
-                self.rating   = getattr(elem, 'MW_RATING',   None )
+            if elem is not None:
+                self.mwid     = cdata_elem(elem, 'MW_ID',       None )
+                self.mwtype   = cdata_elem(elem, 'MW_TYPE',     None )
+                self.platform = cdata_elem(elem, 'MW_PLATFORM', None )
+                self.alias    = cdata_elem(elem, 'MW_ALIAS',    None )
+                self.rating   = cdata_elem(elem, 'MW_RATING',   None )
 
             else:
                 self.mwid     = kwargs.pop('MW_ID',       None )
@@ -643,9 +645,9 @@ class QKBVuln(CacheableQualysObject):
                 xml = args[0] if len(args) else kwargs.pop('xml')
                 elem =  lxml.objectify.fromstring(xml)
 
-            if elem:
-                self.bugid = getattr(elem, 'ID', None)
-                self.url   = getattr(elem, 'URL', None)
+            if elem is not None:
+                self.bugid = cdata_elem(elem, 'ID', None)
+                self.url   = cdata_elem(elem, 'URL', None)
             else:
                 self.bugid = kwargs.pop('ID', None)
                 self.url   = kwargs.pop('URL', None)
@@ -664,26 +666,26 @@ class QKBVuln(CacheableQualysObject):
             xml = args[0] if len(args) else kwargs.pop('xml')
             elem =  lxml.objectify.fromstring(xml)
 
-        if elem:
-            self.qid               = getattr(elem, 'QID', None)
-            self.vtype             = getattr(elem, 'VULN_TYPE', None)
-            self.severity          = getattr(elem, 'SEVERITY_LEVEL', None)
-            self.title             = getattr(elem, 'TITLE', None)
-            self.vcat              = getattr(elem, 'CATEGORY', None)
-            self.usermod_date      = getattr(elem, 'LAST_CUSTOMIZATION', None)
-            self.servicemod_date   = getattr(elem, 'LAST_SERVICE_MODIFICATION_DATETIME', None)
-            self.publ_date         = getattr(elem, 'PUBLISHED_DATETIME', None)
+        if elem is not None:
+            self.qid               = cdata_elem(elem, 'QID', None)
+            self.vtype             = cdata_elem(elem, 'VULN_TYPE', None)
+            self.severity          = cdata_elem(elem, 'SEVERITY_LEVEL', None)
+            self.title             = cdata_elem(elem, 'TITLE', None)
+            self.vcat              = cdata_elem(elem, 'CATEGORY', None)
+            self.usermod_date      = cdata_elem(elem, 'LAST_CUSTOMIZATION', None)
+            self.servicemod_date   = cdata_elem(elem, 'LAST_SERVICE_MODIFICATION_DATETIME', None)
+            self.publ_date         = cdata_elem(elem, 'PUBLISHED_DATETIME', None)
             self.patch_avail       = \
-                False if int(getattr(elem, 'PATCHABLE', 0)) else True
-            self.diagnosis         = getattr(elem, 'DIAGNOSIS', None)
-            self.diagnosis_notes   = getattr(elem, 'DIAGNOSIS_COMMENT', None)
-            self.consequence       = getattr(elem, 'CONSEQUENCE', None)
-            self.consequence_notes = getattr(elem, 'CONSEQUENCE_COMMENT', None)
-            self.solution          = getattr(elem, 'SOLUTION', None)
-            self.solution_notes    = getattr(elem, 'SOLUTION_COMMENT', None)
+                False if int(cdata_elem(elem, 'PATCHABLE', 0)) else True
+            self.diagnosis         = cdata_elem(elem, 'DIAGNOSIS', None)
+            self.diagnosis_notes   = cdata_elem(elem, 'DIAGNOSIS_COMMENT', None)
+            self.consequence       = cdata_elem(elem, 'CONSEQUENCE', None)
+            self.consequence_notes = cdata_elem(elem, 'CONSEQUENCE_COMMENT', None)
+            self.solution          = cdata_elem(elem, 'SOLUTION', None)
+            self.solution_notes    = cdata_elem(elem, 'SOLUTION_COMMENT', None)
             self.pci_mustfix       = \
-                False if int(getattr(elem, 'PCI_FLAG', 0)) else True
-            self.cvss              = self.CVSS(elem = getattr(elem, 'CVSS', None))
+                False if int(cdata_elem(elem, 'PCI_FLAG', 0)) else True
+            self.cvss              = self.CVSS(elem = cdata_elem(elem, 'CVSS', None))
             # lists / subparse objects
             self.bugtraq_listing   = \
                     [ self.Bugtraq(elem = item) for item in getattr(elem,
@@ -705,7 +707,7 @@ class QKBVuln(CacheableQualysObject):
                         'COMPLIANCE_LIST', [])]
 
             # correlation is a bit more tricky
-            correlation             = getattr(elem, 'CORRELATION', None)
+            correlation             = cdata_elem(elem, 'CORRELATION', None)
             if correlation:
                 # reverse the source/mw|ex nesting to mw.source and ex.source
                 for exsource in getattr( correlation, 'EXPLOITS', []):
@@ -735,7 +737,7 @@ class QKBVuln(CacheableQualysObject):
                         False if elem.DISCOVERY.REMOTE else True
                 self.auth_type_list      = \
                         [ auth_type for auth_type in
-                            getattr(elem.DISCOVERY, 'AUTH_TYPE_LIST', [])]
+                            cdata_elem(elem.DISCOVERY, 'AUTH_TYPE_LIST', [])]
         else:
             # we assume standard kwarg arguments
             self.qid               = kwargs.pop('QID', None)
@@ -959,12 +961,12 @@ class SimpleReturnResponse(CacheableQualysObject):
             xml = args[0] if len(args) else kwargs.pop('xml')
             elem =  lxml.objectify.fromstring(xml)
 
-        if elem:
-            self.reponse_time   = getattr(elem, 'DATETIME', None )
-            self.response_code  = getattr(elem, 'CODE',     None )
-            self.response_text  = getattr(elem, 'TEXT',     None )
+        if elem is not None:
+            self.reponse_time   = cdata_elem(elem, 'DATETIME', None )
+            self.response_code  = cdata_elem(elem, 'CODE',     None )
+            self.response_text  = cdata_elem(elem, 'TEXT',     None )
             self.response_items = dict(((item.KEY, item.VALUE) for item in \
-                getattr(elem, 'ITEM_LIST', [])))
+                cdata_elem(elem, 'ITEM_LIST', [])))
         else:
             self.reponse_time   = kwargs.pop('DATETIME', None )
             self.response_code  = kwargs.pop('CODE',     None )
@@ -1033,10 +1035,10 @@ class QualysUser(CacheableQualysObject):
             xml = args[0] if len(args) else kwargs.pop('xml')
             elem =  lxml.objectify.fromstring(xml)
 
-        if elem:
-            self.login     = getattr(elem, 'LOGIN',     None )
-            self.firstname = getattr(elem, 'FIRSTNAME', None )
-            self.lastname  = getattr(elem, 'LASTNAME',  None )
+        if elem is not None:
+            self.login     = cdata_elem(elem, 'LOGIN',     None )
+            self.firstname = cdata_elem(elem, 'FIRSTNAME', None )
+            self.lastname  = cdata_elem(elem, 'LASTNAME',  None )
         else:
             self.login     = kwargs.pop('LOGIN',     None )
             self.firstname = kwargs.pop('FIRSTNAME', None )
@@ -1088,15 +1090,15 @@ class ReportTemplate(CacheableQualysObject):
             xml = args[0] if len(args) else kwargs.pop('xml')
             elem =  lxml.objectify.fromstring(xml)
 
-        if elem:
-            self.template_id   = getattr(elem, 'ID', self.template_id)
-            self.report_type   = getattr(elem, 'TYPE', self.report_type)
-            self.template_type = getattr(elem, 'TEMPLATE_TYPE', self.template_type)
-            self.title         = getattr(elem, 'TITLE', self.title)
-            self.user          = getattr(elem, 'USER', self.user)
-            self.last_update   = getattr(elem, 'LAST_UPDATE', self.last_update)
-            self.is_global     = getattr(elem, 'GLOBAL', self.is_global)
-            self.is_default    = getattr(elem, 'DEFAULT', self.is_default)
+        if elem is not None:
+            self.template_id   = cdata_elem(elem, 'ID', self.template_id)
+            self.report_type   = cdata_elem(elem, 'TYPE', self.report_type)
+            self.template_type = cdata_elem(elem, 'TEMPLATE_TYPE', self.template_type)
+            self.title         = cdata_elem(elem, 'TITLE', self.title)
+            self.user          = cdata_elem(elem, 'USER', self.user)
+            self.last_update   = cdata_elem(elem, 'LAST_UPDATE', self.last_update)
+            self.is_global     = cdata_elem(elem, 'GLOBAL', self.is_global)
+            self.is_default    = cdata_elem(elem, 'DEFAULT', self.is_default)
         else:
             self.template_id    = kwargs.pop('ID', self.template_id)
             self.report_type   = kwargs.pop('TYPE', self.report_type)
