@@ -208,9 +208,14 @@ class QualysConnectConfig:
         if not self._cfgparse.has_option('report_templates', 'map_template'):
             if self._cfgparse.has_option('DEFAULT', 'map_template'):
                 map_template = self._cfgparse.get('DEFAULT', 'map_template')
-                self._cfgparse.set('report_templates', 'map_template', map_template)
+                if not self._cfgparse.has_section('report_templates'):
+                    self._cfgparse.add_section('report_templates')
+                self._cfgparse.set('report_templates',
+                    'map_template',
+                    map_template)
             else:
-                raise Exception("No 'map_template' set. QualysConnect does not know who to connect to.")
+                raise Exception("No 'map_template' set. QualysConnect does not\
+                        know who to connect to.")
 
     def get_config(self):
         return self._cfgparse
