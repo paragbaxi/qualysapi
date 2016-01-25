@@ -139,6 +139,7 @@ class BufferConsumer(multiprocessing.Process):
 
 
 class ImportBuffer(object):
+    # TODO: add min/max buffer consumer controls
     '''
         This is a queue manager for a multiprocesses queue consumer for
         incoming data from qualys.  Rather than making huge lists of objects
@@ -225,16 +226,18 @@ class ImportBuffer(object):
     def add(self, item):
         '''Place a new object into the buffer'''
         self.queue.put(item)
-        #see if we should start a consumer...
-        if not len(self.running):
-            new_consumer = self.consumer(queue=self.queue, results_list=self.results_list)
-            new_consumer.start()
-            self.running.append(new_consumer)
-
-        #check for finished consumers and clean them up...
+        # check for finished consumers and clean them up before we check to see
+        # if we need to add additional consumers.
         for csmr in self.running:
             if not csmr.is_alive():
                 self.running.remove(csmr)
+
+        #see if we should start a consumer...
+        # TODO: add min/max processes (default and override)
+        if not self.running:
+            new_consumer = self.consumer(queue=self.queue, results_list=self.results_list)
+            new_consumer.start()
+            self.running.append(new_consumer)
 
     def setCallback(self, callback):
         '''set or replace a callback in an existing buffer instance.'''
