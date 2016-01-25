@@ -36,6 +36,15 @@ class CacheableQualysObject(object):
             jsondict = json.loads(kwargs['json'])
             [setattr(self, key, jsondict[key]) for key in jsondict]
 
+        if 'param_map' in kwargs:
+            elem = kwargs.get('elem',
+                    lxml.objectify.fromstring(kwargs.get('xml')) if 'xml'
+                    in kwargs else None)
+            if elem is None:
+                exmsg = 'param_map specified with no element or xml'
+                raise exceptions.QualysFrameworkException(exmsg)
+            self.populateParameters(elem, kwargs.get('param_map'))
+
     def getKey(self):
         raise exceptions.QualysFrameworkException('You must implement this \
             function in your base class(es).')
@@ -49,13 +58,15 @@ class CacheableQualysObject(object):
                 failed!')
 
     def __eq__(self, other):
-        '''Instance equality (simple dict key/value comparison'''
+        '''Instance value equality (simple dict key/value comparison'''
         return self.__dict__ == other.__dict__
 
-    def populateParameters(self, elem, **param_map):
+    def populateParameters(self, elem, param_map):
         ''' This baseclass utility method allows easy mapping of parameters to
         tag names on elements.  This makes creating parsers easier for
         this particular API. '''
+        logging.debug(pprint.pformat(elem))
+        logging.debug(pprint.pformat(param_map))
         for child in elem.iterchildren(*(param_map.keys())):
             (attrname, attrtype) = param_map[child.tag]
             if attrtype is str:
@@ -191,7 +202,7 @@ class Report(CacheableQualysObject):
                 setattr(self, key, value)
 
         elem = kwargs.pop('elem', None)
-        if elem is not None:
+        if 'elem' in kwargs or 'xml' in kwargs:
             # parse an etree element into string arguments
             self.status = status.STATE
             #TODO: implement
@@ -299,23 +310,15 @@ class QKBVuln(CacheableQualysObject):
         url    = None
 
         def __init__(self, *args, **kwargs):
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml    = args[0] if len(args) else kwargs.pop('xml')
-                elem = lxml.objectify.fromstring(xml)
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'ID'  : ('cve_id', str ),
                     'URL' : ('url',    str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
+            super(PCIReason, self).__init__(*args, **kwargs)
 
     class CVSS(CacheableQualysObject):
         '''
@@ -396,17 +399,8 @@ class QKBVuln(CacheableQualysObject):
         vendor_id = None
 
         def __init__(self, *args, **kwargs):
-
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml    = args[0] if len(args) else kwargs.pop('xml')
-                elem = lxml.objectify.fromstring(xml)
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'BASE'              : ('base',              str ),
                     'TEMPORAL'          : ('temporal',          str ),
                     'ACCESS'            : ('access',            self.CVSSAccess),
@@ -416,7 +410,6 @@ class QKBVuln(CacheableQualysObject):
                     'REMEDIATION_LEVEL' : ('remediation_level', str ),
                     'REPORT_CONFIDENCE' : ('report_confidence', str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.base              = kwargs.pop('BASE', None)
                 self.temporal          = kwargs.pop('TEMPORAL', None)
@@ -428,6 +421,7 @@ class QKBVuln(CacheableQualysObject):
                 self.exploitability    = kwargs.pop('EXPLOITABILITY', None)
                 self.remediation_level = kwargs.pop('REMEDIATION_LEVEL', None)
                 self.report_confidence = kwargs.pop('REPORT_CONFIDENCE', None)
+            super(CVSS, self).__init__(*args, **kwargs)
 
         class CVSSImpact(CacheableQualysObject):
             '''
@@ -462,26 +456,17 @@ class QKBVuln(CacheableQualysObject):
             availability    = None
 
             def __init__(self, *args, **kwargs):
-
-                elem = None
-                if 'elem' in kwargs:
-                    elem = kwargs.pop('elem')
-                elif len(args) or 'xml' in kwargs:
-                    # we assume xml binary string
-                    xml    = args[0] if len(args) else kwargs.pop('xml')
-                    elem = lxml.objectify.fromstring(xml)
-
-                if elem is not None:
-                    param_map = {
+                if 'elem' in kwargs or 'xml' in kwargs:
+                    kwargs['param_map'] = {
                         'CONFIDENTIALITY' : ('confidentiality', str ),
                         'INTEGRITY'       : ('integrity',       str ),
                         'AVAILABILITY'    : ('availability',    str ),
                     }
-                    self.populateParameters(elem, **param_map)
                 else:
                     confidentiality = kwargs.pop('CONFIDENTIALITY', None)
                     integrity       = kwargs.pop('INTEGRITY', None)
                     availability    = kwargs.pop('AVAILABILITY', None)
+                super(CVSSImpact, self).__init__(*args, **kwargs)
 
 
         class CVSSAccess(CacheableQualysObject):
@@ -512,24 +497,15 @@ class QKBVuln(CacheableQualysObject):
             complexity = None
 
             def __init__(self, *args, **kwargs):
-
-                elem = None
-                if 'elem' in kwargs:
-                    elem = kwargs.pop('elem')
-                elif len(args) or 'xml' in kwargs:
-                    # we assume xml binary string
-                    xml    = args[0] if len(args) else kwargs.pop('xml')
-                    elem = lxml.objectify.fromstring(xml)
-
-                if elem is not None:
-                    param_map = {
+                if 'elem' in kwargs or 'xml' in kwargs:
+                    kwargs['param_map'] = {
                         'VECTOR'     : ('vector',     str ),
                         'COMPLEXITY' : ('complexity', str ),
                     }
-                    self.populateParameters(elem, **param_map)
                 else:
                     vector     = kwargs.pop('VECTOR', None)
                     complexity = kwargs.pop('COMPLEXITY', None)
+                super(CVSSAccess, self).__init__(*args, **kwargs)
 
 
     class VulnSoftware(CacheableQualysObject):
@@ -540,24 +516,15 @@ class QKBVuln(CacheableQualysObject):
         vendor_id = None
 
         def __init__(self, *args, **kwargs):
-
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml    = args[0] if len(args) else kwargs.pop('xml')
-                elem = lxml.objectify.fromstring(xml)
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'PRODUCT' : ('product',   str ),
                     'VENDOR'  : ('vendor_id', str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.product   = kwargs.pop('PRODUCT', None)
                 self.vendor_id = kwargs.pop('VENDOR', None)
+            super(VulnSoftware, self).__init__(*args, **kwargs)
 
     class VulnVendor(CacheableQualysObject):
         '''
@@ -567,24 +534,15 @@ class QKBVuln(CacheableQualysObject):
         url       = None
 
         def __init__(self, *args, **kwargs):
-
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml    = args[0] if len(args) else kwargs.pop('xml')
-                elem = lxml.objectify.fromstring(xml)
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'ID'  : ('vendor_id', str ),
                     'URL' : ('url',       str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.vendor_id = kwargs.pop('ID', None)
                 self.url       = kwargs.pop('URL', None)
+            super(VulnVendor, self).__init__(*args, **kwargs)
 
     class Compliance(CacheableQualysObject):
         '''
@@ -597,26 +555,17 @@ class QKBVuln(CacheableQualysObject):
         description = None
 
         def __init__(self, *args, **kwargs):
-
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml = args[0] if len(args) else kwargs.pop('xml')
-                elem =  lxml.objectify.fromstring(xml)
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'TYPE'        : ('ctype',       str ),
                     'SECTION'     : ('csection',    str ),
                     'DESCRIPTION' : ('description', str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.ctype       = kwargs.pop('TYPE', None)
                 self.csection    = kwargs.pop('SECTION', None)
                 self.description = kwargs.pop('DESCRIPTION', None)
+            super(Compliance, self).__init__(*args, **kwargs)
 
     class Exploit(CacheableQualysObject):
         '''
@@ -628,32 +577,17 @@ class QKBVuln(CacheableQualysObject):
         link = None
 
         def __init__(self, *args, **kwargs):
-
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml = args[0] if len(args) else kwargs.pop('xml')
-                elem =  lxml.objectify.fromstring(xml)
-
-            # source must come from kwargs
-            self.src = kwargs.pop('SRC', None)
-            if not self.src:
-                raise exceptions.QualysFrameworkException('Source must be \
-                    included as a keyword argument to this class.')
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'REF'  : ('ref',  str ),
                     'DESC' : ('desc', str ),
                     'LINK' : ('link', str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.ref  = kwargs.pop('REF',  None )
                 self.desc = kwargs.pop('DESC', None )
                 self.link = kwargs.pop('LINK', None )
+            super(Exploit, self).__init__(*args, **kwargs)
 
     class Malware(CacheableQualysObject):
         '''
@@ -667,36 +601,21 @@ class QKBVuln(CacheableQualysObject):
         rating   = None
 
         def __init__(self, *args, **kwargs):
-
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml = args[0] if len(args) else kwargs.pop('xml')
-                elem =  lxml.objectify.fromstring(xml)
-
-            # source must come from kwargs
-            self.src = kwargs.pop('SRC', None)
-            if not self.src:
-                raise exceptions.QualysFrameworkException('Source must be \
-                    included as a keyword argument to this class.')
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'MW_ID'       : ('mwid',     str ),
                     'MW_TYPE'     : ('mwtype',   str ),
                     'MW_PLATFORM' : ('platform', str ),
                     'MW_ALIAS'    : ('alias',    str ),
                     'MW_RATING'   : ('rating',   str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.mwid     = kwargs.pop('MW_ID',       None )
                 self.mwtype   = kwargs.pop('MW_TYPE',     None )
                 self.platform = kwargs.pop('MW_PLATFORM', None )
                 self.alias    = kwargs.pop('MW_ALIAS',    None )
                 self.rating   = kwargs.pop('MW_RATING',   None )
+            super(Malware, self).__init__(*args, **kwargs)
 
     class Bugtraq(CacheableQualysObject):
         '''
@@ -706,24 +625,15 @@ class QKBVuln(CacheableQualysObject):
         url = None
 
         def __init__(self, *args, **kwargs):
-
-            elem = None
-            if 'elem' in kwargs:
-                elem = kwargs.pop('elem')
-            elif len(args) or 'xml' in kwargs:
-                # we assume xml binary string
-                xml = args[0] if len(args) else kwargs.pop('xml')
-                elem =  lxml.objectify.fromstring(xml)
-
-            if elem is not None:
-                param_map = {
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
                     'ID'  : ('bugid', str ),
                     'URL' : ('url',   str ),
                 }
-                self.populateParameters(elem, **param_map)
             else:
                 self.bugid = kwargs.pop('ID', None)
                 self.url   = kwargs.pop('URL', None)
+            super(Bugtraq, self).__init__(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
         '''gracefully handle xml passed in as a blind ordered argument binary
@@ -731,16 +641,8 @@ class QKBVuln(CacheableQualysObject):
 
         Otherwise operate with dictionaries/keyword arguments.
         '''
-        elem = None
-        if 'elem' in kwargs:
-            elem = kwargs.pop('elem')
-        elif len(args) or 'xml' in kwargs:
-            # we assume xml binary string
-            xml = args[0] if len(args) else kwargs.pop('xml')
-            elem =  lxml.objectify.fromstring(xml)
-
-        if elem is not None:
-            param_map = {
+        if 'elem' in kwargs or 'xml' in kwargs:
+            kwargs['param_map'] = {
                 'QID'                                : ('qid',               str ),
                 'VULN_TYPE'                          : ('vtype',             str ),
                 'SEVERITY_LEVEL'                     : ('severity',          str ),
@@ -777,7 +679,6 @@ class QKBVuln(CacheableQualysObject):
                     'remote_detectable' : ('REMOTE', bool),
                     'auth_type_list'    : ('AUTH_TYPE_LIST', list)}, dict)
             }
-            self.populateParameters(elem, **param_map)
         else:
             # we assume standard kwarg arguments
             self.qid               = kwargs.pop('QID', None)
@@ -803,6 +704,7 @@ class QKBVuln(CacheableQualysObject):
             #TODO: make this graceful
             raise exceptions.QualysFrameworkException('Not yet implemented: \
                 kwargs lists grace.')
+            super(QKBVuln, self).__init__(*args, **kwargs)
 
 
 class OptionProfile(CacheableQualysObject):
@@ -840,39 +742,39 @@ class Map(CacheableQualysObject):
     domain = None
     status = None
     report_id = None
+    option_profiles = None
 
     def __init__(self, *args, **kwargs):
         '''Instantiate a new Map.'''
+        # double-check the name?
+        # self.name="".join(child.itertext())
+        self.name      = kwargs.pop('NAME',      None )
+        self.ref       = kwargs.pop('REF',       None )
+        self.date      = kwargs.pop('DATE',      None )
+        self.domain    = kwargs.pop('DOMAIN',    None )
+        self.status    = kwargs.pop('STATUS',    None )
+        self.report_id = kwargs.pop('REPORT_ID', None )
+        kwargs['param_map'] = {
+            'NAME'   : ('name',   str ),
+            'REF'    : ('ref',    str ),
+            'DATE'   : ('date',   str ),
+            'DOMAIN' : ('domain', str ),
+            'STATUS' : ('status', str ),
+            'OPTION_PROFILE' : ('option_profiles', ObjTypeList(OptionProfile)),
+        }
+        super(Map, self).__init__(*args, **kwargs)
 
-        #superclass handles json serialized properties
-        super(Map, self).__init__(**kwargs)
-
+        # superclass handles json serialized properties
+        # but limited by subclasses.
+        # TODO: this can be fixed now due to the type mapping function in the
+        # superclass.  Fix it.
         if 'json' in kwargs:
             # our option profiles will be dicts... resolve
             self.option_profiles = [OptionProfile(json=json.dumps(op)) for op in
                 self.option_profiles]
         #instantiate from an etree element
-        elem = kwargs.pop('elem', None)
-        if elem is not None: #we are being initialized with an lxml element, assume it's in CVE export format
-            logging.debug('Map with elem\n\t\t%s' % pprint.pformat(elem))
-            self.ref = elem.get('ref', None)
-            self.date = elem.get('date', None)
-            self.domain = elem.get('domain', None)
-            self.status = elem.get('status', None)
+        #we are being initialized with an lxml element, assume it's in CVE export format
 
-            for child in elem:
-                if lxml.etree.QName(child.tag).localname.upper() == 'TITLE':
-                    if child.text:
-                        self.name = child.text
-                    else:
-                        self.name="".join(child.itertext())
-                if lxml.etree.QName(child.tag).localname.upper() == \
-                    'OPTION_PROFILE':
-                    self.option_profiles = [OptionProfile(op) for op in child]
-
-        # instance from kwargs
-        for key in kwargs.keys():
-            setattr(self, key, kwargs[key])
 
     def getKey(self):
         return self.ref if self.ref is not None else self.name
@@ -991,33 +893,36 @@ class SimpleReturnResponse(CacheableQualysObject):
     __is_error = False
     __err_msg = None
 
-    def __init__(self, *args, **kwargs):
-        super(SimpleReturnResponse, self).__init__(**kwargs)
-        elem = None
-        if 'elem' in kwargs:
-            elem = kwargs.pop('elem')
-        elif len(args) or 'xml' in kwargs:
-            # we assume xml binary string
-            xml = args[0] if len(args) else kwargs.pop('xml')
-            elem =  lxml.objectify.fromstring(xml)
+    class ResponseItem(CacheableQualysObject):
+        key = None
+        value = None
+        def __init__(self, *args, **kwargs):
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
+                    'KEY'   : ('key',   str ),
+                    'value' : ('value', str ),
+                }
+            else:
+                self.key   = kwargs.pop('key',   None )
+                self.value = kwargs.pop('value', None )
+            super(ResponseItem, self).__init__(*args, **kwargs)
 
-        if elem is not None:
-            param_map = {
-                'DATETIME' : ('reponse_time',  str ),
-                'CODE'     : ('response_code', str ),
-                'TEXT'     : ('response_text', str ),
+    def __init__(self, *args, **kwargs):
+        if 'elem' in kwargs or 'xml' in kwargs:
+            kwargs['param_map'] = {
+                'DATETIME'  : ('reponse_time',  str ),
+                'CODE'      : ('response_code', str ),
+                'TEXT'      : ('response_text', str ),
+                'ITEM_LIST' : ('items', ObjTypeList(self.ResponseItem,
+                    xpath='/ITEM')),
             }
-            self.populateParameters(elem, **param_map)
-            # handle any list of key/value pair items
-            items = [lxml.objectify(item) for item in \
-                elem.iterchildren(tag='ITEM_LIST')]
-            self.response_items = dict(((obj.KEY, obj.VALUE) for obj in items))
         else:
             self.reponse_time   = kwargs.pop('DATETIME', None )
             self.response_code  = kwargs.pop('CODE',     None )
             self.response_text  = kwargs.pop('TEXT',     None )
             self.response_items = dict(((item.KEY, item.VALUE) for item in \
                 kwargs.pop('ITEM_LIST', [])))
+        super(SimpleReturnResponse, self).__init__(*args, **kwargs)
         # do a self-check to engage the framework
         self.checkStatus()
 
@@ -1072,26 +977,17 @@ class QualysUser(CacheableQualysObject):
     firstname = ''
     lastname  = ''
     def __init__(self, *args, **kwargs):
-        elem = None
-        if 'elem' in kwargs:
-            elem = kwargs.pop('elem')
-        elif len(args) or 'xml' in kwargs:
-            # we assume xml binary string
-            xml = args[0] if len(args) else kwargs.pop('xml')
-            elem =  lxml.objectify.fromstring(xml)
-
-        if elem is not None:
-            param_map = {
+        if 'elem' in kwargs or 'xml' in kwargs:
+            kwargs['param_map'] = {
                 'LOGIN'     : ('login',     str ),
                 'FIRSTNAME' : ('firstname', str ),
                 'LASTNAME'  : ('lastname',  str ),
             }
-            self.populateParameters(elem, **param_map)
         else:
             self.login     = kwargs.pop('LOGIN',     None )
             self.firstname = kwargs.pop('FIRSTNAME', None )
             self.lastname  = kwargs.pop('LASTNAME',  None )
-
+        super(QualysUser, self).__init__(*args, **kwargs)
 
 
 class ReportTemplate(CacheableQualysObject):
@@ -1129,29 +1025,19 @@ class ReportTemplate(CacheableQualysObject):
     is_default    = False
 
     def __init__(self, *args, **kwargs):
-
-        elem = None
-        if 'elem' in kwargs:
-            elem = kwargs.pop('elem')
-        elif len(args) or 'xml' in kwargs:
-            # we assume xml binary string
-            xml = args[0] if len(args) else kwargs.pop('xml')
-            elem =  lxml.objectify.fromstring(xml)
-
-        if elem is not None:
-            param_map = {
+        if 'elem' in kwargs or 'xml' in kwargs:
+            kwargs['param_map'] = {
                 'ID'            : ('template_id',   str ),
                 'TYPE'          : ('report_type',   str ),
                 'TEMPLATE_TYPE' : ('template_type', str ),
                 'TITLE'         : ('title',         str ),
-                'USER'          : ('user',          str ),
+                'USER'          : ('user',          QualysUser),
                 'LAST_UPDATE'   : ('last_update',   str ),
-                'GLOBAL'        : ('is_global',     str ),
-                'DEFAULT'       : ('is_default',    str ),
+                'GLOBAL'        : ('is_global',     bool ),
+                'DEFAULT'       : ('is_default',    bool ),
             }
-            self.populateParameters(elem, **param_map)
         else:
-            self.template_id    = kwargs.pop('ID', self.template_id)
+            self.template_id   = kwargs.pop('ID', self.template_id)
             self.report_type   = kwargs.pop('TYPE', self.report_type)
             self.template_type = kwargs.pop('TEMPLATE_TYPE', self.template_type)
             self.title         = kwargs.pop('TITLE', self.title)
@@ -1160,6 +1046,7 @@ class ReportTemplate(CacheableQualysObject):
             self.last_update   = kwargs.pop('LAST_UPDATE', self.last_update)
             self.is_global     = kwargs.pop('GLOBAL', self.is_global)
             self.is_default    = kwargs.pop('DEFAULT', self.is_default)
+        super(ReportTemplate, self).__init__(*args, **kwargs)
 
 
 # element to api_object mapping
