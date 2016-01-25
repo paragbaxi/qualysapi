@@ -13,9 +13,18 @@ from qualysapi import exceptions
 def jsonify(obj):
     return obj.__dict__
 
-def cdata_elem(elem, attr, default=None):
-    '''Utility funciton to gracefully handle child elements.'''
-    return elem.text if getattr(elem, attr, default) else default
+
+class ObjTypeList(object):
+    '''List of class of type helper for parser objects'''
+    class_type = None
+    xpath = None
+    def __init__(self, ctype, xpath=None):
+        self.class_type = ctype
+        self.xpath = xpath
+
+    def isXpath(self):
+        return True if self.xpath else False
+
 
 class CacheableQualysObject(object):
     '''
@@ -42,6 +51,44 @@ class CacheableQualysObject(object):
     def __eq__(self, other):
         '''Instance equality (simple dict key/value comparison'''
         return self.__dict__ == other.__dict__
+
+    def populateParameters(self, elem, **param_map):
+        ''' This baseclass utility method allows easy mapping of parameters to
+        tag names on elements.  This makes creating parsers easier for
+        this particular API. '''
+        for child in elem.iterchildren(*(param_map.keys())):
+            (attrname, attrtype) = param_map[child.tag]
+            if attrtype is str:
+                setattr(self, attrname, child.text)
+            elif attrtype is list:
+                if getattr(self, attrname) is None:
+                    setattr(self, attrname, [child])
+                else:
+                    getattr(self, attrname).append(child)
+            elif attrtype is bool:
+                tbool = False
+                if child.text and int(child.text) == 0:
+                    setattr(self, attrname, True)
+                else:
+                    setattr(self, attrname, False)
+            elif attrtype is dict:
+                self.populateParameters(child, **attrname)
+            elif type(attrtype) is ObjTypeList:
+                if attrtype.isXpath():
+                    setattr(self, attrname,
+                            [attrtype.class_type(elem=grandchild)
+                                for grandchild in
+                                elem.xpath(attrtype.xpath)])
+                else:
+                    if getattr(self, attrname) is None:
+                        setattr(self, attrname,
+                                [attrtype.class_type(elem=child)])
+                    else:
+                        getattr(self, attrname).append(
+                                attrtype.class_type(elem=child))
+            else:
+                setattr(self, attrname,
+                        attrtype(elem=child))
 
 
 class Host(CacheableQualysObject):
@@ -131,7 +178,7 @@ class Report(CacheableQualysObject):
         # because of the old style handling where STATE is an etree element and
         # not a string the assumption must be handled before anyhting else...
         if len(args):
-            [self.setattr(arg, args[n]) for (n,arg) in enumerate(n, arg_order)]
+            [setattr(self, arg, args[n]) for (n,arg) in enumerate(n, arg_order)]
             # special handling for a single retarded attribute...
             if self.status is not None:
                 self.status = status.STATE
@@ -141,7 +188,7 @@ class Report(CacheableQualysObject):
         for key in arg_order:
             value = kwargs.pop(key, None)
             if value is not None:
-                self.setattr(key, value)
+                setattr(self, key, value)
 
         elem = kwargs.pop('elem', None)
         if elem is not None:
@@ -261,8 +308,11 @@ class QKBVuln(CacheableQualysObject):
                 elem = lxml.objectify.fromstring(xml)
 
             if elem is not None:
-                self.cve_id = cdata_elem(elem, 'ID', None)
-                self.url    = cdata_elem(elem, 'URL', None)
+                param_map = {
+                    'ID'  : ('cve_id', str ),
+                    'URL' : ('url',    str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
@@ -356,16 +406,17 @@ class QKBVuln(CacheableQualysObject):
                 elem = lxml.objectify.fromstring(xml)
 
             if elem is not None:
-                self.base              = cdata_elem(elem, 'BASE', None)
-                self.temporal          = cdata_elem(elem, 'TEMPORAL', None)
-                self.access            = \
-                        CVSSAccess(cdata_elem(elem, 'ACCESS', None))
-                self.impact            = \
-                        CVSSImpact(cdata_elem(elem, 'IMPACT', None))
-                self.authentication    = cdata_elem(elem, 'AUTHENTICATION', None)
-                self.exploitability    = cdata_elem(elem, 'EXPLOITABILITY', None)
-                self.remediation_level = cdata_elem(elem, 'REMEDIATION_LEVEL', None)
-                self.report_confidence = cdata_elem(elem, 'REPORT_CONFIDENCE', None)
+                param_map = {
+                    'BASE'              : ('base',              str ),
+                    'TEMPORAL'          : ('temporal',          str ),
+                    'ACCESS'            : ('access',            self.CVSSAccess),
+                    'IMPACT'            : ('impact',            self.CVSSImpact),
+                    'AUTHENTICATION'    : ('authentication',    str ),
+                    'EXPLOITABILITY'    : ('exploitability',    str ),
+                    'REMEDIATION_LEVEL' : ('remediation_level', str ),
+                    'REPORT_CONFIDENCE' : ('report_confidence', str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.base              = kwargs.pop('BASE', None)
                 self.temporal          = kwargs.pop('TEMPORAL', None)
@@ -421,9 +472,12 @@ class QKBVuln(CacheableQualysObject):
                     elem = lxml.objectify.fromstring(xml)
 
                 if elem is not None:
-                    confidentiality = cdata_elem(elem, 'CONFIDENTIALITY', None)
-                    integrity       = cdata_elem(elem, 'INTEGRITY', None)
-                    availability    = cdata_elem(elem, 'AVAILABILITY', None)
+                    param_map = {
+                        'CONFIDENTIALITY' : ('confidentiality', str ),
+                        'INTEGRITY'       : ('integrity',       str ),
+                        'AVAILABILITY'    : ('availability',    str ),
+                    }
+                    self.populateParameters(elem, **param_map)
                 else:
                     confidentiality = kwargs.pop('CONFIDENTIALITY', None)
                     integrity       = kwargs.pop('INTEGRITY', None)
@@ -468,8 +522,11 @@ class QKBVuln(CacheableQualysObject):
                     elem = lxml.objectify.fromstring(xml)
 
                 if elem is not None:
-                    vector     = cdata_elem(elem, 'VECTOR', None)
-                    complexity = cdata_elem(elem, 'COMPLEXITY', None)
+                    param_map = {
+                        'VECTOR'     : ('vector',     str ),
+                        'COMPLEXITY' : ('complexity', str ),
+                    }
+                    self.populateParameters(elem, **param_map)
                 else:
                     vector     = kwargs.pop('VECTOR', None)
                     complexity = kwargs.pop('COMPLEXITY', None)
@@ -493,8 +550,11 @@ class QKBVuln(CacheableQualysObject):
                 elem = lxml.objectify.fromstring(xml)
 
             if elem is not None:
-                self.product   = cdata_elem(elem, 'PRODUCT', None)
-                self.vendor_id = cdata_elem(elem, 'VENDOR', None)
+                param_map = {
+                    'PRODUCT' : ('product',   str ),
+                    'VENDOR'  : ('vendor_id', str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.product   = kwargs.pop('PRODUCT', None)
                 self.vendor_id = kwargs.pop('VENDOR', None)
@@ -517,8 +577,11 @@ class QKBVuln(CacheableQualysObject):
                 elem = lxml.objectify.fromstring(xml)
 
             if elem is not None:
-                self.vendor_id = cdata_elem(elem, 'ID', None)
-                self.url       = cdata_elem(elem, 'URL', None)
+                param_map = {
+                    'ID'  : ('vendor_id', str ),
+                    'URL' : ('url',       str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.vendor_id = kwargs.pop('ID', None)
                 self.url       = kwargs.pop('URL', None)
@@ -544,9 +607,12 @@ class QKBVuln(CacheableQualysObject):
                 elem =  lxml.objectify.fromstring(xml)
 
             if elem is not None:
-                self.ctype       = cdata_elem(elem, 'TYPE', None)
-                self.csection    = cdata_elem(elem, 'SECTION', None)
-                self.description = cdata_elem(elem, 'DESCRIPTION', None)
+                param_map = {
+                    'TYPE'        : ('ctype',       str ),
+                    'SECTION'     : ('csection',    str ),
+                    'DESCRIPTION' : ('description', str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.ctype       = kwargs.pop('TYPE', None)
                 self.csection    = kwargs.pop('SECTION', None)
@@ -578,10 +644,12 @@ class QKBVuln(CacheableQualysObject):
                     included as a keyword argument to this class.')
 
             if elem is not None:
-                self.ref  = cdata_elem(elem, 'REF',  None )
-                self.desc = cdata_elem(elem, 'DESC', None )
-                self.link = cdata_elem(elem, 'LINK', None )
-
+                param_map = {
+                    'REF'  : ('ref',  str ),
+                    'DESC' : ('desc', str ),
+                    'LINK' : ('link', str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.ref  = kwargs.pop('REF',  None )
                 self.desc = kwargs.pop('DESC', None )
@@ -615,12 +683,14 @@ class QKBVuln(CacheableQualysObject):
                     included as a keyword argument to this class.')
 
             if elem is not None:
-                self.mwid     = cdata_elem(elem, 'MW_ID',       None )
-                self.mwtype   = cdata_elem(elem, 'MW_TYPE',     None )
-                self.platform = cdata_elem(elem, 'MW_PLATFORM', None )
-                self.alias    = cdata_elem(elem, 'MW_ALIAS',    None )
-                self.rating   = cdata_elem(elem, 'MW_RATING',   None )
-
+                param_map = {
+                    'MW_ID'       : ('mwid',     str ),
+                    'MW_TYPE'     : ('mwtype',   str ),
+                    'MW_PLATFORM' : ('platform', str ),
+                    'MW_ALIAS'    : ('alias',    str ),
+                    'MW_RATING'   : ('rating',   str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.mwid     = kwargs.pop('MW_ID',       None )
                 self.mwtype   = kwargs.pop('MW_TYPE',     None )
@@ -646,8 +716,11 @@ class QKBVuln(CacheableQualysObject):
                 elem =  lxml.objectify.fromstring(xml)
 
             if elem is not None:
-                self.bugid = cdata_elem(elem, 'ID', None)
-                self.url   = cdata_elem(elem, 'URL', None)
+                param_map = {
+                    'ID'  : ('bugid', str ),
+                    'URL' : ('url',   str ),
+                }
+                self.populateParameters(elem, **param_map)
             else:
                 self.bugid = kwargs.pop('ID', None)
                 self.url   = kwargs.pop('URL', None)
@@ -667,77 +740,44 @@ class QKBVuln(CacheableQualysObject):
             elem =  lxml.objectify.fromstring(xml)
 
         if elem is not None:
-            self.qid               = cdata_elem(elem, 'QID', None)
-            self.vtype             = cdata_elem(elem, 'VULN_TYPE', None)
-            self.severity          = cdata_elem(elem, 'SEVERITY_LEVEL', None)
-            self.title             = cdata_elem(elem, 'TITLE', None)
-            self.vcat              = cdata_elem(elem, 'CATEGORY', None)
-            self.usermod_date      = cdata_elem(elem, 'LAST_CUSTOMIZATION', None)
-            self.servicemod_date   = cdata_elem(elem, 'LAST_SERVICE_MODIFICATION_DATETIME', None)
-            self.publ_date         = cdata_elem(elem, 'PUBLISHED_DATETIME', None)
-            self.patch_avail       = \
-                False if int(cdata_elem(elem, 'PATCHABLE', 0)) else True
-            self.diagnosis         = cdata_elem(elem, 'DIAGNOSIS', None)
-            self.diagnosis_notes   = cdata_elem(elem, 'DIAGNOSIS_COMMENT', None)
-            self.consequence       = cdata_elem(elem, 'CONSEQUENCE', None)
-            self.consequence_notes = cdata_elem(elem, 'CONSEQUENCE_COMMENT', None)
-            self.solution          = cdata_elem(elem, 'SOLUTION', None)
-            self.solution_notes    = cdata_elem(elem, 'SOLUTION_COMMENT', None)
-            self.pci_mustfix       = \
-                False if int(cdata_elem(elem, 'PCI_FLAG', 0)) else True
-            self.cvss              = self.CVSS(elem = cdata_elem(elem, 'CVSS', None))
-            # lists / subparse objects
-            self.bugtraq_listing   = \
-                    [ self.Bugtraq(elem = item) for item in getattr(elem,
-                        'BUGTRAQ_LIST', []) ]
-            self.cve_list          = \
-                    [ self.CVE(elem = item) for item in getattr(elem,
-                        'CVE_LIST', [])]
-            self.pci_reasons = \
-                    [ self.PCIReason(elem = item) for item in getattr(elem,
-                        'PCI_REASONS', [])]
-            self.affected_software = \
-                    [ self.VulnSoftware(elem = item) for item in getattr(elem,
-                        'SOFTWARE_LIST', [])]
-            self.vendor_list       = \
-                    [ self.VulnVendor(elem = item) for item in getattr(elem,
-                        'VENDOR_REFERENCE_LIST', [])]
-            self.compliance_notice_list = \
-                    [ self.Compliance(elem = item) for item in getattr(elem,
-                        'COMPLIANCE_LIST', [])]
-
-            # correlation is a bit more tricky
-            correlation             = cdata_elem(elem, 'CORRELATION', None)
-            if correlation:
-                # reverse the source/mw|ex nesting to mw.source and ex.source
-                for exsource in getattr( correlation, 'EXPLOITS', []):
-                    self.known_exploits.extend( (
-                        Exploit(
-                            src = exsource.EXPLT_SRC,
-                            ref = explt.REF,
-                            desc = explt.DESC,
-                            link = explt.LINK)
-                        for explt in expltsource.EXPLT_LIST ) )
-                # the DTD and XPATH conflict in the docs.  Needs to be verified
-                for mwsource in getattr( correlation, 'MALWARE', []):
-                    self.known_malware.extend( (
-                        Malware(
-                            src = mwsource.MW_SRC,
-                            mwid = mwinfo.MW_ID,
-                            mwtype = mwinfo.MW_TYPE,
-                            platform = mwinfo.MW_PLATFORM,
-                            alias = mwinfo.MW_PLATFORM,
-                            rating = mwinfo.MW_PLATFORM,
-                            link = mwinfo.MW_PLATFORM )
-                        for mwinfo in mwsource.MW_LIST ) )
-
-            #remote boolean ? +authtype list if false.
-            if hasattr(elem, 'DISCOVERY'):
-                self.remote_detectable = \
-                        False if elem.DISCOVERY.REMOTE else True
-                self.auth_type_list      = \
-                        [ auth_type for auth_type in
-                            cdata_elem(elem.DISCOVERY, 'AUTH_TYPE_LIST', [])]
+            param_map = {
+                'QID'                                : ('qid',               str ),
+                'VULN_TYPE'                          : ('vtype',             str ),
+                'SEVERITY_LEVEL'                     : ('severity',          str ),
+                'TITLE'                              : ('title',             str ),
+                'CATEGORY'                           : ('vcat',              str ),
+                'LAST_CUSTOMIZATION'                 : ('usermod_date',      str ),
+                'LAST_SERVICE_MODIFICATION_DATETIME' : ('servicemod_date',   str ),
+                'PUBLISHED_DATETIME'                 : ('publ_date',         str ),
+                'PATCHABLE'                          : ('patch_avail',       str ),
+                'DIAGNOSIS'                          : ('diagnosis',         str ),
+                'DIAGNOSIS_COMMENT'                  : ('diagnosis_notes',   str ),
+                'CONSEQUENCE'                        : ('consequence',       str ),
+                'CONSEQUENCE_COMMENT'                : ('consequence_notes', str ),
+                'SOLUTION'                           : ('solution',          str ),
+                'SOLUTION_COMMENT'                   : ('solution_notes',    str ),
+                'PATCHABLE'                          : ('patch_avail',       bool ),
+                'PCI_FLAG'                           : ('pci_mustfix',       bool ),
+                'CVSS'                               : ('cvss',              self.CVSS),
+                'BUGTRAQ_LIST'          : ('bugtraq_listing',
+                    ObjTypeList(self.Bugtraq)),
+                'CVE_LIST'              : ('cve_list',
+                    ObjTypeList(self.CVE)),
+                'PCI_REASONS'           : ('pci_reasons',
+                    ObjTypeList(self.PCIReason)),
+                'SOFTWARE_LIST'         : ('affected_software',
+                    ObjTypeList(self.VulnSoftware)),
+                'VENDOR_REFERENCE_LIST' : ('vendor_list',
+                    ObjTypeList(self.VulnVendor)),
+                'COMPLIANCE_LIST'       : ('compliance_notice_list',
+                    ObjTypeList(self.Compliance)),
+                'CORRELATION'           : ('known_exploits',
+                    ObjTypeList(self.Exploit, xpath='/EXPLOITS/EXPLOIT')),
+                'DISCOVERY'             : ({
+                    'remote_detectable' : ('REMOTE', bool),
+                    'auth_type_list'    : ('AUTH_TYPE_LIST', list)}, dict)
+            }
+            self.populateParameters(elem, **param_map)
         else:
             # we assume standard kwarg arguments
             self.qid               = kwargs.pop('QID', None)
@@ -962,11 +1002,16 @@ class SimpleReturnResponse(CacheableQualysObject):
             elem =  lxml.objectify.fromstring(xml)
 
         if elem is not None:
-            self.reponse_time   = cdata_elem(elem, 'DATETIME', None )
-            self.response_code  = cdata_elem(elem, 'CODE',     None )
-            self.response_text  = cdata_elem(elem, 'TEXT',     None )
-            self.response_items = dict(((item.KEY, item.VALUE) for item in \
-                cdata_elem(elem, 'ITEM_LIST', [])))
+            param_map = {
+                'DATETIME' : ('reponse_time',  str ),
+                'CODE'     : ('response_code', str ),
+                'TEXT'     : ('response_text', str ),
+            }
+            self.populateParameters(elem, **param_map)
+            # handle any list of key/value pair items
+            items = [lxml.objectify(item) for item in \
+                elem.iterchildren(tag='ITEM_LIST')]
+            self.response_items = dict(((obj.KEY, obj.VALUE) for obj in items))
         else:
             self.reponse_time   = kwargs.pop('DATETIME', None )
             self.response_code  = kwargs.pop('CODE',     None )
@@ -1036,9 +1081,12 @@ class QualysUser(CacheableQualysObject):
             elem =  lxml.objectify.fromstring(xml)
 
         if elem is not None:
-            self.login     = cdata_elem(elem, 'LOGIN',     None )
-            self.firstname = cdata_elem(elem, 'FIRSTNAME', None )
-            self.lastname  = cdata_elem(elem, 'LASTNAME',  None )
+            param_map = {
+                'LOGIN'     : ('login',     str ),
+                'FIRSTNAME' : ('firstname', str ),
+                'LASTNAME'  : ('lastname',  str ),
+            }
+            self.populateParameters(elem, **param_map)
         else:
             self.login     = kwargs.pop('LOGIN',     None )
             self.firstname = kwargs.pop('FIRSTNAME', None )
@@ -1091,14 +1139,17 @@ class ReportTemplate(CacheableQualysObject):
             elem =  lxml.objectify.fromstring(xml)
 
         if elem is not None:
-            self.template_id   = cdata_elem(elem, 'ID', self.template_id)
-            self.report_type   = cdata_elem(elem, 'TYPE', self.report_type)
-            self.template_type = cdata_elem(elem, 'TEMPLATE_TYPE', self.template_type)
-            self.title         = cdata_elem(elem, 'TITLE', self.title)
-            self.user          = cdata_elem(elem, 'USER', self.user)
-            self.last_update   = cdata_elem(elem, 'LAST_UPDATE', self.last_update)
-            self.is_global     = cdata_elem(elem, 'GLOBAL', self.is_global)
-            self.is_default    = cdata_elem(elem, 'DEFAULT', self.is_default)
+            param_map = {
+                'ID'            : ('template_id',   str ),
+                'TYPE'          : ('report_type',   str ),
+                'TEMPLATE_TYPE' : ('template_type', str ),
+                'TITLE'         : ('title',         str ),
+                'USER'          : ('user',          str ),
+                'LAST_UPDATE'   : ('last_update',   str ),
+                'GLOBAL'        : ('is_global',     str ),
+                'DEFAULT'       : ('is_default',    str ),
+            }
+            self.populateParameters(elem, **param_map)
         else:
             self.template_id    = kwargs.pop('ID', self.template_id)
             self.report_type   = kwargs.pop('TYPE', self.report_type)

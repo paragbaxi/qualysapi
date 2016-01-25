@@ -87,10 +87,17 @@ class BufferStats(object):
 class BufferConsumer(multiprocessing.Process):
     '''This will eventually be a subclass of Process, but for now it is simply
     a consumer which will consume buffer objects and do something with them.
+
+    If a consumer error occurs then a regular exception will suffice unless
+    it's a response error or some other error that means the entire processing
+    chain is doomed.  In that case the consumer_err bound semaphore will notify
+    the process controller to end all processing and then pass of the error to
+    the response error handler.
     '''
     bite_size = 1
     queue = None
     results_list = None
+    response_err = None
     def __init__(self, **kwargs):
         '''
         initialize this consumer with a bite_size to consume from the buffer.
@@ -98,6 +105,9 @@ class BufferConsumer(multiprocessing.Process):
         queue -- a BufferQueue object
         results_list -- Optional.  A list in which to store processing results.
         None by default.
+        consumer_error -- A semaphore to the process manager.  Used by buffer
+        consuemrs to alert that there is a critical consumer failure so that it
+        can stop processing and raise a fatal exception.
         '''
         super(BufferConsumer, self).__init__() #pass to parent
         self.bite_size = kwargs.get('bite_size', 1000)
@@ -107,6 +117,10 @@ class BufferConsumer(multiprocessing.Process):
                 queue.')
 
         self.results_list = kwargs.get('results_list', None)
+        if 'response_error' not in kwargs:
+            raise exceptions.QualysFrameworkException('Buffer Consumers \
+                    require a bubble-up bound semaphore.')
+        self.resopnse_err = kwargs.get('response_error')
 
     def singleItemHandler(self, item):
         '''Override method for child classes to handle individual items.
@@ -163,6 +177,7 @@ class ImportBuffer(object):
     queue = None
     stats = BufferStats()
     consumer = None
+    response_error = None
 
     trigger_limit = 5000
     bite_size = 1000
@@ -221,6 +236,7 @@ class ImportBuffer(object):
         self.callback = kwargs.pop('callback', None)
 
         self.queue = BufferQueue(ctx=multiprocessing.get_context())
+        self.response_error = multiprocessing.Event
 
 
     def add(self, item):
@@ -235,7 +251,10 @@ class ImportBuffer(object):
         #see if we should start a consumer...
         # TODO: add min/max processes (default and override)
         if not self.running:
-            new_consumer = self.consumer(queue=self.queue, results_list=self.results_list)
+            new_consumer = self.consumer(
+                    queue=self.queue,
+                    results_list=self.results_list,
+                    response_error=self.response_error)
             new_consumer.start()
             self.running.append(new_consumer)
 
