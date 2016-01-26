@@ -276,8 +276,8 @@ class QGActions(object):
         map ref.
         '''
         #debug
-        import pudb
-        pu.db
+#        import pudb
+#        pu.db
         call = '/api/2.0/fo/report/'
         params = {
             'action'    : 'launch',

@@ -65,25 +65,37 @@ class CacheableQualysObject(object):
         ''' This baseclass utility method allows easy mapping of parameters to
         tag names on elements.  This makes creating parsers easier for
         this particular API. '''
-        logging.debug(pprint.pformat(elem))
-        logging.debug(pprint.pformat(param_map))
+        #DEBUG
+#        logging.debug(pprint.pformat(elem))
+#        logging.debug(pprint.pformat(param_map))
+        # TODO at some point make this a set/union funciton rather than
+        # iterative
+        #handle attributes
+        # attrs are always string and always lower-case
+        for (name,value) in elem.items():
+            if name in param_map:
+                (attrname, attrtype) = param_map[name]
+                setattr(self, attrname, value)
+
         for child in elem.iterchildren(*(param_map.keys())):
+            if child.tag not in param_map:
+                continue
             (attrname, attrtype) = param_map[child.tag]
             if attrtype is str:
-                setattr(self, attrname, child.text)
+                setattr(self, attrname, ''.join(child.itertext()))
             elif attrtype is list:
                 if getattr(self, attrname) is None:
                     setattr(self, attrname, [child])
                 else:
                     getattr(self, attrname).append(child)
             elif attrtype is bool:
-                tbool = False
-                if child.text and int(child.text) == 0:
+                text = ''.join(child.itertext())
+                if text and int(text) == 0:
                     setattr(self, attrname, True)
                 else:
                     setattr(self, attrname, False)
             elif attrtype is dict:
-                self.populateParameters(child, **attrname)
+                self.populateParameters(child, attrname)
             elif type(attrtype) is ObjTypeList:
                 if attrtype.isXpath():
                     setattr(self, attrname,
@@ -318,7 +330,7 @@ class QKBVuln(CacheableQualysObject):
             else:
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
-            super(PCIReason, self).__init__(*args, **kwargs)
+            super(QKBVuln.PCIReason, self).__init__(*args, **kwargs)
 
     class CVSS(CacheableQualysObject):
         '''
@@ -421,7 +433,7 @@ class QKBVuln(CacheableQualysObject):
                 self.exploitability    = kwargs.pop('EXPLOITABILITY', None)
                 self.remediation_level = kwargs.pop('REMEDIATION_LEVEL', None)
                 self.report_confidence = kwargs.pop('REPORT_CONFIDENCE', None)
-            super(CVSS, self).__init__(*args, **kwargs)
+            super(QKBVuln.CVSS, self).__init__(*args, **kwargs)
 
         class CVSSImpact(CacheableQualysObject):
             '''
@@ -466,7 +478,7 @@ class QKBVuln(CacheableQualysObject):
                     confidentiality = kwargs.pop('CONFIDENTIALITY', None)
                     integrity       = kwargs.pop('INTEGRITY', None)
                     availability    = kwargs.pop('AVAILABILITY', None)
-                super(CVSSImpact, self).__init__(*args, **kwargs)
+                super(QKBVuln.CVSSImpact, self).__init__(*args, **kwargs)
 
 
         class CVSSAccess(CacheableQualysObject):
@@ -505,7 +517,7 @@ class QKBVuln(CacheableQualysObject):
                 else:
                     vector     = kwargs.pop('VECTOR', None)
                     complexity = kwargs.pop('COMPLEXITY', None)
-                super(CVSSAccess, self).__init__(*args, **kwargs)
+                super(QKBVuln.CVSSAccess, self).__init__(*args, **kwargs)
 
 
     class VulnSoftware(CacheableQualysObject):
@@ -524,7 +536,7 @@ class QKBVuln(CacheableQualysObject):
             else:
                 self.product   = kwargs.pop('PRODUCT', None)
                 self.vendor_id = kwargs.pop('VENDOR', None)
-            super(VulnSoftware, self).__init__(*args, **kwargs)
+            super(QKBVuln.VulnSoftware, self).__init__(*args, **kwargs)
 
     class VulnVendor(CacheableQualysObject):
         '''
@@ -542,7 +554,7 @@ class QKBVuln(CacheableQualysObject):
             else:
                 self.vendor_id = kwargs.pop('ID', None)
                 self.url       = kwargs.pop('URL', None)
-            super(VulnVendor, self).__init__(*args, **kwargs)
+            super(QKBVuln.VulnVendor, self).__init__(*args, **kwargs)
 
     class Compliance(CacheableQualysObject):
         '''
@@ -565,7 +577,7 @@ class QKBVuln(CacheableQualysObject):
                 self.ctype       = kwargs.pop('TYPE', None)
                 self.csection    = kwargs.pop('SECTION', None)
                 self.description = kwargs.pop('DESCRIPTION', None)
-            super(Compliance, self).__init__(*args, **kwargs)
+            super(QKBVuln.Compliance, self).__init__(*args, **kwargs)
 
     class Exploit(CacheableQualysObject):
         '''
@@ -587,7 +599,7 @@ class QKBVuln(CacheableQualysObject):
                 self.ref  = kwargs.pop('REF',  None )
                 self.desc = kwargs.pop('DESC', None )
                 self.link = kwargs.pop('LINK', None )
-            super(Exploit, self).__init__(*args, **kwargs)
+            super(QKBVuln.Exploit, self).__init__(*args, **kwargs)
 
     class Malware(CacheableQualysObject):
         '''
@@ -615,7 +627,7 @@ class QKBVuln(CacheableQualysObject):
                 self.platform = kwargs.pop('MW_PLATFORM', None )
                 self.alias    = kwargs.pop('MW_ALIAS',    None )
                 self.rating   = kwargs.pop('MW_RATING',   None )
-            super(Malware, self).__init__(*args, **kwargs)
+            super(QKBVuln.Malware, self).__init__(*args, **kwargs)
 
     class Bugtraq(CacheableQualysObject):
         '''
@@ -633,7 +645,7 @@ class QKBVuln(CacheableQualysObject):
             else:
                 self.bugid = kwargs.pop('ID', None)
                 self.url   = kwargs.pop('URL', None)
-            super(Bugtraq, self).__init__(*args, **kwargs)
+            super(QKBVuln.Bugtraq, self).__init__(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
         '''gracefully handle xml passed in as a blind ordered argument binary
@@ -704,7 +716,7 @@ class QKBVuln(CacheableQualysObject):
             #TODO: make this graceful
             raise exceptions.QualysFrameworkException('Not yet implemented: \
                 kwargs lists grace.')
-            super(QKBVuln, self).__init__(*args, **kwargs)
+        super(QKBVuln, self).__init__(*args, **kwargs)
 
 
 class OptionProfile(CacheableQualysObject):
@@ -749,17 +761,17 @@ class Map(CacheableQualysObject):
         # double-check the name?
         # self.name="".join(child.itertext())
         self.name      = kwargs.pop('NAME',      None )
-        self.ref       = kwargs.pop('REF',       None )
-        self.date      = kwargs.pop('DATE',      None )
-        self.domain    = kwargs.pop('DOMAIN',    None )
-        self.status    = kwargs.pop('STATUS',    None )
+        self.ref       = kwargs.pop('ref',       None )
+        self.date      = kwargs.pop('date',      None )
+        self.domain    = kwargs.pop('domain',    None )
+        self.status    = kwargs.pop('status',    None )
         self.report_id = kwargs.pop('REPORT_ID', None )
         kwargs['param_map'] = {
             'NAME'   : ('name',   str ),
-            'REF'    : ('ref',    str ),
-            'DATE'   : ('date',   str ),
-            'DOMAIN' : ('domain', str ),
-            'STATUS' : ('status', str ),
+            'ref'    : ('ref',    str ),
+            'date'   : ('date',   str ),
+            'domain' : ('domain', str ),
+            'status' : ('status', str ),
             'OPTION_PROFILE' : ('option_profiles', ObjTypeList(OptionProfile)),
         }
         super(Map, self).__init__(*args, **kwargs)
