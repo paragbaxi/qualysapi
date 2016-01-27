@@ -147,6 +147,7 @@ class AssetGroup(CacheableQualysObject):
         call = '/api/2.0/fo/asset/group/'
         parameters = {'action': 'edit', 'id': self.id, 'set_ips': ips}
         conn.request(call, parameters)
+# TODO validate and remove
 # replaced
 # class ReportTemplate(CacheableQualysObject):
 #     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
@@ -161,7 +162,23 @@ class AssetGroup(CacheableQualysObject):
 class Report(CacheableQualysObject):
     '''
     An object wrapper around qualys report handles.
-
+    ```xml
+       <!ELEMENT REPORT (ID, TITLE, TYPE, USER_LOGIN, LAUNCH_DATETIME,
+                         OUTPUT_FORMAT, SIZE, STATUS, EXPIRATION_DATETIME)>
+       <!ELEMENT ID (#PCDATA)>
+       <!ELEMENT TITLE (#PCDATA)>
+       <!ELEMENT TYPE (#PCDATA)>
+       <!ELEMENT USER_LOGIN (#PCDATA)>
+       <!ELEMENT LAUNCH_DATETIME (#PCDATA)>
+       <!ELEMENT OUTPUT_FORMAT (#PCDATA)>
+       <!ELEMENT SIZE (#PCDATA)>
+       <!ELEMENT STATUS (STATE, MESSAGE?, PERCENT?)>
+       <!ELEMENT STATE (#PCDATA)>
+       <!ELEMENT MESSAGE (#PCDATA)>
+       <!ELEMENT PERCENT (#PCDATA)>
+       <!ELEMENT EXPIRATION_DATETIME (#PCDATA)>
+       <!ELEMENT EXPIRATION_DATETIME (#PCDATA)>
+    ```
     Properties:
 
     NOTE: previously used ordered arguments are depricated.  Right now the
@@ -186,6 +203,41 @@ class Report(CacheableQualysObject):
     status = None
     type = None
     user_login = None
+
+    class ReportStatus(CacheableQualysObject):
+        '''Encapsulate report status
+        ```xml
+           <!ELEMENT STATUS (STATE, MESSAGE?, PERCENT?)>
+           <!ELEMENT STATE (#PCDATA)>
+           <!ELEMENT MESSAGE (#PCDATA)>
+           <!ELEMENT PERCENT (#PCDATA)>
+        ```
+        '''
+        state = None
+        message = None
+        percent = None
+
+        def __init__(self, *args, **kwargs):
+            self.state   = kwargs.pop('STATE',   None )
+            self.message = kwargs.pop('MESSAGE', None )
+            self.percent = kwargs.pop('PERCENT', None )
+            kwargs['param_map'] = {
+                'STATE'   : ('STATE',   str ),
+                'MESSAGE' : ('MESSAGE', str ),
+                'PERCENT' : ('PERCENT', str ),
+            }
+            super(Report.ReportStatus, self).__init__(*args, **kwargs)
+
+        def __eq__(self, other):
+            '''Override default equality and check the state if it's a
+            string.'''
+            if isinstance(other, str):
+                return self.state == other
+            elif isinstance(other, Report.ReportStatus):
+                return self.state == other.state
+
+
+
     def __init__(self, *args, **kwargs):
         # backwards-compatible ordered argument handling
         arg_order = [
@@ -205,27 +257,32 @@ class Report(CacheableQualysObject):
             # special handling for a single retarded attribute...
             if self.status is not None:
                 self.status = status.STATE
+        else:
+            self.expiration_datetime = kwargs.pop('EXPIRATION_DATETIME', None )
+            self.id                  = kwargs.pop('ID',                  None )
+            self.launch_datetime     = kwargs.pop('LAUNCH_DATETIME',     None )
+            self.output_format       = kwargs.pop('OUTPUT_FORMAT',       None )
+            self.size                = kwargs.pop('SIZE',                None )
+            self.status              = kwargs.pop('STATUS',              None )
+            self.type                = kwargs.pop('TYPE',                None )
+            self.user_login          = kwargs.pop('USER_LOGIN',          None )
+
+        # default parent handler requirement...
+        kwargs['param_map'] = {
+            'EXPIRATION_DATETIME' : ('expiration_datetime', str ),
+            'ID'                  : ('id',                  str ),
+            'LAUNCH_DATETIME'     : ('launch_datetime',     str ),
+            'OUTPUT_FORMAT'       : ('output_format',       str ),
+            'SIZE'                : ('size',                str ),
+            'STATUS'              : ('status',              self.ReportStatus ),
+            'TYPE'                : ('type',                str ),
+            'USER_LOGIN'          : ('user_login',          str )
+        }
+        super(Report, self).__init__(*args, **kwargs)
+
 
         # set keyword values, prefer over ordered argument values if both get
         # supplied
-        for key in arg_order:
-            value = kwargs.pop(key, None)
-            if value is not None:
-                setattr(self, key, value)
-
-        elem = kwargs.pop('elem', None)
-        if 'elem' in kwargs or 'xml' in kwargs:
-            # parse an etree element into string arguments
-            self.status = status.STATE
-            #TODO: implement
-            pass
-
-        json = kwargs.pop('json', None)
-        if json is not None:
-            # parse a json dict into arguments
-            #TODO: implement
-            pass
-
         # post attribute assignment processing
         self.expiration_datetime = str(self.expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
         self.launch_datetime = str(self.launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
@@ -233,11 +290,9 @@ class Report(CacheableQualysObject):
         if isinstance(self.id, str):
             self.id = int(self.id)
 
-    def download(self, conn):
-        call = '/api/2.0/fo/report'
-        parameters = {'action': 'fetch', 'id': self.id}
-        if self.status == 'Finished':
-            return conn.request(call, parameters)
+    def add_contents(self, report_data):
+        # TODO: implement this once you get a good data set to inspect...
+        raise exceptions.QualysFrameworkException('Not yet implemented.')
 
 
 class QKBVuln(CacheableQualysObject):
@@ -881,97 +936,181 @@ class Scan(CacheableQualysObject):
             self.status = lxml.objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
 
 
-class MapReport(CacheableQualysObject):
+class MapReportRecord(CacheableQualysObject):
     '''
-    A class to wrap an actual map report given a report format.
-    This will probably be a stub class.
+    Wraps individual records in a MapReport.
     '''
     pass
 
-
-class SimpleReturnResponse(CacheableQualysObject):
-    '''A wrapper for qualys responses to api commands (as opposed to requests).
-
-    Properties:
-    response_time -- Response header timestamp.
-    response_text -- Response header text.
-    response_items -- A list of key/value pairs returned with the header.  This
-    isn't private, but it should be considered protected.  Mostly.
+class RequestEcho(CacheableQualysObject):
+    '''A wrapper for embedded request echo in response request.
+       <!ELEMENT REQUEST (DATETIME, USER_LOGIN, RESOURCE, PARAM_LIST?,
+                          POST_DATA?)>
+       <!ELEMENT DATETIME (#PCDATA)>
+       <!ELEMENT USER_LOGIN (#PCDATA)>
+       <!ELEMENT RESOURCE (#PCDATA)>
+       <!ELEMENT PARAM_LIST (PARAM+)>
+       <!ELEMENT PARAM (KEY, VALUE)>
+       <!ELEMENT KEY (#PCDATA)>
+       <!ELEMENT VALUE (#PCDATA)>
+       <!-- If specified, POST_DATA will be urlencoded -->
+       <!ELEMENT POST_DATA (#PCDATA)>
     '''
-    reponse_time   = None
-    response_text  = None
-    response_code  = None
-    response_items = {}
-    __is_error = False
-    __err_msg = None
-
-    class ResponseItem(CacheableQualysObject):
-        key = None
-        value = None
-        def __init__(self, *args, **kwargs):
-            if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
-                    'KEY'   : ('key',   str ),
-                    'value' : ('value', str ),
-                }
-            else:
-                self.key   = kwargs.pop('key',   None )
-                self.value = kwargs.pop('value', None )
-            super(ResponseItem, self).__init__(*args, **kwargs)
-
+    datetime = None
+    user_login = None
+    resource = None
     def __init__(self, *args, **kwargs):
+        # for now this is only stubbed and very basic...
         if 'elem' in kwargs or 'xml' in kwargs:
             kwargs['param_map'] = {
-                'DATETIME'  : ('reponse_time',  str ),
-                'CODE'      : ('response_code', str ),
-                'TEXT'      : ('response_text', str ),
-                'ITEM_LIST' : ('items', ObjTypeList(self.ResponseItem,
-                    xpath='/ITEM')),
+                'DATETIME'   : ('datetime',   str ),
+                'USER_LOGIN' : ('user_login', str ),
+                'RESOURCE'   : ('resource',   str ),
             }
         else:
-            self.reponse_time   = kwargs.pop('DATETIME', None )
-            self.response_code  = kwargs.pop('CODE',     None )
-            self.response_text  = kwargs.pop('TEXT',     None )
-            self.response_items = dict(((item.KEY, item.VALUE) for item in \
-                kwargs.pop('ITEM_LIST', [])))
-        super(SimpleReturnResponse, self).__init__(*args, **kwargs)
-        # do a self-check to engage the framework
-        self.checkStatus()
+            self.datetime   = kwargs.pop('DATETIME',   None )
+            self.user_login = kwargs.pop('USER_LOGIN', None )
+            self.resource   = kwargs.pop('RESOURCE',   None )
+        super(RequestEcho, self).__init__(*args, **kwargs)
 
-    def checkStatus(self, raiseApiException = False):
-        '''A wrapper around the response status attribute that should handle
-        all of the various api responses the same.'''
-        if self.response_text and 'Missing required parameter' in \
-            self.response_text:
-            self.__is_error = True
-            self.__err_msg = 'A required parameter was missing from the API  \
-                request'
-    def hasItem(self, key):
-        '''Check for a key/value pair'''
-        return True if key in self.response_items else False
 
-    def getItemValue(self, key, default=None):
-        '''hook for dict.get to callers'''
-        return self.response_items.get(key, default)
+class SimpleReturn():
+    '''Handle request/response elements from a SIMPLE_RETURN
+    ```xml
+       <!-- QUALYS SIMPLE_RETURN DTD -->
+       <!ELEMENT SIMPLE_RETURN (REQUEST?, RESPONSE)>
+       <!ELEMENT REQUEST (DATETIME, USER_LOGIN, RESOURCE, PARAM_LIST?,
+                          POST_DATA?)>
+       <!ELEMENT DATETIME (#PCDATA)>
+       <!ELEMENT USER_LOGIN (#PCDATA)>
+       <!ELEMENT RESOURCE (#PCDATA)>
+       <!ELEMENT PARAM_LIST (PARAM+)>
+       <!ELEMENT PARAM (KEY, VALUE)>
+       <!ELEMENT KEY (#PCDATA)>
+       <!ELEMENT VALUE (#PCDATA)>
+       <!-- If specified, POST_DATA will be urlencoded -->
+       <!ELEMENT POST_DATA (#PCDATA)>
+       <!ELEMENT RESPONSE (DATETIME, CODE?, TEXT, ITEM_LIST?)>
+       <!ELEMENT CODE (#PCDATA)>
+       <!ELEMENT TEXT (#PCDATA)>
+       <!ELEMENT ITEM_LIST (ITEM+)>
+       <!ELEMENT ITEM (KEY, VALUE*)>
+    ```
+    '''
 
-    def getItemKeys(self):
-        '''hook for dict.keys to callers'''
-        return self.response_items.keys()
+    class SimpleReturnResponse(CacheableQualysObject):
+        '''A wrapper for qualys responses to api commands (as opposed to requests).
 
-    def wasSuccessful(self):
-        '''A bit more complicated than a simple 200 response, this method
-        attempts to unify multiple types of responses into a unified
-        success/fail test.  Child classes can extend this for additional
-        conditions that include response codes, different response texts and
-        anything else useful for a unilateral true/false.
+        Properties:
+        response_time -- Response header timestamp.
+        response_text -- Response header text.
+        response_items -- A list of key/value pairs returned with the header.  This
+        isn't private, but it should be considered protected.  Mostly.
+
+        DTD associated with this class:
+        ```xml
+           <!-- QUALYS SIMPLE_RETURN DTD -->
+           <!ELEMENT SIMPLE_RETURN (REQUEST?, RESPONSE)>
+           <!ELEMENT REQUEST (DATETIME, USER_LOGIN, RESOURCE, PARAM_LIST?,
+                              POST_DATA?)>
+           <!ELEMENT DATETIME (#PCDATA)>
+           <!ELEMENT USER_LOGIN (#PCDATA)>
+           <!ELEMENT RESOURCE (#PCDATA)>
+           <!ELEMENT PARAM_LIST (PARAM+)>
+           <!ELEMENT PARAM (KEY, VALUE)>
+           <!ELEMENT KEY (#PCDATA)>
+           <!ELEMENT VALUE (#PCDATA)>
+           <!-- If specified, POST_DATA will be urlencoded -->
+           <!ELEMENT POST_DATA (#PCDATA)>
+           <!ELEMENT RESPONSE (DATETIME, CODE?, TEXT, ITEM_LIST?)>
+           <!ELEMENT CODE (#PCDATA)>
+           <!ELEMENT TEXT (#PCDATA)>
+           <!ELEMENT ITEM_LIST (ITEM+)>
+           <!ELEMENT ITEM (KEY, VALUE*)>
+        ```
         '''
-        return True if not self.__is_error else False
+        reponse_time   = None
+        response_text  = None
+        response_code  = None
+        response_items = {}
+        __is_error = False
+        __err_msg = None
+
+        class ResponseItem(CacheableQualysObject):
+            key = None
+            value = None
+            def __init__(self, *args, **kwargs):
+                if 'elem' in kwargs or 'xml' in kwargs:
+                    kwargs['param_map'] = {
+                        'KEY'   : ('key',   str ),
+                        'value' : ('value', str ),
+                    }
+                else:
+                    self.key   = kwargs.pop('key',   None )
+                    self.value = kwargs.pop('value', None )
+                super(ResponseItem, self).__init__(*args, **kwargs)
+
+        def __init__(self, *args, **kwargs):
+            # we want to pass our child to the constructor...
+            if 'elem' in kwargs or 'xml' in kwargs:
+                kwargs['param_map'] = {
+                    'DATETIME'  : ('reponse_time',  str ),
+                    'CODE'      : ('response_code', str ),
+                    'TEXT'      : ('response_text', str ),
+                    'ITEM_LIST' : ('items', ObjTypeList(self.ResponseItem,
+                        xpath='/ITEM')),
+                }
+            else:
+                self.reponse_time   = kwargs.pop('DATETIME', None )
+                self.response_code  = kwargs.pop('CODE',     None )
+                self.response_text  = kwargs.pop('TEXT',     None )
+                self.response_items = dict(((item.KEY, item.VALUE) for item in \
+                    kwargs.pop('ITEM_LIST', [])))
+            super(SimpleReturnResponse, self).__init__(*args, **kwargs)
+            # do a self-check to engage the framework
+            self.checkStatus()
+
+        def checkStatus(self, raiseApiException = False):
+            '''A wrapper around the response status attribute that should handle
+            all of the various api responses the same.'''
+            if self.response_text and 'Missing required parameter' in \
+                self.response_text:
+                self.__is_error = True
+                self.__err_msg = 'A required parameter was missing from the API  \
+                    request'
+        def hasItem(self, key):
+            '''Check for a key/value pair'''
+            return True if key in self.response_items else False
+
+        def getItemValue(self, key, default=None):
+            '''hook for dict.get to callers'''
+            return self.response_items.get(key, default)
+
+        def getItemKeys(self):
+            '''hook for dict.keys to callers'''
+            return self.response_items.keys()
+
+        def wasSuccessful(self):
+            '''A bit more complicated than a simple 200 response, this method
+            attempts to unify multiple types of responses into a unified
+            success/fail test.  Child classes can extend this for additional
+            conditions that include response codes, different response texts and
+            anything else useful for a unilateral true/false.
+            '''
+            return True if not self.__is_error else False
 
 
-    def raiseAPIExceptions(self):
-        ''' raise any Qualys API exceptions '''
-        if self.__is_error:
-            raise exceptions.QualysException(self.__err_msg)
+        def raiseAPIExceptions(self):
+            ''' raise any Qualys API exceptions '''
+            if self.__is_error:
+                raise exceptions.QualysException(self.__err_msg)
+
+    def __init__(self, *args, **kwargs):
+        kwargs['param_map'] = {
+            'RESPONSE' : ('response', self.SimpleReturnResopnse),
+            'REQUEST'  : ('request',  RequestEcho),
+        }
+        super(SimpleReturn, self).__init__(*args, **kwargs)
 
 
 class QualysUser(CacheableQualysObject):
@@ -1065,9 +1204,10 @@ class ReportTemplate(CacheableQualysObject):
 # this is temporary in lieu of an object which allows for user-override of
 # parse object (subclass parse consumers)
 obj_elem_map = {
-    'MAP_REPORT' : Map,
-    'MAP_RESULT' : MapResult,
-    'VULN' : QKBVuln,
-    'REPORT_TEMPLATE': ReportTemplate,
-    'RESPONSE': SimpleReturnResponse,
+    'MAP_REPORT'      : Map,
+    'MAP_RESULT'      : MapResult,
+    'VULN'            : QKBVuln,
+    'REPORT'          : Report,
+    'REPORT_TEMPLATE' : ReportTemplate,
+    'SIMPLE_RETURN'   : SimpleReturn,
 }

@@ -62,7 +62,7 @@ class QGActions(object):
             self.request = self.conn.request
             self.stream_request = self.conn.stream_request
 
-    def parseResponse(self, call, data=None):
+    def parseResponse(self, **kwargs):
         '''single-thread/process parseResponse.'''
         # TODO: when you implement this, remember to incldue the improved
         # response checker
@@ -74,12 +74,12 @@ class QGActions(object):
         api_response = None
         if not results:
             raise exceptions.QualysFrameworkException('Got a NoneType from the \
-                parser.')
+parser.')
         if isinstance(results, list) and \
             len(results) > 0 and \
-            issubclass(type(results[0]),SimpleReturnResponse):
+            issubclass(type(results[0]),SimpleReturn):
             api_response = results[0]
-        elif issubclass(type(results), SimpleReturnResponse):
+        elif issubclass(type(results), SimpleReturn):
             api_response = results
 
         if api_response:
@@ -255,10 +255,10 @@ class QGActions(object):
         if comp_mapr:
             params['report_refs'] = '%s,%s' % (params['report_refs'], \
                     comp_mapr.ref if not isinstance(comp_mapr, str) else \
-                    str(comp_mapr))
+                        str(comp_mapr))
 
         response = self.parseResponse(source=call, data=params)
-        if not len(response) and isinstance(response[0], SimpleReturnResponse):
+        if not len(response) and isinstance(response[0], SimpleReturn):
             response = response[0]
             if response.hasItem('ID'):
                 report_id = response.getItemValue('ID')
@@ -274,21 +274,26 @@ class QGActions(object):
         '''
         Uses the cache to quickly look up the report associated with a specific
         map ref.
+        This API only handles XML.  Anything else you're on your own other than
+        using this API to download the report.
         '''
-        #debug
-#        import pudb
-#        pu.db
+        report = kwargs.get('report', None)
+        rid = kwargs.get('id', report.id if report else None)
+        if not rid:
+            raise exceptions.QualysException('ID required to fetch report.')
+
         call = '/api/2.0/fo/report/'
         params = {
-            'action'    : 'launch',
-            'id' : kwargs.get('id', 0)
+            'action'        : 'fetch',
+            'id'            : rid
         }
-#        map_reports = kwargs.get('map_reports', None)
-#        if map_reports:
-#            params['id'] = map_reports[0]
-#        else:
-#            raise QualysException('Need map refs as report ids to continue.')
-        results = self.parseResponse(source=call, data=params)
+        # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
+        # report and not a SimpleReturn (which can happen)
+        results = self.parseResponse(source=call, data=params, report=report)
+        for result in results:
+            if isinstance(result, Report):
+                return result
+        #None result
 
     def queryQKB(self, **kwargs):
         '''
@@ -337,7 +342,7 @@ class QGActions(object):
         else:
             if 'file' not in kwargs:
                 raise exceptions.QualysFrameworkException('You must provide at\
-                least some parameters to this function.')
+ least some parameters to this function.')
             sourcefile = open(kwargs.pop('file'), 'rb')
             result = self.parseResponse(source=sourcefile)
             sourcefile.close()
@@ -350,44 +355,36 @@ class QGActions(object):
         call = 'report_template_list.php'
         return self.parseResponse(source=call, data=None)
 
-    def listReports(self, id=0):
-        call = '/api/2.0/fo/report'
+    def listReports(self, *args, **kwargs):
+        '''Executes a list of available reports.  Filtering parameters allowed
+        (from the API Documentation):
+        QAPI Parameters:
+            id - request info on a sepecific report id
+            state - only include reports witha a given state (such as finished)
+            user_login - only include reports launched by a specific user
+            expires_before_datetime - A date/time by which any reports returned
+            would have.  String format.  Qualys format.
+            expired.
+        Special Parameters:
+            report_type - Filter the results to only include reports of a given
+            type (scan, map, etc...)
+        '''
+        call = '/api/2.0/fo/report/'
+        parameters = {
+            'action' : 'list',
+        }
+        for param in ('id', 'state', 'user_login', 'expires_before_datetime'):
+            if param in kwargs:
+                parameters[param] = kwargs[param]
 
-        if id == 0:
-            parameters = {'action': 'list'}
-
-            repData = objectify.fromstring(
-                    self.request(call, data=parameters)).RESPONSE
-            reportsArray = []
-
-            for report in repData.REPORT_LIST.REPORT:
-                reportsArray.append(
-                        Report(report.EXPIRATION_DATETIME,
-                            report.ID,
-                            report.LAUNCH_DATETIME,
-                            report.OUTPUT_FORMAT,
-                            report.SIZE,
-                            report.STATUS,
-                            report.TYPE,
-                            report.USER_LOGIN
-                            )
-                    )
-
-            return reportsArray
-
+        results = self.parseResponse(source=call, data=parameters)
+        if 'filter' in kwargs:
+            fdict = kwargs['filter']
+            return list(result for result in results if
+                isinstance(result, Report) and not (False for pn,cval in fdict\
+                    if not getattr(result, pn, None) == cval))
         else:
-            parameters = {'action': 'list', 'id': id}
-            repData = objectify.fromstring(
-                    self.request(call, data=parameters)
-                    ).RESPONSE.REPORT_LIST.REPORT
-            return Report(repData.EXPIRATION_DATETIME,
-                    repData.ID,
-                    repData.LAUNCH_DATETIME,
-                    repData.OUTPUT_FORMAT,
-                    repData.SIZE,
-                    repData.STATUS,
-                    repData.TYPE,
-                    repData.USER_LOGIN)
+            return results
 
 
     def notScannedSince(self, days):

@@ -576,6 +576,16 @@ class QGSMPActions(QGActions):
             #debug
             pu.db
         self.checkResults(results)
+
+        # special case: report encapsulization...
+        if 'report' in kwargs:
+            report = kwargs.get('report')
+            if not isinstance(report, Report):
+                raise exceptions.QualysFrameworkException('Only Report objects\
+ and subclasses can be passed to this function as reports.')
+            else:
+                response = report.add_contents(results)
+                return (response, report)
         return results
 
 

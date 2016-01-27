@@ -109,14 +109,23 @@ class TestAPIMethods(unittest.TestCase):
         success.'''
         actions = smpapi.QGSMPActions(cache_connection =
                 self.cache_instance)
-        map_reports = self.subtest_map_list(actions)
-        self.assertIsNotNone(map_reports)
-        self.assertGreaterEqual(len(map_reports),1)
-        map_reports = actions.fetchReport(id=1882082)
-        self.assertIsNotNone(map_reports)
-        self.assertGreaterEqual(len(map_reports),1)
-        self.assertIsInstance(map_reports[0], api_objects.MapReport)
-        logging.debug(map_reports)
+        #map_reports = self.subtest_map_list(actions)
+        reports = actions.listReports(state='Finished',
+            filter={
+                'output_format' : 'xml',
+            })
+        self.assertIsNotNone(reports)
+        self.assertGreaterEqual(len(reports),1)
+        report = None
+        for r in reports:
+            logging.debug(pprint.pformat(r))
+            if isinstance(r, api_objects.Report):
+                report = r
+        # now make sure that we can actually download a finished report...
+        self.assertIsNotNone(report)
+        report = actions.fetchReport(report=report)
+        self.assertIsInstance(report, api_objects.Report)
+        logging.debug(report)
         #now do tests on the map report
 
 

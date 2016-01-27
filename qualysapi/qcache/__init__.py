@@ -589,7 +589,7 @@ class APICacheInstance(object):
         if len(args):
             endpoint = util.preformat_call(args[0])
             if self.__config.__defaults__.get(endpoint, None) is None:
-                raise exceptions.QCacheExceptio('first argument for args \'' + endpoint \
+                raise exceptions.QCacheException('first argument for args \'' + endpoint \
                         + '\' not a valid qualys api endpoint.')
         else:
             endpoint = kwargs.pop('endpoint', None)
