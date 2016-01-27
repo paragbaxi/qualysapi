@@ -112,7 +112,7 @@ class TestAPIMethods(unittest.TestCase):
         #map_reports = self.subtest_map_list(actions)
         reports = actions.listReports(state='Finished',
             filter={
-                'output_format' : 'xml',
+                'output_format' : 'XML',
             })
         self.assertIsNotNone(reports)
         self.assertGreaterEqual(len(reports),1)

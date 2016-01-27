@@ -283,12 +283,22 @@ class QGConnector:
             if http_method == 'get':
                 # GET
                 logger.debug('GET request.')
-                request = self.session.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies)
+                request = self.session.get(url,
+                    params=data,
+                    auth=self.auth,
+                    headers=headers,
+                    proxies=self.proxies,
+                    timeout=180)
             else:
                 # POST
                 logger.debug('POST request.')
                 # Make POST request.
-                request = self.session.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
+                request = self.session.post(url,
+                    data=data,
+                    auth=self.auth,
+                    headers=headers,
+                    proxies=self.proxies,
+                    timeout=180)
             logger.debug('response headers =\n%s' % (str(request.headers)))
             #
             # Remember how many times left user can make against api_call.
@@ -423,7 +433,8 @@ class QGConnector:
                     auth=self.auth,
                     headers=headers,
                     proxies=self.proxies,
-                    stream=True
+                    stream=True,
+                    timeout=180, # add a 3 minute timeout.. q b slow
                 )
         else:
             # POST
@@ -435,7 +446,8 @@ class QGConnector:
                     auth=self.auth,
                     headers=headers,
                     proxies=self.proxies,
-                    stream=True
+                    stream=True,
+                    timeout=180, # add a 3 minute timeout.. q b slow
                 )
         if request.status_code == 401:
             request.close()
