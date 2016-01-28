@@ -49,7 +49,7 @@ class TestAPIObjects(unittest.TestCase):
         self.assertGreaterEqual(len(reports), 1)
         # now try filtering the reports...
         logging.info(pprint.pformat(reports))
-        pu.db
+        # pu.db
         logging.info(pprint.pformat(api_objects.filterObjects({'output_format'
             : 'XML'}, reports)))
 
