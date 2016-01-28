@@ -19,8 +19,7 @@ def filterObjects(lfilter, tlist):
     utility function to filter a list of objects based on a dictionary-param
     union equality set.
     '''
-    return list(result for result in tlist if
-        isinstance(result, Report) and not list(False for pn,cval in
+    return list(result for result in tlist if not list(False for pn,cval in
             lfilter.items() if getattr(result, pn, None) != cval))
 
 
