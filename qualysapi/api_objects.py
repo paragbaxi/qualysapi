@@ -95,9 +95,9 @@ class CacheableQualysObject(object):
                 setattr(self, attrname, ''.join(child.itertext()))
             elif attrtype is list:
                 if getattr(self, attrname) is None:
-                    setattr(self, attrname, [child])
+                    setattr(self, attrname, [''.join(child.itertext())])
                 else:
-                    getattr(self, attrname).append(child)
+                    getattr(self, attrname).append([''.join(child.itertext())])
             elif attrtype is bool:
                 text = ''.join(child.itertext())
                 if text and int(text) == 0:
@@ -108,17 +108,31 @@ class CacheableQualysObject(object):
                 self.populateParameters(child, attrname)
             elif type(attrtype) is ObjTypeList:
                 if attrtype.isXpath():
-                    setattr(self, attrname,
-                            [attrtype.class_type(elem=grandchild)
-                                for grandchild in
-                                elem.xpath(attrtype.xpath)])
-                else:
-                    if getattr(self, attrname) is None:
+                    if attrtype.class_type is str:
                         setattr(self, attrname,
-                                [attrtype.class_type(elem=child)])
+                                [''.join(grandchild.itertext())
+                                    for grandchild in
+                                    elem.xpath(attrtype.xpath)])
                     else:
-                        getattr(self, attrname).append(
-                                attrtype.class_type(elem=child))
+                        setattr(self, attrname,
+                                [attrtype.class_type(elem=grandchild)
+                                    for grandchild in
+                                    elem.xpath(attrtype.xpath)])
+                else:
+                    if attrtype.class_type is str:
+                        if getattr(self, attrname) is None:
+                            setattr(self, attrname,
+                                    [''.join(child.itertext())])
+                        else:
+                            getattr(self, attrname).append(
+                                            ''.join(child.itertext()))
+                    else:
+                        if getattr(self, attrname) is None:
+                            setattr(self, attrname,
+                                    [attrtype.class_type(elem=child)])
+                        else:
+                            getattr(self, attrname).append(
+                                    attrtype.class_type(elem=child))
             else:
                 setattr(self, attrname,
                         attrtype(elem=child))
@@ -213,6 +227,7 @@ class Report(CacheableQualysObject):
     status = None
     type = None
     user_login = None
+    contents = None
 
     class ReportStatus(CacheableQualysObject):
         '''Encapsulate report status
@@ -301,8 +316,10 @@ class Report(CacheableQualysObject):
             self.id = int(self.id)
 
     def add_contents(self, report_data):
-        # TODO: implement this once you get a good data set to inspect...
-        raise exceptions.QualysFrameworkException('Not yet implemented.')
+        self.contents = report_data
+
+    def haveContents(self):
+        return True if self.contents else False
 
 
 class QKBVuln(CacheableQualysObject):
@@ -1210,14 +1227,141 @@ class ReportTemplate(CacheableQualysObject):
         super(ReportTemplate, self).__init__(*args, **kwargs)
 
 
+class IPRange(CacheableQualysObject):
+    '''Defines and handles an IP range.
+    Params:
+    <!ELEMENT RANGE (START, END)>
+    network_id -- str from <!ATTLIST RANGE network_id  CDATA #IMPLIED>
+    start -- str from <!ELEMENT START (#PCDATA)>
+    end -- str from <!ELEMENT END (#PCDATA)>
+    '''
+    def __init__(self, *args, **kwargs):
+        self.network_id = kwargs.pop('network_id', None)
+        self.start = kwargs.pop('START', None)
+        self.end = kwargs.pop('END', None)
+        kwargs['param_map'] = {
+            'network_id' : ('network_id', str ),
+            'START'      : ('start',      str ),
+            'END'        : ('end',        str ),
+        }
+
+
+class AssetGroup(CacheableQualysObject):
+    '''A wrapper around an asset group that includes the name and a list of IP
+    ranges that define the assets.
+    title -- from ASSET_GROUP_TITLE tags
+    ranges -- a list of IP ranges
+    '''
+    def __init__(self, *args, **kwargs):
+        title = kwargs.pop('ASSET_GROUP_TITLE', None)
+        ranges = kwargs.pop('USER_IP_LIST', None)
+        kwargs['param_map'] = {
+                'ASSET_GROUP_TITLE' : ('title',  str),
+                'RANGE'             : ('ranges', list),
+        }
+        super(AssetGroup, self).__init__(*args, **kwargs)
+
+
+class ReportTarget(CacheableQualysObject):
+    '''Handles REPORT_TARGET part of a ReportHeader
+    ```xml
+
+    Trigger: <!ELEMENT TARGET (USER_ASSET_GROUPS?, USER_IP_LIST?, COMBINED_IP_LIST?, ASSET_TAG_LIST?)>
+
+    Params/Children:
+    user_asset_groups -- list of str from <!ELEMENT USER_ASSET_GROUPS (ASSET_GROUP_TITLE+)>
+    user_ip_list -- List of IPRange objects from <!ELEMENT USER_IP_LIST (RANGE*)>
+    combined_ip_list -- list of IPRange objects from <!ELEMENT COMBINED_IP_LIST (RANGE*)>
+
+
+    included_tags - list of str from <!ELEMENT ASSET_TAG_LIST (INCLUDED_TAGS, EXCLUDED_TAGS?)>
+    excluded_tags - list of str from 
+    ```
+    '''
+    def __init__(self, *args, **kwargs):
+        kwargs['param_map'] = {
+            'USER_ASSET_GROUPS' : ('asset_groups', ObjTypeList( str,
+                xpath="/ASSET_GROUP_TITLE")),
+            'USER_IP_LIST'      : ('ranges',       ObjTypeList( IPRange)),
+        }
+        super(ReportTarget, self).__init__(*args, **kwargs)
+
+
+class AssetTagSet(CacheableQualysObject):
+    '''A list of asset tag strings, a scope attribute, and useful functions.
+    scope -- A string delimiter from the scope attribute of a list of asset
+    tags from Qualys.
+    tags -- List of str
+    '''
+    def __init__(self, *args, **kwargs):
+        scope = kwargs.pop('scope', None)
+        tags = kwrags.pop('ASSET_TAG', None)
+        kwargs['param_map'] = {
+            'scope'     : ('scope', str),
+            'ASSET_TAG' : ('tags',  list),
+        }
+        super(AssetTagSet, self).__init__(*args, **kwargs)
+
+
+class ReportHeader(CacheableQualysObject):
+    '''Handles Report Headers
+    ```xml
+    <!ELEMENT HEADER (COMPANY, USERNAME, GENERATION_DATETIME, TEMPLATE, TARGET, RISK_SCORE_SUMMARY?)>
+
+    <!ELEMENT COMPANY (#PCDATA)>
+    <!ELEMENT USERNAME (#PCDATA)>
+    <!ELEMENT GENERATION_DATETIME (#PCDATA)>
+    <!ELEMENT TEMPLATE (#PCDATA)>
+    ```
+    '''
+    company             = None
+    username            = None
+    generation_datetime = None
+    template            = None
+    target              = None
+    included_tags       = None
+    excluded_tags       = None
+    def __init__(self, *args, **kwargs):
+        kwargs['param_map'] = {
+            'COMPANY'             : ('company',             str ),
+            'USERNAME'            : ('username',            str ),
+            'GENERATION_DATETIME' : ('generation_datetime', str ),
+            'TEMPLATE'            : ('template',            str ),
+            'TARGET'              : ('target',              ReportTarget ),
+            'ASSET_TAG_LIST'      : ({
+                ('included_tags', ObjTypeList(AssetTagSet,
+                    xpath='/INCLUDED_TAGS')),
+                ('excluded_tags', ObjTypeList(AssetTagSet,
+                    xpath='/EXCLUDED_TAGS')),},              dict ),
+        }
+        super(ReportHeader, self).__init__(*args, **kwargs)
+
+
+class AssetDataReport(CacheableQualysObject):
+    '''A wrapper around a qualys report.
+    ```xml
+    header -- ReportHeader from HEADER element
+
+    ```
+    '''
+    header = None
+    def __init__(self, *args, **kwargs):
+        kwargs['param_map'] = {
+            'HEADER' : ('header', ReportHeader ),
+        }
+        super(AssetDataReport, self).__init__(*args, **kwargs)
+
+
+
 # element to api_object mapping
 # this is temporary in lieu of an object which allows for user-override of
 # parse object (subclass parse consumers)
 obj_elem_map = {
-    'MAP_REPORT'      : Map,
-    'MAP_RESULT'      : MapResult,
-    'VULN'            : QKBVuln,
-    'REPORT'          : Report,
-    'REPORT_TEMPLATE' : ReportTemplate,
-    'SIMPLE_RETURN'   : SimpleReturn,
+    'MAP_REPORT'        : Map,
+    'MAP_RESULT'        : MapResult,
+    'VULN'              : QKBVuln,
+    'REPORT'            : Report,
+    'REPORT_TEMPLATE'   : ReportTemplate,
+    'SIMPLE_RETURN'     : SimpleReturn,
+    'ASSET_DATA_REPORT' : AssetDataReport,
 }
