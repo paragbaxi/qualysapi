@@ -572,9 +572,6 @@ class QGSMPActions(QGActions):
                 import_buffer.add(obj_elem_map[stag](elem=elem))
                 elem.clear() #don't fill up a dom we don't need.
         results = import_buffer.finish() if block else import_buffer
-        if not results:
-            #debug
-            pu.db
         self.checkResults(results)
 
         # special case: report encapsulization...

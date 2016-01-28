@@ -14,6 +14,16 @@ def jsonify(obj):
     return obj.__dict__
 
 
+def filterObjects(lfilter, tlist):
+    '''
+    utility function to filter a list of objects based on a dictionary-param
+    union equality set.
+    '''
+    return list(result for result in tlist if
+        isinstance(result, Report) and not list(False for pn,cval in
+            lfilter.items() if getattr(result, pn, None) != cval))
+
+
 class ObjTypeList(object):
     '''List of class of type helper for parser objects'''
     class_type = None
@@ -222,9 +232,9 @@ class Report(CacheableQualysObject):
             self.message = kwargs.pop('MESSAGE', None )
             self.percent = kwargs.pop('PERCENT', None )
             kwargs['param_map'] = {
-                'STATE'   : ('STATE',   str ),
-                'MESSAGE' : ('MESSAGE', str ),
-                'PERCENT' : ('PERCENT', str ),
+                'STATE'   : ('state',   str ),
+                'MESSAGE' : ('message', str ),
+                'PERCENT' : ('percent', str ),
             }
             super(Report.ReportStatus, self).__init__(*args, **kwargs)
 

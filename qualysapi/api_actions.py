@@ -380,9 +380,7 @@ parser.')
         results = self.parseResponse(source=call, data=parameters)
         if 'filter' in kwargs:
             fdict = kwargs['filter']
-            return list(result for result in results if
-                isinstance(result, Report) and not (False for pn,cval in fdict\
-                    if not getattr(result, pn, None) == cval))
+            return filterObjects(kwargs['filter'], results)
         else:
             return results
 

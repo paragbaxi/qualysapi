@@ -13,8 +13,6 @@ from qualysapi import qcache, config, exceptions
 from qualysapi import smpapi, api_objects
 
 #pudb nice debugger
-import pudb
-pu.db
 
 class TestAPIMethods(unittest.TestCase):
     '''
