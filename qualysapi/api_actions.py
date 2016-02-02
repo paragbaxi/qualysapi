@@ -58,9 +58,30 @@ class QGActions(object):
             self.conn = kwargs.get('connection', None)
             if not self.conn:
                 raise NoConnectionError('You attempted to make an \
-                api requst without specifying an API connection first.')
+api requst without specifying an API connection first.')
             self.request = self.conn.request
             self.stream_request = self.conn.stream_request
+
+    def clone(self, proto=None):
+        #TODO: this is wrong...  fix it.
+        if proto == None:
+            conf = self.conn.getConfig()
+            return QGActions(
+                conf.get_auth(),
+                hostname=conf.get_hostname(),
+                proxies=conf.proxies,
+                max_retries=conf.max_retries)
+        else:
+            if not isinstance(QGActions, proto):
+                raise exceptions.QualysFrameworkException('Cannot clone, \
+prototype is not an instance.')
+            else:
+                return proto(
+                    conf.get_auth(),
+                    hostname=conf.get_hostname(),
+                    proxies=conf.proxies,
+                    max_retries=conf.max_retries)
+
 
     def parseResponse(self, **kwargs):
         '''single-thread/process parseResponse.'''
@@ -266,8 +287,8 @@ parser.')
                     mapr.report_id = report_id
                 return (mapr, report_id)
         # if we get here, something is wrong.
-        raise exceptions.QualysFrameworkException('Unexpected API \
-            response.\n%s' % (pprint.pformat(response)))
+        raise exceptions.QualysFrameworkException('Unexpected API '
+            'response.\n%s' % (pprint.pformat(response)))
 
 
     def fetchReport(self, **kwargs):

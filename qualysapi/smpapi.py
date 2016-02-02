@@ -283,51 +283,198 @@ class ImportBuffer(object):
             return result
 
 
-class QualysStatusMonitor(threading.Thread):
-    '''A threading class designed specifically to use semaphore pools to
-    connect to the request sockets and chec for finished reports and map
-    reqports as well as scans and maps.'''
-    pool_sema = None
-    qualys_config = None
-    callbacks = None
-    api_actions = None
-    nice_time = 30
+class QualysReportDownloader(ThreadedAction):
+    '''
+    A threading class designed to allow for size monitoring and multiple report
+    downloads from qualys.
 
-    __suicide = threading.Event
-    actions = None
+    If the source/data params don't point to a report download it is very
+    unlikely to turn out well, but the results are probably going to die
+    quietly... probably.
+    '''
 
-    def __init__(self, qconfig, **kwargs):
-        ''' Explicit parent constructor.  No ambiguity or flexability here, all
-        child classes must pass in the config.
 
-        Parametrs:
-        qconfig -- the configuration for the request to the qualysapi
-        nice_time -- (Optional) override the niceness time before checking the
-        qualysapi again for this particular request.
-        '''
-        self.qualys_config = qconfig
-        self.nice_time = kwargs.pop('nice_time', self.nice_time)
-        # instantiate a connection and action object for child classes to work
-        # with.
-        self.actions = api_actions.QGActions(
-                qcache.APICacheInstance(qualys_config))
+class SMPActionPool(object):
 
-    def setPool(self, pool):
-        '''Pre-run configuration of the semaphore for the conneciton pool.'''
-        self.pool_sema = pool
+    def __init__(self, *args, **kwargs):
+        super(SMPActionPool, self).__init__(*args, **kwargs)
 
-    def singleRequestResponse(self):
-        '''This is the method ot override in your implementation.'''
+    def getAction(self):
+        """getSMPAction
+        returns a QGSMPAction class bound to a socket connection if one is
+        available.  If the maximum number of concurrent SMP connections has been
+        reached, this method will block.  (Semaphore lock)
+        """
+        with self.spawnlimit:
+            return self._get_action(QGSMPAction)
+
+
+
+class ActionPool(object):
+    '''A semaphore-bound class to keep track of request-bound action objects in
+    order to prevent stupid-level request spawning.'''
+    running_actions       = None
+    available_smp_actions = None
+    available_actions     = None
+    lock                  = None
+    config                = None
+    use_cache             = False
+    import_buffer_proto   = None
+    consumer_proto        = None
+    def __init__(self, config, buffer_prototype = None, consumer_prototype =
+            None, use_cache=False, max_spawn=5):
+        """__init__
+
+        :param config:
+        A qualysapi configuration to use when spawning new action objects.
+        :param max_spawn:
+        The maximum number of concurrent qualys actions to perform at a time.
+        This defaults to 10.
+        :param buffer_prototype:
+        Prototype to use for action buffers.
+        :param consumer_prototype:
+        Prototype to use for action consumers.
+        :param use_cache:
+        flag to enable/disable the cache specific to this pool.
+        """
+        super(ActionPool, self).__init__()
+        self.config              = config
+        self.use_cache           = use_cache
+        self.lock                = threading.Lock()
+        self.spawnlimit          = threading.Semaphore(max_spawn)
+        self.running_actions     = {}
+        self.available_actions   = queue.Queue()
+        self.import_buffer_proto = buffer_prototype
+        self.consumer_proto      = consumer_prototype
+
+    def get_action(self):
+        """get_action - synonymn for getAction"""
+        return self.getAction()
+
+    def getAction(self):
+        """getAction
+        returns a QGAction class bound to a socket connection if one is
+        available.  If the maximum number of concurrent connections has been
+        reached, this method will block. (Semaphore lock)
+        """
+        with self.spawnlimit:
+            return self.__get_action(QGAction)
+
+    def releaseAction(self, tname=None):
+        """releaseAction
+
+        :param tname:
+        The name of the thread to release the action from.  if tname evaluates
+        to False (empty string, None, etc...) then the name of the current
+        thread is used.  This method is synchronized.
+        """
+        with self.lock:
+            if not tname:
+                tname = threading.current_thread().name
+            actn = self.running_actions.pop(tname, None)
+            if actn is not None:
+                self.available_actions.put(actn)
+            else:
+                logging.warn('''Can't release action from unknown thread with name\
+ %s''' % (tname))
+
+    def _get_action(self, proto):
+        """
+        prototyped implementation of getSMPAction and getAction.  This method
+        is synchronized.
+        :param proto:
+        Prototype for the type of action to get.
+        """
+        with self.lock:
+            try:
+                actn = self.available_actions.get()
+                self.running_actions.put(actn)
+                return actn
+            except queue.Empty:
+                actn = None
+                if self.use_cache:
+                    actn = proto(cache_connection =
+                            qcache.APICacheInstance(self.config))
+                else:
+                    import_buffer_proto = self.import_buffer_proto if \
+                        self.import_buffer_proto is not None else ImportBuffer
+                    actn = proto(connection = connector.QGConnector(
+                        self.config.get_auth(),
+                        hostname=self.config.get_hostname(),
+                        proxies=self.config.proxies,
+                        max_retries=self.config.max_retries,
+                        config=self.config),
+                        import_buffer=import_buffer_proto(consumer=self.consumer_proto))
+                self.running_actions.put(actn)
+                return actn
+
+    def __enter__(self):
+        return self.getAction()
+
+    def __exit__(self, *args):
+        """__exit__
+        :param *args:
+        the Context Manager arguments.  This class does not suppress exceptions.
+        """
+        self.releaseAction(self, threading.current_thread.name)
+
+
+class ThreadedAction(threading.Thread):
+    '''Base class for threaded QGActions'''
+    pool      = None
+    source    = None
+    data      = None
+    nice_time = None
+    def __init__(self, action_pool, source, data={}, name=None,
+            use_cache=False, nice_time=120):
+        """__init__
+
+        :param action_pool:
+        A pool of QGAction objects from which to get a request handler.
+        :param source:
+        The qualysapi source endpoint
+        :param data:
+        The qualysapi data parameters for the request.  An empty dict by
+        default.
+        :param name:
+        The name of this thread.  If not set then it will be set to the source
+        + data dictionary.'
+        :param use_cache:
+        Enable/Disable use of caching for this action thread.
+        :param nice_time:
+        Set the yield time between repeat action calls.
+        """
+        self.pool      = action_pool
+        self.source    = source
+        self.data      = data
+        self.use_cache = use_cache
+        self.nice_time = nice_time
+        if name is None:
+            name = source.join(('|%s=%s' % (n,v) for n,v in data.items()))
+        self.nice_time = nice_time
+        super(ThreadedAction, self).__init__(name=name)
+
+    def singleRequestResponse(self, action):
+        """singleRequestResponse
+
+        :param action:
+        An action class around a socket connection and possibly a cache
+        connection which handles a single request/response cycle.
+        """
         raise exceptions.QualysFrameworkException('Abstract thread subclass. \
-            You need to implement your own subclass.')
+You need to implement your own subclass.')
 
     def commitSuicide(self):
+        """commitSuicide
+        instructs the polling cycle to end
+        """
         self.__suicide.set()
 
     def run(self):
         '''Begin running and monitoring.'''
         while not self.__suicide.wait(timeout=self.nice_time):
-            self.singleRequestResponse()
+            with self.pool as action:
+                self.singleRequestResponse(action)
 
     def getMetrics(self):
         '''An abstract stub method for children to override if they wish.
@@ -338,55 +485,49 @@ class QualysStatusMonitor(threading.Thread):
         pass
 
 
-class MapReportRunner(QualysStatusMonitor):
+class MapReportRunner(ThreadedAction):
     '''
-    Take a map_report ID and kick off a report.  Monitor the progress of the
-    report until finished and then pull in the report and process it.
+    Takes a map result and attempts to generate a report for it.  It will keep
+    trying (using nice time) until the report can be generated.  It
+    then monitors the status of the report until finished, after which it
+    processes the report..
     '''
     __mapr = None # minimal map result required for a report
+    __rpt = None
     # personal thread instance of a QGActions object
-    def __init__(self, qconfig, **kwargs):
-        '''
-        initialize this report runner.
-        @Parms
-        Parent Params:
-        qconfig -- the current api configuration from the parent threadpool.
+    def __init__(self, mapr, *args, **kwargs):
+        """__init__
 
-        Keyword Params (passed to the action object):
+        :param mapr:
+        The map result object to handle.
+        :param *args:
+        pass to parent
+        :param **kwargs:
+        pass to parent
+        """
+        self.__mapr = mapr
+        super(MapReportRunner, self).__init__(*args, **kwargs) #pass to parent
 
-        '''
-        if 'mapr' not in kwargs:
-            raise exceptions.QualysFrameworkException('A map result is \
-            required for the report runner to monitor and update.')
-        self.__mapr = kwargs.pop('mapr')
-        super(QualysStatusMonitor, self).__init__(qconfig, **kwargs) #pass to parent
-
-    def singleRequestResponse(self):
+    def singleRequestResponse(self, action):
         '''Begin consuming map references and generating reports on them (also
         capable of resuming monitoring of running reports).
         '''
         if not self.__mapr.report_id:
-            # we haven't started or don't know a report id for this map.  Let's
-            # take care of that.
-            (mapr, report_id) = self.actions
+            response = action.startMapReportOnMap(self.__mapr)
+            if response:
+                #deal with this if we have to?
+                (mapr, mapid) = response
+        else:
+            # check to see if the report is finished...
+            rlist = action.listReports(id=self.__mapr.report_id)
+            if rlist:
+                self.__rpt = rlist[0]
+                if self.__rpt.status == 'Finished':
+                    result = action.fetchReport(report=self.__rpt)
+                    if result:
+                        self.__rpt = result
 
-        while not done:
-            try:
-                map_instance = self.queue.get(timeout=1)
-                # see if the map we are working on has a report associated.
-                while map_instance.report_id is None:
-                    # check the cash to see if we are out of date...
-                    rconn = self.redis_cache.getConnection()
-                    rconn.load_api_object(obj=map_instance)
-                    # recheck, and if still none then attempt to generate a
-                    # report for the map_instance.
-                    if map_instance.report_id is None:
-                        pass
-
-
-            except queue.Empty:
-                logging.debug('Queue timed out, assuming closed.')
-                done = True
+        # now if we have a report, let's deal with it...
 
 
 class RequestDispatchMonitorServer(object):
@@ -398,11 +539,18 @@ class RequestDispatchMonitorServer(object):
 
     It makes no sense to use async request here since we aren't waiting for the
     request response but rather polling the API in a nice way for a specific
-    response.'''
+    response.
+    
+    In addition, this object is aware of specific types of request relevant to
+    the specifics of the Qualys API, such as requesting headers for report
+    downloads and finding out the size of the report for metrics before
+    starting the actual download (for time/size metrics and load management
+    reasons later on).'''
 
-    monitors=[]
-    pool_sema=None
-    kill_timeout=5 # wait 5 seconds for threads to suicide
+    monitors     = []
+    pool_sema    = None
+    kill_timeout = 5 # wait 5 seconds for threads to suicide
+    max_sockets  = 10 # be conservative at first...
 
     def __init__(self, *args, **kwargs):
         ''' Simple interface to threading out multiple QualysStatusMonitor
@@ -428,9 +576,10 @@ class RequestDispatchMonitorServer(object):
         else:
             request_proxies = kwargs.pop('request_proxies', [])
 
-        if not request_proxies: # should catch none or []
-            raise exceptions.QualysFrameworkException('You have to pass in \
-                    QualysStatusMonitor objects or subclasses...')
+        # working around this need.  I want to spawn request proxies as needed.
+#        if not request_proxies: # should catch none or []
+#            raise exceptions.QualysFrameworkException('You have to pass in \
+#                    QualysStatusMonitor objects or subclasses...')
 
         # maximum request sockets...
         self.max_sockets = kwargs.pop('max_sockets', self.max_sockets)
@@ -438,7 +587,7 @@ class RequestDispatchMonitorServer(object):
         for proxy in request_proxies:
             if not issubclass(type(proxy), QualysStatusMonitor):
                 raise exceptions.QualysFrameworkException('\'%s\' is not a \
-                subclass of QualysStatusMonitor.' % type(proxy).__name__)
+subclass of QualysStatusMonitor.' % type(proxy).__name__)
             else:
                 self.monitors.append(proxy)
                 proxy.setPool(self.pool_sema)
@@ -552,12 +701,11 @@ class QGSMPActions(QGActions):
         else:
             response = source
 
-        # queue issues, always new queue
-        # if self.import_buffer is None:
-        import_buffer = ImportBuffer(callback=callback)
-        # else:
-        #     self.import_buffer.setCallback(callback)
-
+        if self.import_buffer is None:
+            self.import_buffer = ImportBuffer(callback=callback)
+        else:
+            self.import_buffer.setCallback(callback)
+        import_buffer = self.import_buffer
         block = kwargs.pop('block', True)
         callback = kwargs.pop('completion_callback', None)
         if not block and not callback:

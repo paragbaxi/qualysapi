@@ -115,15 +115,14 @@ class TestAPIMethods(unittest.TestCase):
         self.assertIsNotNone(reports)
         self.assertGreaterEqual(len(reports),1)
         report = None
-        for r in reports:
-            logging.debug(pprint.pformat(r))
-            if isinstance(r, api_objects.Report):
-                report = r
-        # now make sure that we can actually download a finished report...
-        self.assertIsNotNone(report)
-        report = actions.fetchReport(report=report)
-        self.assertIsInstance(report, api_objects.Report)
-        logging.debug(report)
+        for report in reports:
+            if not isinstance(report, api_objects.Report):
+                continue
+            # fetch me some report contents...
+            actions.fetchReport(report=report)
+            self.assertIsInstance(report, api_objects.Report)
+            self.assertTrue(report.haveContents())
+        logging.debug(reports)
         #now do tests on the map report
 
 
