@@ -23,6 +23,22 @@ def filterObjects(lfilter, tlist):
             lfilter.items() if getattr(result, pn, None) != cval))
 
 
+def attrOnly(elem=None, attrname=None):
+    """attrOnly
+    returns an attribute as the value for an element rather than anything
+    within the element.
+    :param elem:
+    the target element
+    :param attrname:
+    the target attribute
+    """
+    if elem is none or attrname is None:
+        raise exceptions.QualysFrameworkException('attribute or element are'
+        'NoneType.')
+    else:
+        return elem.get(attrname, default=None)
+
+
 class ObjTypeList(object):
     '''List of class of type helper for parser objects'''
     class_type = None
@@ -134,24 +150,206 @@ class CacheableQualysObject(object):
                                     attrtype.class_type(elem=child))
             else:
                 setattr(self, attrname,
-                        attrtype(elem=child))
+                        attrtype(elem=child, attrname=attrname))
+
+
+class ReportHostList(CacheableQualysObject):
+    '''A wrapper around a list of host information specific to all reports,
+    while Host objects are used all over the place.
+    ```xml
+        <!-- HOST_LIST -->
+
+        <!ELEMENT HOST_LIST (HOST+)>
+    ```
+    '''
+    def __init__(self, *args, **kwargs):
+        kwargs['param_map'] = {
+            'HOST_LIST' : ('hosts', ObjTypeList(Host, xpath='/HOST')),
+        }
+        super(ReportHostList, self).__init__(*args, **kwargs)
+
+
+class VulnInfo(CacheableQualysObject):
+    '''
+    A specific vulnerability.  Can be used in multiple reports and contexts.
+    ```xml
+    <!ELEMENT VULN_INFO (QID, TYPE, PORT?, SERVICE?, FQDN?, PROTOCOL?, SSL?,
+        INSTANCE?, RESULT?, FIRST_FOUND?, LAST_FOUND?, TIMES_FOUND?,
+        VULN_STATUS?, CVSS_FINAL?, TICKET_NUMBER?, TICKET_STATE?)>
+
+    <!ELEMENT QID (#PCDATA)>
+    <!ATTLIST QID id IDREF #REQUIRED>
+
+    <!ELEMENT TYPE (#PCDATA)>
+    <!ELEMENT PORT (#PCDATA)>
+    <!ELEMENT SERVICE (#PCDATA)>
+    <!ELEMENT FQDN (#PCDATA)>
+    <!ELEMENT PROTOCOL (#PCDATA)>
+    <!ELEMENT SSL (#PCDATA)>
+
+    <!ELEMENT RESULT (#PCDATA)>
+    <!ATTLIST RESULT format CDATA #IMPLIED>
+
+    <!ELEMENT FIRST_FOUND (#PCDATA)>
+    <!ELEMENT LAST_FOUND (#PCDATA)>
+    <!ELEMENT TIMES_FOUND (#PCDATA)>
+    <!-- Note: VULN_STATUS is N/A for IGs -->
+    <!ELEMENT VULN_STATUS (#PCDATA)>
+
+    <!ELEMENT CVSS_FINAL (#PCDATA)>
+    <!ELEMENT TICKET_NUMBER (#PCDATA)>
+    <!ELEMENT TICKET_STATE (#PCDATA)>
+
+    <!ELEMENT INSTANCE (#PCDATA)>
+    ```
+    '''
+    def __init__(self, *args, **kwargs):
+        kwargs['param_map'] = {
+            'QID'           : ('qid',            attrOnly),
+            'TYPE'          : ('type',           str ),
+            'PORT'          : ('port',           str ),
+            'SERVICE'       : ('service',        str ),
+            'FQDN'          : ('fqdn',           str ),
+            'PROTOCOL'      : ('protocol',       str ),
+            'SSL'           : ('ssl',            str ),
+            # NOTE: I haven't implemented the format attribute because it is
+            # always implied as 'table' with the data in RESULT being a
+            # delim-text format of some kind (CSV/TSV/Columar Text) but the
+            # attribute just says 'table'.  We will have to do discovery
+            # at some point to expose parsing functionality for this data that
+            # isn't XML based parsing.
+            'RESULT'        : ('result',         str ),
+            'FIRST_FOUND'   : ('first_found',    str ),
+            'LAST_FOUND'    : ('last_found',     str ),
+            'TIMES_FOUND'   : ('times_found',    str ),
+            'VULN_STATUS'   : ('vuln_status',    str ),
+            'CVSS_FINAL'    : ('cvss_final',     str ),
+            'TICKET_NUMBER' : ('ticket_number',  str ),
+            'TICKET_STATE'  : ('ticket_state',   str ),
+            'INSTANCE'      : ('instance',       str ),
+        }
+        super(VulnInfo, self).__init__(*args, **kwargs)
 
 
 class Host(CacheableQualysObject):
-    def __init__(self, dns, id, ip, last_scan, netbios, os, tracking_method):
-        self.dns = str(dns)
-        self.id = int(id)
-        self.ip = str(ip)
-        last_scan = str(last_scan).replace('T', ' ').replace('Z', '').split(' ')
-        date = last_scan[0].split('-')
-        time = last_scan[1].split(':')
-        self.last_scan = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
-        self.netbios = str(netbios)
-        self.os = str(os)
-        self.tracking_method = str(tracking_method)
+    '''
+    Upgraded host information for reports...
+    ```xml
+    <!ELEMENT HOST (ERROR | (IP, TRACKING_METHOD, ASSET_TAGS?,
+        DNS?, NETBIOS?, QG_HOSTID?, IP_INTERFACES?, OPERATING_SYSTEM?, OS_CPE?,
+        ASSET_GROUPS?, VULN_INFO_LIST?))>
+
+    <!ELEMENT IP (#PCDATA)>
+    <!ATTLIST IP
+      network_id  CDATA  #IMPLIED
+      v6  CDATA  #IMPLIED
+    >
+    <!ELEMENT TRACKING_METHOD (#PCDATA)>
+    <!ELEMENT ASSET_TAGS (ASSET_TAG+)>
+    <!ELEMENT ASSET_TAG (#PCDATA)>
+
+    <!ELEMENT DNS (#PCDATA)>
+    <!ELEMENT NETBIOS (#PCDATA)>
+    <!ELEMENT QG_HOSTID (#PCDATA)>
+    <!ELEMENT IP_INTERFACES (IP*)>
+    <!ELEMENT OPERATING_SYSTEM (#PCDATA)>
+    <!ELEMENT OS_CPE (#PCDATA)>
+    <!ELEMENT ASSET_GROUPS (ASSET_GROUP_TITLE+)>
+    <!ELEMENT VULN_INFO_LIST (VULN_INFO+)>
+
+    ```
+    '''
+    class IP(CacheableQualysObject):
+        '''IP address along with metadata'''
+        network_id = None
+        ipv6       = None
+        def __init__(self, *args, **kwargs):
+            kwargs['param_map'] = {
+                    'network_id', ('network_id', str),
+                    'v6', ('ipv6', str),
+            }
+            super(PrimaryIP, self).__init__(*args, **kwargs)
+
+
+    dns             = None
+    id              = None
+    ip              = None
+    last_scan       = None
+    netbios         = None
+    os              = None
+    tracking_method = None
+    asset_tags      = None
+    interfaces      = None
+    vulns           = None
+
+    def __init__(self, *args, **kwargs):
+        """__init__
+
+        :param dns:
+        depricated orderd argument.
+        :param id:
+        depricated orderd argument.
+        :param ip:
+        depricated orderd argument.
+        :param last_scan:
+        depricated orderd argument.
+        :param netbios:
+        depricated orderd argument.
+        :param os:
+        depricated orderd argument.
+        :param tracking_method:
+        depricated orderd argument.
+        :param *args:
+        allows all the above depricated ordered arguments.  kwargs
+        specification is preferred.  Also allows the standard parent class xml
+        or elem, but these can't be combined.  You must EITHER specify the
+        xml/elem or the other ordered arguments until the old functionality has
+        been removed.  len(args)>1 = depricated style.
+        :param **kwargs:
+        keyword params listsed above allowed as well as xmlobj, elem, xml and
+        json (parent class prototype args).
+        """
+        # backwards compat
+        if len(args > 1):
+            try:
+                (self.dns, self.id, self.ip, self.last_scan, self.netbios,
+                        self.os, self.tracking_method) = args
+            except:
+                raise exceptions.QualysFrameworkException('You tried to pass'
+                        'ordered arguments into this constructor.  Not only is'
+                        'this depricated behavior, but you passed the wrong'
+                        'arguments.')
+
+        kwargs['param_map'] = {
+            'IP'               : ('ip', IP),
+            'TRACKING_METHOD'  : ('TRACKING_METHOD', str),
+            'ASSET_TAGS'       : ('asset_tags', ObjTypeList(str,
+                xpath='/ASSET_TAG')),
+            'DNS'              : ('DNS', str),
+            'NETBIOS'          : ('NETBIOS', str),
+            'QG_HOSTID'        : ('QG_HOSTID', str),
+            'IP_INTERFACES'    : ('interfaces', ObjTypeList(IP,
+                xpath='/IP')),
+            'OPERATING_SYSTEM' : ('OPERATING_SYSTEM', str),
+            'OS_CPE'           : ('OS_CPE', str),
+            'ASSET_GROUPS'     : ('asset_groups', ObjTypeList(str,
+                xpath='/ASSET_GROUP_TITLE')),
+            'VULN_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
+                xpath='/VULN_INFO')),
+        }
+        super(Host, self).__init__(*args, **kwargs)
+        # format the last scan into a dagtetime
+        if self.last_scan and isinstance(self.last_scan, str):
+            self.last_scan = str(self.last_scan).replace('T', ' ').replace('Z',
+                '').split(' ')
+            date = self.last_scan[0].split('-')
+            time = self.last_scan[1].split(':')
+            self.self.last_scan = datetime.datetime(int(date[0]), int(date[1]),
+                int(date[2]), int(time[0]), int(time[1]), int(time[2]))
 
 class AssetGroup(CacheableQualysObject):
-    def __init__(self, business_impact, id, last_update, scanips, scandns, scanner_appliances, title):
+    def __init__(self, business_impact, id, last_update, scanips, scandns,
+            scanner_appliances, title):
         self.business_impact = str(business_impact)
         self.id = int(id)
         self.last_update = str(last_update)

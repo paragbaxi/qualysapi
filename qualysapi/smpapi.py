@@ -113,8 +113,8 @@ class BufferConsumer(multiprocessing.Process):
         self.bite_size = kwargs.get('bite_size', 1000)
         self.queue = kwargs.get('queue', None)
         if self.queue is None:
-            raise exceptions.ParsingBufferException('Consumer initialized without an input \
-                queue.')
+            raise exceptions.ParsingBufferException('Consumer initialized'
+            'without an input queue.')
 
         self.results_list = kwargs.get('results_list', None)
         if 'response_error' not in kwargs:
@@ -283,17 +283,6 @@ class ImportBuffer(object):
             return result
 
 
-class QualysReportDownloader(ThreadedAction):
-    '''
-    A threading class designed to allow for size monitoring and multiple report
-    downloads from qualys.
-
-    If the source/data params don't point to a report download it is very
-    unlikely to turn out well, but the results are probably going to die
-    quietly... probably.
-    '''
-
-
 class SMPActionPool(object):
 
     def __init__(self, *args, **kwargs):
@@ -404,7 +393,7 @@ class ActionPool(object):
                         proxies=self.config.proxies,
                         max_retries=self.config.max_retries,
                         config=self.config),
-                        import_buffer=import_buffer_proto(consumer=self.consumer_proto))
+                        buffer_proto=import_buffer_proto(consumer=self.consumer_proto))
                 self.running_actions.put(actn)
                 return actn
 
@@ -483,6 +472,17 @@ You need to implement your own subclass.')
         thread.  I can\'t think of any reason for not doing that here, but this
         is an API...'''
         pass
+
+
+class QualysReportDownloader(ThreadedAction):
+    '''
+    A threading class designed to allow for size monitoring and multiple report
+    downloads from qualys.
+
+    If the source/data params don't point to a report download it is very
+    unlikely to turn out well, but the results are probably going to die
+    quietly... probably.
+    '''
 
 
 class MapReportRunner(ThreadedAction):
@@ -641,18 +641,19 @@ class QGSMPActions(QGActions):
     Additional Properties:
     import_buffer
     '''
-    import_buffer = None
+    buffer_prototype = None
+    consumer_prototype = None
     def __init__(self, *args, **kwargs):
         '''
-        Extended Params:
-            import_buffer -- an optional parse buffer which handles parsing using
-            both an object instance factory and a multiprocess/thread parse
-            handler.  This is efficient for enterprise applications which have
-            large numbers of maps and scans with very large result sets and custom
-            handling attached to the qualys objects.
+        :param kwargs:
+            buffer_prototype -- Optional.  A prototype to use instead of the
+            base ImportBuffer
+            consuemr_prototype -- Optional.  A prototype to pass to any new
+            instance of ImportBuffer and subclasses which consumes the buffer.
         '''
         super(QGSMPActions, self).__init__(*args, **kwargs)
-        self.import_buffer = kwargs.get('import_buffer', None)
+        self.buffer_prototype = kwargs.get('buffer_prototype', None)
+        self.consumer_prototype = kwargs.get('buffer_prototype', None)
 
     def parseResponse(self, **kwargs):
         '''
@@ -662,7 +663,7 @@ class QGSMPActions(QGActions):
         Please note that this utiliy is only capable of parsing known Qualys
         API DTDs properly.
 
-        @Params
+        :param kwargs:
         source -- An api endpoint (mapped using the api_methods sets) or an IO
         source.  If this is an instance of str it is treated as an api
         endpoint, otherwise it is treated as a file-like object yielding binary
@@ -679,6 +680,8 @@ class QGSMPActions(QGActions):
         of a parse completes.  This method will receive all of the objects
         handled by the buffer consumers as a callback rather than a threaded
         parse consumer.
+        buffer_prototype -- a prototype to use for the buffer.
+        consumer_prototype -- a prototype to use for the buffer consumer.
         '''
 
         source = kwargs.pop('source', None)
@@ -701,11 +704,15 @@ class QGSMPActions(QGActions):
         else:
             response = source
 
-        if self.import_buffer is None:
-            self.import_buffer = ImportBuffer(callback=callback)
+        import_buffer = None
+        consumer = self.consumer_prototype
+        if self.buffer_prototype is None:
+            import_buffer = ImportBuffer(callback=callback, consumer=consumer)
         else:
-            self.import_buffer.setCallback(callback)
-        import_buffer = self.import_buffer
+            import_buffer = self.buffer_prototype(callback=callback,
+                    consumer=consumer)
+        import_buffer.setCallback(callback)
+        import_buffer = import_buffer
         block = kwargs.pop('block', True)
         callback = kwargs.pop('completion_callback', None)
         if not block and not callback:

@@ -119,10 +119,12 @@ class TestAPIMethods(unittest.TestCase):
             if not isinstance(report, api_objects.Report):
                 continue
             # fetch me some report contents...
-            actions.fetchReport(report=report)
-            self.assertIsInstance(report, api_objects.Report)
-            self.assertTrue(report.haveContents())
-        logging.debug(reports)
+            else:
+                actions.fetchReport(report=report)
+                self.assertIsInstance(report, api_objects.Report)
+                self.assertTrue(report.haveContents())
+                break
+        logging.debug(report)
         #now do tests on the map report
 
 
