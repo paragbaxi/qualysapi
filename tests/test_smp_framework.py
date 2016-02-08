@@ -115,6 +115,7 @@ class TestAPIMethods(unittest.TestCase):
         self.assertIsNotNone(reports)
         self.assertGreaterEqual(len(reports),1)
         report = None
+        pu.db
         for report in reports:
             if not isinstance(report, api_objects.Report):
                 continue

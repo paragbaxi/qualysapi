@@ -32,7 +32,7 @@ def attrOnly(elem=None, attrname=None):
     :param attrname:
     the target attribute
     """
-    if elem is none or attrname is None:
+    if elem is None or attrname is None:
         raise exceptions.QualysFrameworkException('attribute or element are'
         'NoneType.')
     else:
@@ -62,17 +62,18 @@ class CacheableQualysObject(object):
             [setattr(self, key, jsondict[key]) for key in jsondict]
 
         if 'param_map' in kwargs:
-            elem = kwargs.get('elem',
-                    lxml.objectify.fromstring(kwargs.get('xml')) if 'xml'
-                    in kwargs else None)
+            elem = kwargs.get('elem', None)
             if elem is None:
-                exmsg = 'param_map specified with no element or xml'
-                raise exceptions.QualysFrameworkException(exmsg)
+                try:
+                    elem = lxml.objectify.fromstring(kwargs.get('xml'))
+                except:
+                    exmsg = 'param_map specified with no element or xml'
+                    raise exceptions.QualysFrameworkException(exmsg)
             self.populateParameters(elem, kwargs.get('param_map'))
 
     def getKey(self):
-        raise exceptions.QualysFrameworkException('You must implement this \
-            function in your base class(es).')
+        raise exceptions.QualysFrameworkException('You must implement this'
+            'function in yourself.')
 
     def __repr__(self):
         '''Represent y0'''
@@ -127,12 +128,12 @@ class CacheableQualysObject(object):
                         setattr(self, attrname,
                                 [''.join(grandchild.itertext())
                                     for grandchild in
-                                    elem.xpath(attrtype.xpath)])
+                                    child.xpath(attrtype.xpath)])
                     else:
                         setattr(self, attrname,
                                 [attrtype.class_type(elem=grandchild)
                                     for grandchild in
-                                    elem.xpath(attrtype.xpath)])
+                                    child.xpath(attrtype.xpath)])
                 else:
                     if attrtype.class_type is str:
                         if getattr(self, attrname) is None:
@@ -151,22 +152,6 @@ class CacheableQualysObject(object):
             else:
                 setattr(self, attrname,
                         attrtype(elem=child, attrname=attrname))
-
-
-class ReportHostList(CacheableQualysObject):
-    '''A wrapper around a list of host information specific to all reports,
-    while Host objects are used all over the place.
-    ```xml
-        <!-- HOST_LIST -->
-
-        <!ELEMENT HOST_LIST (HOST+)>
-    ```
-    '''
-    def __init__(self, *args, **kwargs):
-        kwargs['param_map'] = {
-            'HOST_LIST' : ('hosts', ObjTypeList(Host, xpath='/HOST')),
-        }
-        super(ReportHostList, self).__init__(*args, **kwargs)
 
 
 class VulnInfo(CacheableQualysObject):
@@ -265,10 +250,10 @@ class Host(CacheableQualysObject):
         ipv6       = None
         def __init__(self, *args, **kwargs):
             kwargs['param_map'] = {
-                    'network_id', ('network_id', str),
-                    'v6', ('ipv6', str),
+                'network_id' : ('network_id', str ),
+                'v6'         : ('ipv6',       str ),
             }
-            super(PrimaryIP, self).__init__(*args, **kwargs)
+            super(Host.IP, self).__init__(*args, **kwargs)
 
 
     dns             = None
@@ -310,7 +295,7 @@ class Host(CacheableQualysObject):
         json (parent class prototype args).
         """
         # backwards compat
-        if len(args > 1):
+        if len(args) > 1:
             try:
                 (self.dns, self.id, self.ip, self.last_scan, self.netbios,
                         self.os, self.tracking_method) = args
@@ -321,21 +306,21 @@ class Host(CacheableQualysObject):
                         'arguments.')
 
         kwargs['param_map'] = {
-            'IP'               : ('ip', IP),
+            'IP'               : ('ip', self.IP),
             'TRACKING_METHOD'  : ('TRACKING_METHOD', str),
             'ASSET_TAGS'       : ('asset_tags', ObjTypeList(str,
-                xpath='/ASSET_TAG')),
+                xpath='ASSET_TAG')),
             'DNS'              : ('DNS', str),
             'NETBIOS'          : ('NETBIOS', str),
             'QG_HOSTID'        : ('QG_HOSTID', str),
-            'IP_INTERFACES'    : ('interfaces', ObjTypeList(IP,
-                xpath='/IP')),
+            'IP_INTERFACES'    : ('interfaces', ObjTypeList(self.IP,
+                xpath='IP')),
             'OPERATING_SYSTEM' : ('OPERATING_SYSTEM', str),
             'OS_CPE'           : ('OS_CPE', str),
             'ASSET_GROUPS'     : ('asset_groups', ObjTypeList(str,
-                xpath='/ASSET_GROUP_TITLE')),
+                xpath='ASSET_GROUP_TITLE')),
             'VULN_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
-                xpath='/VULN_INFO')),
+                xpath='VULN_INFO')),
         }
         super(Host, self).__init__(*args, **kwargs)
         # format the last scan into a dagtetime
@@ -965,7 +950,7 @@ class QKBVuln(CacheableQualysObject):
                 'COMPLIANCE_LIST'       : ('compliance_notice_list',
                     ObjTypeList(self.Compliance)),
                 'CORRELATION'           : ('known_exploits',
-                    ObjTypeList(self.Exploit, xpath='/EXPLOITS/EXPLOIT')),
+                    ObjTypeList(self.Exploit, xpath='EXPLOITS/EXPLOIT')),
                 'DISCOVERY'             : ({
                     'remote_detectable' : ('REMOTE', bool),
                     'auth_type_list'    : ('AUTH_TYPE_LIST', list)}, dict)
@@ -1282,7 +1267,7 @@ class SimpleReturn():
                     'CODE'      : ('response_code', str ),
                     'TEXT'      : ('response_text', str ),
                     'ITEM_LIST' : ('items', ObjTypeList(self.ResponseItem,
-                        xpath='/ITEM')),
+                        xpath='ITEM')),
                 }
             else:
                 self.reponse_time   = kwargs.pop('DATETIME', None )
@@ -1527,9 +1512,9 @@ class ReportHeader(CacheableQualysObject):
             'TARGET'              : ('target',              ReportTarget ),
             'ASSET_TAG_LIST'      : ({
                 ('included_tags', ObjTypeList(AssetTagSet,
-                    xpath='/INCLUDED_TAGS')),
+                    xpath='INCLUDED_TAGS')),
                 ('excluded_tags', ObjTypeList(AssetTagSet,
-                    xpath='/EXCLUDED_TAGS')),},              dict ),
+                    xpath='EXCLUDED_TAGS')),},              dict ),
         }
         super(ReportHeader, self).__init__(*args, **kwargs)
 
@@ -1542,12 +1527,25 @@ class AssetDataReport(CacheableQualysObject):
     ```
     '''
     header = None
+    hosts = None
     def __init__(self, *args, **kwargs):
         kwargs['param_map'] = {
             'HEADER' : ('header', ReportHeader ),
+            'HOST_LIST' : ('hosts', ObjTypeList(Host, xpath='HOST')),
         }
         super(AssetDataReport, self).__init__(*args, **kwargs)
+        # if no hosts were assigned, go ahead and init an empty list
+        if self.hosts is None:
+            self.hosts = []
 
+    def addHosts(self, hosts):
+        """addHosts
+
+        :param hosts:
+        one or more hosts to append to this report.  hosts can be a list of
+        Host objects or simple a single Host object.
+        """
+        self.hosts.append(hosts)
 
 
 # element to api_object mapping

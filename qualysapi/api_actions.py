@@ -290,13 +290,22 @@ parser.')
         raise exceptions.QualysFrameworkException('Unexpected API '
             'response.\n%s' % (pprint.pformat(response)))
 
-
-    def fetchReport(self, **kwargs):
+    def fetchReport(self, rid=None, report=None, consumer_prototype=None, **kwargs):
         '''
         Uses the cache to quickly look up the report associated with a specific
         map ref.
         This API only handles XML.  Anything else you're on your own other than
         using this API to download the report.
+        :param rid:
+        the report_id for the report to fetch
+        :param report:
+        the report header info/skeleton (Report object).  This can contain the
+        report id rather than the rid named argument.
+        :param consumer_prototype:
+        Optional.  A subclass prototype of BufferConsumer which will act on
+        each report item in parallel with the downloading of the report.
+        :param **kwargs:
+        expansion arguments
         '''
         report = kwargs.get('report', None)
         rid = kwargs.get('id', report.id if report else None)
