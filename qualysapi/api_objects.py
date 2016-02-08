@@ -248,12 +248,19 @@ class Host(CacheableQualysObject):
         '''IP address along with metadata'''
         network_id = None
         ipv6       = None
+        value      = None
         def __init__(self, *args, **kwargs):
             kwargs['param_map'] = {
                 'network_id' : ('network_id', str ),
                 'v6'         : ('ipv6',       str ),
             }
             super(Host.IP, self).__init__(*args, **kwargs)
+            elem = kwargs.get('elem', None)
+            if elem is not None:
+                self.value = ''.join(elem.itertext())
+
+        def __str__(self):
+            return self.value
 
 
     dns             = None
@@ -307,17 +314,17 @@ class Host(CacheableQualysObject):
 
         kwargs['param_map'] = {
             'IP'               : ('ip', self.IP),
-            'TRACKING_METHOD'  : ('TRACKING_METHOD', str),
-            'ASSET_TAGS'       : ('asset_tags', ObjTypeList(str,
-                xpath='ASSET_TAG')),
-            'DNS'              : ('DNS', str),
-            'NETBIOS'          : ('NETBIOS', str),
-            'QG_HOSTID'        : ('QG_HOSTID', str),
+            'TRACKING_METHOD'  : ('tracking_method',           str ),
+            'ASSET_TAGS'       : ('asset_tags', ObjTypeList(   str ,
+            xpath='ASSET_TAG')),
+            'DNS'              : ('dns',                       str ),
+            'NETBIOS'          : ('netbios',                   str ),
+            'QG_HOSTID'        : ('qg_hostid',                 str ),
+            'OPERATING_SYSTEM' : ('operating_system',          str ),
+            'OS_CPE'           : ('os_cpe',                    str ),
             'IP_INTERFACES'    : ('interfaces', ObjTypeList(self.IP,
                 xpath='IP')),
-            'OPERATING_SYSTEM' : ('OPERATING_SYSTEM', str),
-            'OS_CPE'           : ('OS_CPE', str),
-            'ASSET_GROUPS'     : ('asset_groups', ObjTypeList(str,
+            'ASSET_GROUPS'     : ('asset_groups', ObjTypeList( str ,
                 xpath='ASSET_GROUP_TITLE')),
             'VULN_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
                 xpath='VULN_INFO')),
@@ -1551,6 +1558,7 @@ class AssetDataReport(CacheableQualysObject):
 # element to api_object mapping
 # this is temporary in lieu of an object which allows for user-override of
 # parse object (subclass parse consumers)
+# TODO: tweak this for queue handling of specific types
 obj_elem_map = {
     'MAP_REPORT'        : Map,
     'MAP_RESULT'        : MapResult,
@@ -1559,4 +1567,5 @@ obj_elem_map = {
     'REPORT_TEMPLATE'   : ReportTemplate,
     'SIMPLE_RETURN'     : SimpleReturn,
     'ASSET_DATA_REPORT' : AssetDataReport,
+    'HOST'              : Host,
 }

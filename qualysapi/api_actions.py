@@ -307,10 +307,10 @@ parser.')
         :param **kwargs:
         expansion arguments
         '''
-        report = kwargs.get('report', None)
-        rid = kwargs.get('id', report.id if report else None)
-        if not rid:
-            raise exceptions.QualysException('ID required to fetch report.')
+        if rid is None and report is None:
+            raise exceptions.QualysException('A report id is required.')
+        elif rid is None:
+            rid = report.id
 
         call = '/api/2.0/fo/report/'
         params = {

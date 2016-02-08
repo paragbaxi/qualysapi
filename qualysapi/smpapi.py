@@ -129,6 +129,10 @@ class BufferConsumer(multiprocessing.Process):
         '''
         return item
 
+    def flush(self):
+        '''Final processing command to flush any cached data'''
+        pass
+
     def run(self):
         '''Consumes the queue in the framework, passing off each item to the
         ItemHandler method.
@@ -150,6 +154,7 @@ class BufferConsumer(multiprocessing.Process):
                 logging.debug('Queue timed out and empty, assuming closed.')
                 if self.queue.empty():
                     done = True
+        self.flush()
 
 
 class ImportBuffer(object):
@@ -648,7 +653,7 @@ class QGSMPActions(QGActions):
         :param kwargs:
             buffer_prototype -- Optional.  A prototype to use instead of the
             base ImportBuffer
-            consuemr_prototype -- Optional.  A prototype to pass to any new
+            consumer_prototype -- Optional.  A prototype to pass to any new
             instance of ImportBuffer and subclasses which consumes the buffer.
         '''
         super(QGSMPActions, self).__init__(*args, **kwargs)
@@ -730,7 +735,7 @@ class QGSMPActions(QGActions):
             stag = etree.QName(elem.tag).localname.upper()
             if stag in obj_elem_map:
                 import_buffer.add(obj_elem_map[stag](elem=elem))
-                elem.clear() #don't fill up a dom we don't need.
+                # elem.clear() #don't fill up a dom we don't need.
         results = import_buffer.finish() if block else import_buffer
         self.checkResults(results)
 
