@@ -540,7 +540,7 @@ class RequestDispatchMonitorServer(object):
     It makes no sense to use async request here since we aren't waiting for the
     request response but rather polling the API in a nice way for a specific
     response.
-    
+
     In addition, this object is aware of specific types of request relevant to
     the specifics of the Qualys API, such as requesting headers for report
     downloads and finding out the size of the report for metrics before
@@ -653,7 +653,7 @@ class QGSMPActions(QGActions):
         '''
         super(QGSMPActions, self).__init__(*args, **kwargs)
         self.buffer_prototype = kwargs.get('buffer_prototype', None)
-        self.consumer_prototype = kwargs.get('buffer_prototype', None)
+        self.consumer_prototype = kwargs.get('consumer_prototype', None)
 
     def parseResponse(self, **kwargs):
         '''
@@ -694,8 +694,8 @@ class QGSMPActions(QGActions):
         #of this object
         #TODO: consider replacing this requirement
         if not block and not callback:
-            raise exceptions.QualysFrameworkException("A callback outlet is \
-            required for nonblocking calls to the parser/consumer framework.")
+            raise exceptions.QualysFrameworkException('A callback outlet is '
+            'required for nonblocking calls to the parser/consumer framework.')
 
         #select the response file-like object
         response = None
@@ -705,7 +705,12 @@ class QGSMPActions(QGActions):
             response = source
 
         import_buffer = None
-        consumer = self.consumer_prototype
+        consumer = None
+        if 'consumer_prototype' in kwargs:
+            consumer = kwargs.pop('consumer_prototype')
+        else:
+            consumer = self.consumer_prototype
+
         if self.buffer_prototype is None:
             import_buffer = ImportBuffer(callback=callback, consumer=consumer)
         else:
