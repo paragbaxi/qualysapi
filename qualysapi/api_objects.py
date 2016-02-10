@@ -11,7 +11,8 @@ from qualysapi import exceptions
 
 
 def jsonify(obj):
-    return obj.__dict__
+    if isinstance(obj, CacheableQualysObject):
+        return obj.__dict__
 
 
 def filterObjects(lfilter, tlist):
@@ -86,6 +87,23 @@ class CacheableQualysObject(object):
     def __eq__(self, other):
         '''Instance value equality (simple dict key/value comparison'''
         return self.__dict__ == other.__dict__
+
+    def date_convert(self, attrname):
+        """date_convert
+        Convert a qualys datetime string attribute value into a python datetime
+        obj.
+        :param attrname:
+        Attribute to convert
+        """
+        datestr = getattr(self, attrname, None)
+        if datestr is not None and isinstance(datestr, str):
+            datestr = str(datestr).replace('T', ' ').replace('Z',
+                '').split(' ')
+            date = datestr[0].split('-')
+            time = datestr[1].split(':')
+            setattr(self, attrname, datetime.datetime(int(date[0]),
+                int(date[1]), int(date[2]), int(time[0]), int(time[1]),
+                int(time[2])))
 
     def populateParameters(self, elem, param_map):
         ''' This baseclass utility method allows easy mapping of parameters to
@@ -190,7 +208,7 @@ class VulnInfo(CacheableQualysObject):
     '''
     def __init__(self, *args, **kwargs):
         kwargs['param_map'] = {
-            'QID'           : ('qid',            attrOnly),
+            'QID'           : ('qid',            str ),
             'TYPE'          : ('type',           str ),
             'PORT'          : ('port',           str ),
             'SERVICE'       : ('service',        str ),
@@ -214,6 +232,9 @@ class VulnInfo(CacheableQualysObject):
             'INSTANCE'      : ('instance',       str ),
         }
         super(VulnInfo, self).__init__(*args, **kwargs)
+        # format the last scan into a dagtetime
+        for datefield in ('first_found', 'last_found'):
+            self.date_convert(datefield)
 
 
 class Host(CacheableQualysObject):
@@ -263,16 +284,17 @@ class Host(CacheableQualysObject):
             return self.value
 
 
-    dns             = None
-    id              = None
-    ip              = None
-    last_scan       = None
-    netbios         = None
-    os              = None
-    tracking_method = None
-    asset_tags      = None
-    interfaces      = None
-    vulns           = None
+    dns              = None
+    id               = None
+    ip               = None
+    last_scan        = None
+    netbios          = None
+    os               = None
+    tracking_method  = None
+    asset_tags       = None
+    interfaces       = None
+    vulns            = None
+    operating_system = None
 
     def __init__(self, *args, **kwargs):
         """__init__
@@ -330,14 +352,6 @@ class Host(CacheableQualysObject):
                 xpath='VULN_INFO')),
         }
         super(Host, self).__init__(*args, **kwargs)
-        # format the last scan into a dagtetime
-        if self.last_scan and isinstance(self.last_scan, str):
-            self.last_scan = str(self.last_scan).replace('T', ' ').replace('Z',
-                '').split(' ')
-            date = self.last_scan[0].split('-')
-            time = self.last_scan[1].split(':')
-            self.self.last_scan = datetime.datetime(int(date[0]), int(date[1]),
-                int(date[2]), int(time[0]), int(time[1]), int(time[2]))
 
 class AssetGroup(CacheableQualysObject):
     def __init__(self, business_impact, id, last_update, scanips, scandns,
