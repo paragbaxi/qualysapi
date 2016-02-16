@@ -207,7 +207,11 @@ class VulnInfo(CacheableQualysObject):
     ```
     '''
     def __init__(self, *args, **kwargs):
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'QID'           : ('qid',            str ),
             'TYPE'          : ('type',           str ),
             'PORT'          : ('port',           str ),
@@ -230,7 +234,7 @@ class VulnInfo(CacheableQualysObject):
             'TICKET_NUMBER' : ('ticket_number',  str ),
             'TICKET_STATE'  : ('ticket_state',   str ),
             'INSTANCE'      : ('instance',       str ),
-        }
+        })
         super(VulnInfo, self).__init__(*args, **kwargs)
         # format the last scan into a dagtetime
         for datefield in ('first_found', 'last_found'):
@@ -271,10 +275,14 @@ class Host(CacheableQualysObject):
         ipv6       = None
         value      = None
         def __init__(self, *args, **kwargs):
-            kwargs['param_map'] = {
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
                 'network_id' : ('network_id', str ),
                 'v6'         : ('ipv6',       str ),
-            }
+            })
             super(Host.IP, self).__init__(*args, **kwargs)
             elem = kwargs.get('elem', None)
             if elem is not None:
@@ -334,7 +342,11 @@ class Host(CacheableQualysObject):
                         'this depricated behavior, but you passed the wrong'
                         'arguments.')
 
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'IP'               : ('ip', self.IP),
             'TRACKING_METHOD'  : ('tracking_method',           str ),
             'ASSET_TAGS'       : ('asset_tags', ObjTypeList(   str ,
@@ -350,7 +362,7 @@ class Host(CacheableQualysObject):
                 xpath='ASSET_GROUP_TITLE')),
             'VULN_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
                 xpath='VULN_INFO')),
-        }
+        })
         super(Host, self).__init__(*args, **kwargs)
 
 class AssetGroup(CacheableQualysObject):
@@ -449,11 +461,15 @@ class Report(CacheableQualysObject):
             self.state   = kwargs.pop('STATE',   None )
             self.message = kwargs.pop('MESSAGE', None )
             self.percent = kwargs.pop('PERCENT', None )
-            kwargs['param_map'] = {
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
                 'STATE'   : ('state',   str ),
                 'MESSAGE' : ('message', str ),
                 'PERCENT' : ('percent', str ),
-            }
+            })
             super(Report.ReportStatus, self).__init__(*args, **kwargs)
 
         def __eq__(self, other):
@@ -463,8 +479,6 @@ class Report(CacheableQualysObject):
                 return self.state == other
             elif isinstance(other, Report.ReportStatus):
                 return self.state == other.state
-
-
 
     def __init__(self, *args, **kwargs):
         # backwards-compatible ordered argument handling
@@ -496,7 +510,11 @@ class Report(CacheableQualysObject):
             self.user_login          = kwargs.pop('USER_LOGIN',          None )
 
         # default parent handler requirement...
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'EXPIRATION_DATETIME' : ('expiration_datetime', str ),
             'ID'                  : ('id',                  str ),
             'LAUNCH_DATETIME'     : ('launch_datetime',     str ),
@@ -505,9 +523,20 @@ class Report(CacheableQualysObject):
             'STATUS'              : ('status',              self.ReportStatus ),
             'TYPE'                : ('type',                str ),
             'USER_LOGIN'          : ('user_login',          str )
-        }
+        })
         super(Report, self).__init__(*args, **kwargs)
 
+        # qualys naming work-around.  Turn a report stub into a real report
+        rstub = kwargs.get('report_stub', None)
+        if rstub is not None:
+            self.expiration_datetime = rstub.expiration_datetime,
+            self.id                  = rstub.id,
+            self.launch_datetime     = rstub.launch_datetime,
+            self.output_format       = rstub.output_format,
+            self.size                = rstub.size,
+            self.status              = rstub.status,
+            self.type                = rstub.type,
+            self.user_login          = rstub.user_login,
 
         # set keyword values, prefer over ordered argument values if both get
         # supplied
@@ -608,10 +637,14 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'ID'  : ('cve_id', str ),
                     'URL' : ('url',    str ),
-                }
+                })
             else:
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
@@ -697,7 +730,11 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'BASE'              : ('base',              str ),
                     'TEMPORAL'          : ('temporal',          str ),
                     'ACCESS'            : ('access',            self.CVSSAccess),
@@ -706,7 +743,7 @@ class QKBVuln(CacheableQualysObject):
                     'EXPLOITABILITY'    : ('exploitability',    str ),
                     'REMEDIATION_LEVEL' : ('remediation_level', str ),
                     'REPORT_CONFIDENCE' : ('report_confidence', str ),
-                }
+                })
             else:
                 self.base              = kwargs.pop('BASE', None)
                 self.temporal          = kwargs.pop('TEMPORAL', None)
@@ -754,11 +791,15 @@ class QKBVuln(CacheableQualysObject):
 
             def __init__(self, *args, **kwargs):
                 if 'elem' in kwargs or 'xml' in kwargs:
-                    kwargs['param_map'] = {
+                    param_map = {}
+                    if 'param_map' in kwargs:
+                        param_map = kwargs.pop('param_map', {})
+                    kwargs['param_map'] = param_map
+                    kwargs['param_map'].update({
                         'CONFIDENTIALITY' : ('confidentiality', str ),
                         'INTEGRITY'       : ('integrity',       str ),
                         'AVAILABILITY'    : ('availability',    str ),
-                    }
+                    })
                 else:
                     confidentiality = kwargs.pop('CONFIDENTIALITY', None)
                     integrity       = kwargs.pop('INTEGRITY', None)
@@ -795,10 +836,14 @@ class QKBVuln(CacheableQualysObject):
 
             def __init__(self, *args, **kwargs):
                 if 'elem' in kwargs or 'xml' in kwargs:
-                    kwargs['param_map'] = {
+                    param_map = {}
+                    if 'param_map' in kwargs:
+                        param_map = kwargs.pop('param_map', {})
+                    kwargs['param_map'] = param_map
+                    kwargs['param_map'].update({
                         'VECTOR'     : ('vector',     str ),
                         'COMPLEXITY' : ('complexity', str ),
-                    }
+                    })
                 else:
                     vector     = kwargs.pop('VECTOR', None)
                     complexity = kwargs.pop('COMPLEXITY', None)
@@ -814,10 +859,14 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'PRODUCT' : ('product',   str ),
                     'VENDOR'  : ('vendor_id', str ),
-                }
+                })
             else:
                 self.product   = kwargs.pop('PRODUCT', None)
                 self.vendor_id = kwargs.pop('VENDOR', None)
@@ -832,10 +881,14 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'ID'  : ('vendor_id', str ),
                     'URL' : ('url',       str ),
-                }
+                })
             else:
                 self.vendor_id = kwargs.pop('ID', None)
                 self.url       = kwargs.pop('URL', None)
@@ -853,11 +906,15 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'TYPE'        : ('ctype',       str ),
                     'SECTION'     : ('csection',    str ),
                     'DESCRIPTION' : ('description', str ),
-                }
+                })
             else:
                 self.ctype       = kwargs.pop('TYPE', None)
                 self.csection    = kwargs.pop('SECTION', None)
@@ -875,11 +932,15 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'REF'  : ('ref',  str ),
                     'DESC' : ('desc', str ),
                     'LINK' : ('link', str ),
-                }
+                })
             else:
                 self.ref  = kwargs.pop('REF',  None )
                 self.desc = kwargs.pop('DESC', None )
@@ -899,13 +960,17 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'MW_ID'       : ('mwid',     str ),
                     'MW_TYPE'     : ('mwtype',   str ),
                     'MW_PLATFORM' : ('platform', str ),
                     'MW_ALIAS'    : ('alias',    str ),
                     'MW_RATING'   : ('rating',   str ),
-                }
+                })
             else:
                 self.mwid     = kwargs.pop('MW_ID',       None )
                 self.mwtype   = kwargs.pop('MW_TYPE',     None )
@@ -923,10 +988,14 @@ class QKBVuln(CacheableQualysObject):
 
         def __init__(self, *args, **kwargs):
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'ID'  : ('bugid', str ),
                     'URL' : ('url',   str ),
-                }
+                })
             else:
                 self.bugid = kwargs.pop('ID', None)
                 self.url   = kwargs.pop('URL', None)
@@ -939,7 +1008,11 @@ class QKBVuln(CacheableQualysObject):
         Otherwise operate with dictionaries/keyword arguments.
         '''
         if 'elem' in kwargs or 'xml' in kwargs:
-            kwargs['param_map'] = {
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
                 'QID'                                : ('qid',               str ),
                 'VULN_TYPE'                          : ('vtype',             str ),
                 'SEVERITY_LEVEL'                     : ('severity',          str ),
@@ -975,7 +1048,7 @@ class QKBVuln(CacheableQualysObject):
                 'DISCOVERY'             : ({
                     'remote_detectable' : ('REMOTE', bool),
                     'auth_type_list'    : ('AUTH_TYPE_LIST', list)}, dict)
-            }
+            })
         else:
             # we assume standard kwarg arguments
             self.qid               = kwargs.pop('QID', None)
@@ -1051,14 +1124,18 @@ class Map(CacheableQualysObject):
         self.domain    = kwargs.pop('domain',    None )
         self.status    = kwargs.pop('status',    None )
         self.report_id = kwargs.pop('REPORT_ID', None )
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'NAME'   : ('name',   str ),
             'ref'    : ('ref',    str ),
             'date'   : ('date',   str ),
             'domain' : ('domain', str ),
             'status' : ('status', str ),
             'OPTION_PROFILE' : ('option_profiles', ObjTypeList(OptionProfile)),
-        }
+        })
         super(Map, self).__init__(*args, **kwargs)
 
         # superclass handles json serialized properties
@@ -1192,11 +1269,15 @@ class RequestEcho(CacheableQualysObject):
     def __init__(self, *args, **kwargs):
         # for now this is only stubbed and very basic...
         if 'elem' in kwargs or 'xml' in kwargs:
-            kwargs['param_map'] = {
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
                 'DATETIME'   : ('datetime',   str ),
                 'USER_LOGIN' : ('user_login', str ),
                 'RESOURCE'   : ('resource',   str ),
-            }
+            })
         else:
             self.datetime   = kwargs.pop('DATETIME',   None )
             self.user_login = kwargs.pop('USER_LOGIN', None )
@@ -1271,10 +1352,14 @@ class SimpleReturn():
             value = None
             def __init__(self, *args, **kwargs):
                 if 'elem' in kwargs or 'xml' in kwargs:
-                    kwargs['param_map'] = {
+                    param_map = {}
+                    if 'param_map' in kwargs:
+                        param_map = kwargs.pop('param_map', {})
+                    kwargs['param_map'] = param_map
+                    kwargs['param_map'].update({
                         'KEY'   : ('key',   str ),
                         'value' : ('value', str ),
-                    }
+                    })
                 else:
                     self.key   = kwargs.pop('key',   None )
                     self.value = kwargs.pop('value', None )
@@ -1283,13 +1368,17 @@ class SimpleReturn():
         def __init__(self, *args, **kwargs):
             # we want to pass our child to the constructor...
             if 'elem' in kwargs or 'xml' in kwargs:
-                kwargs['param_map'] = {
+                param_map = {}
+                if 'param_map' in kwargs:
+                    param_map = kwargs.pop('param_map', {})
+                kwargs['param_map'] = param_map
+                kwargs['param_map'].update({
                     'DATETIME'  : ('reponse_time',  str ),
                     'CODE'      : ('response_code', str ),
                     'TEXT'      : ('response_text', str ),
                     'ITEM_LIST' : ('items', ObjTypeList(self.ResponseItem,
                         xpath='ITEM')),
-                }
+                })
             else:
                 self.reponse_time   = kwargs.pop('DATETIME', None )
                 self.response_code  = kwargs.pop('CODE',     None )
@@ -1336,10 +1425,14 @@ class SimpleReturn():
                 raise exceptions.QualysException(self.__err_msg)
 
     def __init__(self, *args, **kwargs):
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'RESPONSE' : ('response', self.SimpleReturnResopnse),
             'REQUEST'  : ('request',  RequestEcho),
-        }
+        })
         super(SimpleReturn, self).__init__(*args, **kwargs)
 
 
@@ -1359,11 +1452,15 @@ class QualysUser(CacheableQualysObject):
     lastname  = ''
     def __init__(self, *args, **kwargs):
         if 'elem' in kwargs or 'xml' in kwargs:
-            kwargs['param_map'] = {
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
                 'LOGIN'     : ('login',     str ),
                 'FIRSTNAME' : ('firstname', str ),
                 'LASTNAME'  : ('lastname',  str ),
-            }
+            })
         else:
             self.login     = kwargs.pop('LOGIN',     None )
             self.firstname = kwargs.pop('FIRSTNAME', None )
@@ -1407,7 +1504,11 @@ class ReportTemplate(CacheableQualysObject):
 
     def __init__(self, *args, **kwargs):
         if 'elem' in kwargs or 'xml' in kwargs:
-            kwargs['param_map'] = {
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
                 'ID'            : ('template_id',   str ),
                 'TYPE'          : ('report_type',   str ),
                 'TEMPLATE_TYPE' : ('template_type', str ),
@@ -1416,7 +1517,7 @@ class ReportTemplate(CacheableQualysObject):
                 'LAST_UPDATE'   : ('last_update',   str ),
                 'GLOBAL'        : ('is_global',     bool ),
                 'DEFAULT'       : ('is_default',    bool ),
-            }
+            })
         else:
             self.template_id   = kwargs.pop('ID', self.template_id)
             self.report_type   = kwargs.pop('TYPE', self.report_type)
@@ -1442,11 +1543,16 @@ class IPRange(CacheableQualysObject):
         self.network_id = kwargs.pop('network_id', None)
         self.start = kwargs.pop('START', None)
         self.end = kwargs.pop('END', None)
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'network_id' : ('network_id', str ),
             'START'      : ('start',      str ),
             'END'        : ('end',        str ),
-        }
+        })
+        super(IPRange, self).__init__(*args, **kwargs)
 
 
 class AssetGroup(CacheableQualysObject):
@@ -1458,10 +1564,14 @@ class AssetGroup(CacheableQualysObject):
     def __init__(self, *args, **kwargs):
         title = kwargs.pop('ASSET_GROUP_TITLE', None)
         ranges = kwargs.pop('USER_IP_LIST', None)
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
                 'ASSET_GROUP_TITLE' : ('title',  str),
                 'RANGE'             : ('ranges', list),
-        }
+        })
         super(AssetGroup, self).__init__(*args, **kwargs)
 
 
@@ -1482,11 +1592,15 @@ class ReportTarget(CacheableQualysObject):
     ```
     '''
     def __init__(self, *args, **kwargs):
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'USER_ASSET_GROUPS' : ('asset_groups', ObjTypeList( str,
                 xpath="/ASSET_GROUP_TITLE")),
             'USER_IP_LIST'      : ('ranges',       ObjTypeList( IPRange)),
-        }
+        })
         super(ReportTarget, self).__init__(*args, **kwargs)
 
 
@@ -1499,10 +1613,14 @@ class AssetTagSet(CacheableQualysObject):
     def __init__(self, *args, **kwargs):
         scope = kwargs.pop('scope', None)
         tags = kwrags.pop('ASSET_TAG', None)
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'scope'     : ('scope', str),
             'ASSET_TAG' : ('tags',  list),
-        }
+        })
         super(AssetTagSet, self).__init__(*args, **kwargs)
 
 
@@ -1525,7 +1643,11 @@ class ReportHeader(CacheableQualysObject):
     included_tags       = None
     excluded_tags       = None
     def __init__(self, *args, **kwargs):
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'COMPANY'             : ('company',             str ),
             'USERNAME'            : ('username',            str ),
             'GENERATION_DATETIME' : ('generation_datetime', str ),
@@ -1536,11 +1658,11 @@ class ReportHeader(CacheableQualysObject):
                     xpath='INCLUDED_TAGS')),
                 ('excluded_tags', ObjTypeList(AssetTagSet,
                     xpath='EXCLUDED_TAGS')),},              dict ),
-        }
+        })
         super(ReportHeader, self).__init__(*args, **kwargs)
 
 
-class AssetDataReport(CacheableQualysObject):
+class AssetDataReport(Report):
     '''A wrapper around a qualys report.
     ```xml
     header -- ReportHeader from HEADER element
@@ -1550,10 +1672,14 @@ class AssetDataReport(CacheableQualysObject):
     header = None
     hosts = None
     def __init__(self, *args, **kwargs):
-        kwargs['param_map'] = {
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
             'HEADER' : ('header', ReportHeader ),
             'HOST_LIST' : ('hosts', ObjTypeList(Host, xpath='HOST')),
-        }
+        })
         super(AssetDataReport, self).__init__(*args, **kwargs)
         # if no hosts were assigned, go ahead and init an empty list
         if self.hosts is None:
@@ -1581,5 +1707,6 @@ obj_elem_map = {
     'REPORT_TEMPLATE'   : ReportTemplate,
     'SIMPLE_RETURN'     : SimpleReturn,
     'ASSET_DATA_REPORT' : AssetDataReport,
-    'HOST'              : Host,
+    # this is disabled (for now)
+    # 'HOST'              : Host, 
 }

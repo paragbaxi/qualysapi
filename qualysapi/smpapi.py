@@ -721,33 +721,25 @@ class QGSMPActions(QGActions):
         else:
             import_buffer = self.buffer_prototype(callback=callback,
                     consumer=consumer)
-        import_buffer.setCallback(callback)
-        import_buffer = import_buffer
-        block = kwargs.pop('block', True)
-        callback = kwargs.pop('completion_callback', None)
-        if not block and not callback:
-            raise exceptions.QualysFrameworkException("A callback outlet is \
-            required for nonblocking calls to the parser/consumer framework.")
+        rstub = None
+        if 'report' in kwargs:
+            rstub = kwargs.get('report')
+            if not isinstance(rstub, Report):
+                raise exceptions.QualysFrameworkException('Only Report objects'
+                ' and subclasses can be passed to this function as reports.')
 
         context = etree.iterparse(response, events=('end',))
         for event, elem in context:
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             stag = etree.QName(elem.tag).localname.upper()
             if stag in obj_elem_map:
-                import_buffer.add(obj_elem_map[stag](elem=elem))
+                import_buffer.add(obj_elem_map[stag](elem=elem,
+                    report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.
         results = import_buffer.finish() if block else import_buffer
         self.checkResults(results)
 
         # special case: report encapsulization...
-        if 'report' in kwargs:
-            report = kwargs.get('report')
-            if not isinstance(report, Report):
-                raise exceptions.QualysFrameworkException('Only Report objects\
- and subclasses can be passed to this function as reports.')
-            else:
-                response = report.add_contents(results)
-                return (response, report)
         return results
 
 

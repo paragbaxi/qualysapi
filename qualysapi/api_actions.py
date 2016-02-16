@@ -290,7 +290,8 @@ parser.')
         raise exceptions.QualysFrameworkException('Unexpected API '
             'response.\n%s' % (pprint.pformat(response)))
 
-    def fetchReport(self, rid=None, report=None, consumer_prototype=None, **kwargs):
+    def fetchReport(self, rid=None, report=None, consumer_prototype=None,
+            **kwargs):
         '''
         Uses the cache to quickly look up the report associated with a specific
         map ref.
@@ -423,15 +424,19 @@ parser.')
         today = datetime.date.today()
         for host in hostData.RESPONSE.HOST_LIST.HOST:
             last_scan = str(host.LAST_VULN_SCAN_DATETIME).split('T')[0]
-            last_scan = datetime.date(int(last_scan.split('-')[0]), int(last_scan.split('-')[1]), int(last_scan.split('-')[2]))
+            last_scan = datetime.date(int(last_scan.split('-')[0]),
+                    int(last_scan.split('-')[1]), int(last_scan.split('-')[2]))
             if (today - last_scan).days >= days:
-                hostArray.append(Host(host.DNS, host.ID, host.IP, host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS, host.TRACKING_METHOD))
+                hostArray.append(Host(host.DNS, host.ID, host.IP,
+                    host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS,
+                    host.TRACKING_METHOD))
 
         return hostArray
 
     def addIP(self, ips, vmpc):
         #'ips' parameter accepts comma-separated list of IP addresses.
-        #'vmpc' parameter accepts 'vm', 'pc', or 'both'. (Vulnerability Managment, Policy Compliance, or both)
+        #'vmpc' parameter accepts 'vm', 'pc', or 'both'. (Vulnerability
+        #Managment, Policy Compliance, or both)
         call = '/api/2.0/fo/asset/ip/'
         enablevm = 1
         enablepc = 0
@@ -461,7 +466,8 @@ parser.')
         data = {}
         return self.parseResponse(source=call, data=data)
 
-    def listScans(self, launched_after="", state="", target="", type="", user_login=""):
+    def listScans(self, launched_after="", state="", target="", type="",
+            user_login=""):
         #'launched_after' parameter accepts a date in the format: YYYY-MM-DD
         #'state' parameter accepts "Running", "Paused", "Canceled", "Finished", "Error", "Queued", and "Loading".
         #'title' parameter accepts a string
@@ -494,26 +500,35 @@ parser.')
             except AttributeError:
                 agList = []
 
-            scanArray.append(Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN))
+            scanArray.append(Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME,
+                scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF,
+                scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE,
+                scan.USER_LOGIN))
 
         return scanArray
 
-    def launchScan(self, title, option_title, iscanner_name, asset_groups="", ip=""):
+    def launchScan(self, title, option_title, iscanner_name, asset_groups="",
+            ip=""):
         # TODO: Add ability to scan by tag.
         call = '/api/2.0/fo/scan/'
-        parameters = {'action': 'launch', 'scan_title': title, 'option_title': option_title, 'iscanner_name': iscanner_name, 'ip': ip, 'asset_groups': asset_groups}
+        parameters = {'action': 'launch', 'scan_title': title, 'option_title':
+                option_title, 'iscanner_name': iscanner_name, 'ip': ip,
+                'asset_groups': asset_groups}
         if ip == "":
             parameters.pop("ip")
 
         if asset_groups == "":
             parameters.pop("asset_groups")
 
-        scan_ref = objectify.fromstring(self.request(call, data=parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
+        scan_ref = objectify.fromstring(self.request(call,
+            data=parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
 
         call = '/api/2.0/fo/scan/'
-        parameters = {'action': 'list', 'scan_ref': scan_ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1}
+        parameters = {'action': 'list', 'scan_ref': scan_ref, 'show_status': 1,
+                'show_ags': 1, 'show_op': 1}
 
-        scan = objectify.fromstring(self.request(call, data=parameters)).RESPONSE.SCAN_LIST.SCAN
+        scan = objectify.fromstring(self.request(call,
+            data=parameters)).RESPONSE.SCAN_LIST.SCAN
         try:
             agList = []
             for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
@@ -521,7 +536,10 @@ parser.')
         except AttributeError:
             agList = []
 
-        return Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN)
+        return Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME,
+                scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF,
+                scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE,
+                scan.USER_LOGIN)
 
     def addBuffer(self, parse_buffer):
         '''
@@ -531,3 +549,15 @@ parser.')
 
     def getConnectionConfig(self):
         return self.conn.getConfig()
+
+    def reportFromFile(self, filename, **kwargs):
+        """reportFromFile
+        load and parse a report from an xml file.
+
+        :param filename:
+        The name of the file to open and pass to the parser.
+        :param kwargs:
+        Passed through to other functions
+        """
+        with open(filename, 'rb') as source:
+            return self.parseResponse(source=source, **kwargs)[0]
