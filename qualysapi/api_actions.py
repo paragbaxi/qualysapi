@@ -320,7 +320,8 @@ parser.')
         }
         # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
         # report and not a SimpleReturn (which can happen)
-        results = self.parseResponse(source=call, data=params, report=report)
+        results = self.parseResponse(source=call, data=params, report=report,
+                consumer_prototype=consumer_prototype)
         for result in results:
             if isinstance(result, Report):
                 return result

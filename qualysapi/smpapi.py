@@ -129,7 +129,7 @@ class BufferConsumer(multiprocessing.Process):
         '''
         return item
 
-    def flush(self):
+    def cleanUp(self):
         '''Final processing command to flush any cached data'''
         pass
 
@@ -154,7 +154,7 @@ class BufferConsumer(multiprocessing.Process):
                 logging.debug('Queue timed out and empty, assuming closed.')
                 if self.queue.empty():
                     done = True
-        self.flush()
+        self.cleanUp()
 
 
 class ImportBuffer(object):
@@ -286,6 +286,27 @@ class ImportBuffer(object):
             return self.callback(result)
         else:
             return result
+
+
+# class ReportImportBuffer(ImportBuffer):
+#     """ReportImportBuffer
+#         Specifically designed to handle report line items during report
+#         processing since the nesting tree for other elements breaks for
+#         reports.
+#     """
+#     report_ref
+#     def __init__(self, report, *args, **kwargs):
+#         """__init__
+# 
+#         :param report:
+#         assigns the internal report reference for this particular buffer.
+#         :param *args:
+#         expansion/parent pass-through
+#         :param **kwargs:
+#         expansion/parent pass-through
+#         """
+#         self.report_ref = report
+#         super(ReportImportBuffer, *args, **kwargs)
 
 
 class SMPActionPool(object):

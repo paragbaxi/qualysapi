@@ -1708,5 +1708,5 @@ obj_elem_map = {
     'SIMPLE_RETURN'     : SimpleReturn,
     'ASSET_DATA_REPORT' : AssetDataReport,
     # this is disabled (for now)
-    # 'HOST'              : Host, 
+    'HOST'              : Host, 
 }
