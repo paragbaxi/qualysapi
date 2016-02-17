@@ -43,11 +43,13 @@ class QGActions(object):
         Set up the Actions connection wrapper class
 
         @Params
-        cache_connection -- either this option or the connection option are
+        :parameter cache_connection:
+            either this option or the connection option are
         required, but this one takes precedence.  If you specify a cache
         connection then the connection is inferred from the cache
         configuration.
-        connection -- required if no cache_connection is specified, otherwise
+        :parameter connection:
+            required if no cache_connection is specified, otherwise
         it is ignored in favor of the cache connection.
         '''
         self.conn = kwargs.get('cache_connection', None)
@@ -167,32 +169,42 @@ parser.')
     def startMapReportOnMap(self, mapr, **kwargs):
         '''Generates a report on a map.
         Parameters:
-        mapr -- the map result to generate a report against.  Can be a string
+        :parameter mapr:
+            the map result to generate a report against.  Can be a string
         map_ref but a map result object is really preferred.
-        domain -- one of domain or ip_restriction are required for map reports.
+        :parameter domain:
+            one of domain or ip_restriction are required for map reports.
         You can use the asset domain list for this parameter.  If this
         parameter is excluded 'none' is substituted but a lack of an IP range
         list will result in an api exception.
-        ip_restriction -- Either a string of ips acceptable to qualys or a list
+        :parameter ip_restriction:
+            Either a string of ips acceptable to qualys or a list
         of IP range objects.  These objects provide a reasonably uniform way to
         specify ranges.
-        template_id -- (Optional) the report template ID to use.  Required.
-        template_name -- (Optional) the name of the template to use. (look
+        :parameter template_id:
+            (Optional) the report template ID to use.  Required.
+        :parameter template_name:
+            (Optional) the name of the template to use. (look
         up ID)
-        use_default_template -- (Optional) boolean.  Look up the
+        :parameter use_default_template:
+            (Optional) boolean.  Look up the
         default map report template and load the template_id from it.
         Note: If none of the above are sent then the configuration option
         default template is used.  That will either be 'Unknown Device Report'
         or whatever you have in your config for the map_template configuration
         option under the report_templates configuration section.
 
-        report_title -- (Optional) Specify a name for this report.
-        output_format -- (Optional) Default is xml.  Options are pdf, html,
+        :parameter report_title:
+            (Optional) Specify a name for this report.
+        :parameter output_format:
+            (Optional) Default is xml.  Options are pdf, html,
         mht, xml or csv.  This API only supports parsing of xml format, the
         rest must be downloaded and saved or viewed.
-        hide_header -- (Optional) Tell the API to remove report header info.
+        :parameter hide_header:
+            (Optional) Tell the API to remove report header info.
         Optional.  By default this isn't set at all.
-        comp_mapr -- (Optional) A map result to compare against.
+        :parameter comp_mapr:
+            (Optional) A map result to compare against.
 
         Return tuple (mapr, report_id):
             if mapr is a map result object, the report_id property will be set.
@@ -297,16 +309,17 @@ parser.')
         map ref.
         This API only handles XML.  Anything else you're on your own other than
         using this API to download the report.
+
         :param rid:
-        the report_id for the report to fetch
+            the report_id for the report to fetch
         :param report:
-        the report header info/skeleton (Report object).  This can contain the
-        report id rather than the rid named argument.
+            the report header info/skeleton (Report object).  This can contain
+            the report id rather than the rid named argument.
         :param consumer_prototype:
-        Optional.  A subclass prototype of BufferConsumer which will act on
-        each report item in parallel with the downloading of the report.
+            Optional.  A subclass prototype of BufferConsumer which will act on
+            each report item in parallel with the downloading of the report.
         :param **kwargs:
-        expansion arguments
+            expansion arguments
         '''
         if rid is None and report is None:
             raise exceptions.QualysException('A report id is required.')
@@ -334,33 +347,43 @@ parser.')
 
         Params:
 
-        qids -- a list of Qualys QIDs to pull QKB entries for.  Limits the
-        result set.  Can be empty or none if pulling all.
-        all -- boolean.  Causes quids to be ignored if set.  Pulls the entire
-        knowledge base.
-        changes_since -- an inclusive subset of new and modified entries since
-        a specific date.  Can be a datetime (which will be converted to a
-        string query parameter) or a string formatted as Qualys expects
-        .  It is up to the calling function to ensure strings are correct if
-        you choose to use them.  This brackets all of the XX_after variables.
-        changes_before -- an inclusive subset old entries.  This brackets all
-        of the XX_before variables.
-        details -- defaults to 'All' but you can specify 'Basic' or 'None'.
-        range -- A tuple of qids.  (Min,Max).  Shorthand for a specific list.
-        only_patchable -- Boolean.  Limits the results to only QKB entries that
-        have known patches.
-        show_pci_reasons -- False by default.  You have to have this in your
-        sub for it to be safe.
-        file -- a special (but useful) case in which a file should be used to
-        load the input.  In this case the entire file is parsed, regardless of
-        the other parameters.
-        discovery_method -- 'RemoteAndAuthenticated' by default, but valid
-        options are:
-            *'Remote'
-            *'Authenticated'
-            *'RemoteOnly'
-            *'AuthenticatedOnly'
-            *'RemoteAndAuthenticated'
+        :parameter qids:
+            a list of Qualys QIDs to pull QKB entries for.  Limits the
+            result set.  Can be empty or none if pulling all.
+        :parameter all:
+            boolean.  Causes quids to be ignored if set.  Pulls the entire
+            knowledge base.
+        :parameter changes_since:
+            an inclusive subset of new and modified entries since
+            a specific date.  Can be a datetime (which will be converted to a
+            string query parameter) or a string formatted as Qualys expects
+            .  It is up to the calling function to ensure strings are correct if
+            you choose to use them.  This brackets all of the XX_after variables.
+        :parameter changes_before:
+            an inclusive subset old entries.  This brackets all
+            of the XX_before variables.
+        :parameter details:
+            defaults to 'All' but you can specify 'Basic' or 'None'.
+        :parameter range:
+            A tuple of qids.  (Min,Max).  Shorthand for a specific list.
+        :parameter only_patchable:
+            Boolean.  Limits the results to only QKB entries that
+            have known patches.
+        :parameter show_pci_reasons:
+            False by default.  You have to have this in your
+            sub for it to be safe.
+        :parameter file:
+            a special (but useful) case in which a file should be used to
+            load the input.  In this case the entire file is parsed, regardless
+            of the other parameters.
+        :parameter discovery_method:
+            'RemoteAndAuthenticated' by default, but valid
+            :options:
+                -'Remote'
+                -'Authenticated'
+                -'RemoteOnly'
+                -'AuthenticatedOnly'
+                -'RemoteAndAuthenticated'
 
         Retuns of this function depend on the parse consumers.  A list of
         objects or None.
@@ -390,16 +413,21 @@ parser.')
     def listReports(self, *args, **kwargs):
         '''Executes a list of available reports.  Filtering parameters allowed
         (from the API Documentation):
-        QAPI Parameters:
-            id - request info on a sepecific report id
-            state - only include reports witha a given state (such as finished)
-            user_login - only include reports launched by a specific user
-            expires_before_datetime - A date/time by which any reports returned
+
+        :parameter id:
+            request info on a sepecific report id
+        :parameter state:
+            only include reports witha a given state (such as finished)
+        :parameter user_login:
+            only include reports launched by a specific user
+        :parameter expires_before_datetime:
+            A date/time by which any reports returned
             would have.  String format.  Qualys format.
             expired.
-        Special Parameters:
-            report_type - Filter the results to only include reports of a given
-            type (scan, map, etc...)
+        :parameter filter:
+            A dictionary used to filter the result set.  The result set can be
+            filter on any property/value pair for a Report object
+        .. seealso:: Report
         '''
         call = '/api/2.0/fo/report/'
         parameters = {
