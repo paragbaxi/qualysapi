@@ -301,8 +301,10 @@ class Host(CacheableQualysObject):
     tracking_method  = None
     asset_tags       = None
     interfaces       = None
+    asset_groups     = None
     vulns            = None
     operating_system = None
+    parent_stub      = None
 
     def __init__(self, *args, **kwargs):
         """__init__
@@ -364,6 +366,27 @@ class Host(CacheableQualysObject):
                 xpath='VULN_INFO')),
         })
         super(Host, self).__init__(*args, **kwargs)
+
+        self.parent_stub = kwargs.get('report_stub', None)
+        # this gives consumers a hook back to information about the report being
+        # processed without having to have the whole darn report in memory...
+
+        # the following is being used for Q/A and debug only.  remove later.
+        dumpme = False
+        if not self.interfaces:
+            logging.warn('No interfaces for host %s' % self.dns)
+            dumpme = True
+        if not self.vulns:
+            logging.warn('No vulns for host %s' % self.dns)
+            dumpme = True
+        if not self.asset_groups:
+            logging.warn('No asset_groups for host %s' % self.dns)
+            dumpme = True
+
+        if dumpme:
+            logging.debug(self)
+            logging.debug(lxml.etree.tostring(kwargs['elem'], pretty_print=True))
+
 
 class AssetGroup(CacheableQualysObject):
     def __init__(self, business_impact, id, last_update, scanips, scandns,
