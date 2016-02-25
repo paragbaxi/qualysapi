@@ -466,6 +466,7 @@ class Report(CacheableQualysObject):
     type                = None #: report type
     user_login          = None #: user who requested the report
     contents            = None #: the contents of a downloaded report
+    title               = None #: The report title
 
     class ReportStatus(CacheableQualysObject):
         '''Encapsulate report status
@@ -538,6 +539,7 @@ class Report(CacheableQualysObject):
             param_map = kwargs.pop('param_map', {})
         kwargs['param_map'] = param_map
         kwargs['param_map'].update({
+            'TITLE'               : ('title',               str ),
             'EXPIRATION_DATETIME' : ('expiration_datetime', str ),
             'ID'                  : ('id',                  str ),
             'LAUNCH_DATETIME'     : ('launch_datetime',     str ),
@@ -1662,6 +1664,8 @@ class ReportTarget(CacheableQualysObject):
     excluded_tags - list of str from 
     ``
     '''
+    asset_groups = None
+    ranges       = None
     def __init__(self, *args, **kwargs):
         param_map = {}
         if 'param_map' in kwargs:

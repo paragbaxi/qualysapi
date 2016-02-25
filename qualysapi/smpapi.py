@@ -118,9 +118,11 @@ class BufferConsumer(multiprocessing.Process):
 
         self.results_list = kwargs.get('results_list', None)
         if 'response_error' not in kwargs:
-            raise exceptions.QualysFrameworkException('Buffer Consumers \
-                    require a bubble-up bound semaphore.')
+            raise exceptions.QualysFrameworkException('Buffer Consumers '
+                    'require a bubble-up bound semaphore.')
         self.resopnse_err = kwargs.get('response_error')
+        self.setUp()
+
 
     def singleItemHandler(self, item):
         '''Override method for child classes to handle individual items.
@@ -129,8 +131,17 @@ class BufferConsumer(multiprocessing.Process):
         '''
         return item
 
+    def setUp(self):
+        """setUp
+        A function run once by the init method.  This funciton is useful for
+        things like configuration loading which are only needed once per
+        processor instance but are instance-only properties.
+        """
+        pass
+
     def cleanUp(self):
-        '''Final processing command to flush any cached data'''
+        '''Final processing command to flush any cached data, persist to the
+        database, etc...'''
         pass
 
     def run(self):
