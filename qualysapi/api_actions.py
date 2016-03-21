@@ -1,5 +1,4 @@
 from lxml import objectify, etree
-import qualysapi.api_objects
 from qualysapi.api_objects import *
 from qualysapi.exceptions import *
 from qualysapi.api_methods import api_methods
@@ -589,4 +588,9 @@ parser.')
         Passed through to other functions
         """
         with open(filename, 'rb') as source:
-            return self.parseResponse(source=source, **kwargs)[0]
+            # make sure we only return the report (since it's possible for the
+            # result to be 'dirty'
+            results = self.parseResponse(source=source, **kwargs)
+            for item in results:
+                if isinstance(item, Report):
+                    return item
