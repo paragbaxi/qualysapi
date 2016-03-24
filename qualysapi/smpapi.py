@@ -22,7 +22,7 @@ from qualysapi.api_actions import QGActions
 import queue
 
 #debug
-import pudb
+#import pudb
 
 class BufferQueue(multiprocessing.queues.Queue):
     '''A thread/process safe queue for append/pop operations with the import
