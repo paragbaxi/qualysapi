@@ -175,36 +175,35 @@ class CacheableQualysObject(object):
 class VulnInfo(CacheableQualysObject):
     '''
     A specific vulnerability.  Can be used in multiple reports and contexts.
-    ``
-    <!ELEMENT VULN_INFO (QID, TYPE, PORT?, SERVICE?, FQDN?, PROTOCOL?, SSL?,
-        INSTANCE?, RESULT?, FIRST_FOUND?, LAST_FOUND?, TIMES_FOUND?,
-        VULN_STATUS?, CVSS_FINAL?, TICKET_NUMBER?, TICKET_STATE?)>
+    ::
+        <!ELEMENT VULN_INFO (QID, TYPE, PORT?, SERVICE?, FQDN?, PROTOCOL?, SSL?,
+            INSTANCE?, RESULT?, FIRST_FOUND?, LAST_FOUND?, TIMES_FOUND?,
+            VULN_STATUS?, CVSS_FINAL?, TICKET_NUMBER?, TICKET_STATE?)>
 
-    <!ELEMENT QID (#PCDATA)>
-    <!ATTLIST QID id IDREF #REQUIRED>
+        <!ELEMENT QID (#PCDATA)>
+        <!ATTLIST QID id IDREF #REQUIRED>
 
-    <!ELEMENT TYPE (#PCDATA)>
-    <!ELEMENT PORT (#PCDATA)>
-    <!ELEMENT SERVICE (#PCDATA)>
-    <!ELEMENT FQDN (#PCDATA)>
-    <!ELEMENT PROTOCOL (#PCDATA)>
-    <!ELEMENT SSL (#PCDATA)>
+        <!ELEMENT TYPE (#PCDATA)>
+        <!ELEMENT PORT (#PCDATA)>
+        <!ELEMENT SERVICE (#PCDATA)>
+        <!ELEMENT FQDN (#PCDATA)>
+        <!ELEMENT PROTOCOL (#PCDATA)>
+        <!ELEMENT SSL (#PCDATA)>
 
-    <!ELEMENT RESULT (#PCDATA)>
-    <!ATTLIST RESULT format CDATA #IMPLIED>
+        <!ELEMENT RESULT (#PCDATA)>
+        <!ATTLIST RESULT format CDATA #IMPLIED>
 
-    <!ELEMENT FIRST_FOUND (#PCDATA)>
-    <!ELEMENT LAST_FOUND (#PCDATA)>
-    <!ELEMENT TIMES_FOUND (#PCDATA)>
-    <!-- Note: VULN_STATUS is N/A for IGs -->
-    <!ELEMENT VULN_STATUS (#PCDATA)>
+        <!ELEMENT FIRST_FOUND (#PCDATA)>
+        <!ELEMENT LAST_FOUND (#PCDATA)>
+        <!ELEMENT TIMES_FOUND (#PCDATA)>
+        <!-- Note: VULN_STATUS is N/A for IGs -->
+        <!ELEMENT VULN_STATUS (#PCDATA)>
 
-    <!ELEMENT CVSS_FINAL (#PCDATA)>
-    <!ELEMENT TICKET_NUMBER (#PCDATA)>
-    <!ELEMENT TICKET_STATE (#PCDATA)>
+        <!ELEMENT CVSS_FINAL (#PCDATA)>
+        <!ELEMENT TICKET_NUMBER (#PCDATA)>
+        <!ELEMENT TICKET_STATE (#PCDATA)>
 
-    <!ELEMENT INSTANCE (#PCDATA)>
-    ``
+        <!ELEMENT INSTANCE (#PCDATA)>
     '''
     def __init__(self, *args, **kwargs):
         param_map = {}
@@ -243,37 +242,97 @@ class VulnInfo(CacheableQualysObject):
 
 class Host(CacheableQualysObject):
     '''
-    Upgraded host information for reports...
-    ``
-    <!ELEMENT HOST (ERROR | (IP, TRACKING_METHOD, ASSET_TAGS?,
-        DNS?, NETBIOS?, QG_HOSTID?, IP_INTERFACES?, OPERATING_SYSTEM?, OS_CPE?,
-        ASSET_GROUPS?, VULN_INFO_LIST?))>
+    Upgraded host information for reports
 
-    <!ELEMENT IP (#PCDATA)>
-    <!ATTLIST IP
-      network_id  CDATA  #IMPLIED
-      v6  CDATA  #IMPLIED
-    >
-    <!ELEMENT TRACKING_METHOD (#PCDATA)>
-    <!ELEMENT ASSET_TAGS (ASSET_TAG+)>
-    <!ELEMENT ASSET_TAG (#PCDATA)>
+    This class implements the Host element for multiple Qualys DTDs
+    ::
+        <!-- host-vm-detection host --!>
+        <!ELEMENT HOST (ID, IP?, IPV6?, TRACKING_METHOD?, NETWORK_ID?,
+                OS?, OS_CPE?, DNS?, NETBIOS?, QG_HOSTID?,
+                LAST_SCAN_DATETIME?, TAGS?, DETECTION_LIST)>
+        <!-- Asset Data Report host --!>
+        <!ELEMENT HOST (ERROR | (IP, TRACKING_METHOD, ASSET_TAGS?,
+            DNS?, NETBIOS?, QG_HOSTID?, IP_INTERFACES?, OPERATING_SYSTEM?, OS_CPE?,
+            ASSET_GROUPS?, VULN_INFO_LIST?))>
 
-    <!ELEMENT DNS (#PCDATA)>
-    <!ELEMENT NETBIOS (#PCDATA)>
-    <!ELEMENT QG_HOSTID (#PCDATA)>
-    <!ELEMENT IP_INTERFACES (IP*)>
-    <!ELEMENT OPERATING_SYSTEM (#PCDATA)>
-    <!ELEMENT OS_CPE (#PCDATA)>
-    <!ELEMENT ASSET_GROUPS (ASSET_GROUP_TITLE+)>
-    <!ELEMENT VULN_INFO_LIST (VULN_INFO+)>
+        <!ELEMENT IP (#PCDATA)>
+        <!ATTLIST IP
+          network_id  CDATA  #IMPLIED
+          v6  CDATA  #IMPLIED
+        >
+        <!ELEMENT TRACKING_METHOD (#PCDATA)>
 
-    ``
+        <!-- asset handling diff -->
+        <!ELEMENT ASSET_TAGS (ASSET_TAG+)>
+        <!ELEMENT ASSET_TAG (#PCDATA)>
+        <!-- vs -->
+        <!ELEMENT TAGS (TAG+)>
+
+        <!ELEMENT DNS (#PCDATA)>
+        <!ELEMENT NETBIOS (#PCDATA)>
+        <!ELEMENT QG_HOSTID (#PCDATA)>
+        <!ELEMENT IP_INTERFACES (IP*)>
+        <!ELEMENT OPERATING_SYSTEM (#PCDATA)>
+        <!ELEMENT OS_CPE (#PCDATA)>
+        <!ELEMENT ASSET_GROUPS (ASSET_GROUP_TITLE+)>
+        <!ELEMENT VULN_INFO_LIST (VULN_INFO+)>
+
+        <!-- Alternate Host Elements -->
+        <!ELEMENT ID (#PCDATA)>
+        <!ELEMENT IPV6 (#PCDATA)>
+        <!ELEMENT NETWORK_ID (#PCDATA)>
+        <!ELEMENT OS (#PCDATA)>
+        <!ELEMENT LAST_SCAN_DATETIME (#PCDATA)>
+        <!ELEMENT TAGS (TAG+)>
+        <!ELEMENT DETECTION_LIST (DETECTION+)>
+
+    Due to the fact that some DTDs contain identical information in
+    different elements, this class converts different elements in different XML
+    result sets into the same properties where relevant (and documented).
+
+    Examples:
+        DETECTION_LIST is roughly analagous to VULN_INFO_LIST although there
+        are significant differences in available information.  To compensate
+        for this, VulnInfo is used for both, but will have information
+        available in the properties from a DL vuln than a VIL vuln.
+
     '''
+    class Tag(CacheableQualysObject):
+        """Tag
+        Encapsulates the Tag element as a class.
+        ::
+
+            <!ELEMENT TAG (TAG_ID?, NAME, COLOR?, BACKGROUND_COLOR?)>
+            <!ELEMENT TAG_ID (#PCDATA)>
+            <!ELEMENT NAME (#PCDATA)>
+            <!ELEMENT COLOR (#PCDATA)>
+            <!ELEMENT BACKGROUND_COLOR (#PCDATA)>
+        """
+        tag              = None
+        tag_id           = None
+        name             = None
+        color            = None
+        background_color = None
+        def __init__(self, *args, **kwargs):
+            kwargs['param_map'] = kwargs.pop('param_map', {})
+            kwargs['param_map'].update({
+                'tag'              : ('TAG',              str ),
+                'tag_id'           : ('TAG_ID',           str ),
+                'name'             : ('NAME',             str ),
+                'color'            : ('COLOR',            str ),
+                'background_color' : ('BACKGROUND_COLOR', str ),
+            })
+            super(Host.Tag, self).__init__(*args, **kwargs)
+
+        def __str__(self):
+            return self.name
+
+
     class IP(CacheableQualysObject):
         '''IP address along with metadata'''
-        network_id = None
-        ipv6       = None
-        value      = None
+        network_id = None #: Attempts to cross-link NICs to hosts
+        ipv6       = None #: Flag for IPV6
+        value      = None #: Can be IPV4 or IPV6.  Tricky.
         def __init__(self, *args, **kwargs):
             param_map = {}
             if 'param_map' in kwargs:
@@ -292,52 +351,44 @@ class Host(CacheableQualysObject):
             return self.value
 
 
-    dns              = None
-    id               = None
-    ip               = None
-    last_scan        = None
-    netbios          = None
-    os               = None
-    tracking_method  = None
-    asset_tags       = None
-    interfaces       = None
-    asset_groups     = None
-    vulns            = None
-    operating_system = None
+    dns              = None #: FQDN if available
+    id               = None #: Qualys Internal host ID
+    ip               = None #: :class:`IP` primary.interface
+    last_scan        = None #: Last time scanned.
+    netbios          = None #: NETBIOS if available
+    os_cpe           = None #: Host OS Common Platform Enumeration
+    tracking_method  = None #: The field used to identify host
+    asset_tags       = None #: List of associated asset tags.
+    tags             = None #: Alternate list of associated asset tags.
+    interfaces       = None #: List of all detected interfaces
+    asset_groups     = None #: List of associated asset groups.
+    vulns            = None #: Known vulnerabilities.
+    operating_system = None #: host-reported OS
     parent_stub      = None
 
     def __init__(self, *args, **kwargs):
         """__init__
 
-        :param dns:
-        depricated orderd argument.
-        :param id:
-        depricated orderd argument.
-        :param ip:
-        depricated orderd argument.
-        :param last_scan:
-        depricated orderd argument.
-        :param netbios:
-        depricated orderd argument.
-        :param os:
-        depricated orderd argument.
-        :param tracking_method:
-        depricated orderd argument.
-        :param *args:
-        allows all the above depricated ordered arguments.  kwargs
+        :param dns: depricated orderd argument.
+        :param id: depricated orderd argument.
+        :param ip: depricated orderd argument.
+        :param last_scan: depricated orderd argument.
+        :param netbios: depricated orderd argument.
+        :param os: depricated orderd argument.
+        :param tracking_method: depricated orderd argument.
+        :param *args: allows all the above depricated ordered arguments.  kwargs
         specification is preferred.  Also allows the standard parent class xml
         or elem, but these can't be combined.  You must EITHER specify the
         xml/elem or the other ordered arguments until the old functionality has
         been removed.  len(args)>1 = depricated style.
-        :param **kwargs:
-        keyword params listsed above allowed as well as xmlobj, elem, xml and
+        :param **kwargs: keyword params listsed above allowed as well as xmlobj, elem, xml and
         json (parent class prototype args).
         """
         # backwards compat
         if len(args) > 1:
             try:
                 (self.dns, self.id, self.ip, self.last_scan, self.netbios,
-                        self.os, self.tracking_method) = args
+                        self.operating_system, self.tracking_method) = args
             except:
                 raise exceptions.QualysFrameworkException('You tried to pass'
                         'ordered arguments into this constructor.  Not only is'
@@ -352,7 +403,7 @@ class Host(CacheableQualysObject):
             'IP'               : ('ip', self.IP),
             'TRACKING_METHOD'  : ('tracking_method',           str ),
             'ASSET_TAGS'       : ('asset_tags', ObjTypeList(   str ,
-            xpath='ASSET_TAG')),
+                xpath='ASSET_TAG')),
             'DNS'              : ('dns',                       str ),
             'NETBIOS'          : ('netbios',                   str ),
             'QG_HOSTID'        : ('qg_hostid',                 str ),
@@ -424,38 +475,35 @@ class AssetGroup(CacheableQualysObject):
 class Report(CacheableQualysObject):
     '''
     An object wrapper around qualys report handles.
-    ``
-       <!ELEMENT REPORT (ID, TITLE, TYPE, USER_LOGIN, LAUNCH_DATETIME,
-                         OUTPUT_FORMAT, SIZE, STATUS, EXPIRATION_DATETIME)>
-       <!ELEMENT ID (#PCDATA)>
-       <!ELEMENT TITLE (#PCDATA)>
-       <!ELEMENT TYPE (#PCDATA)>
-       <!ELEMENT USER_LOGIN (#PCDATA)>
-       <!ELEMENT LAUNCH_DATETIME (#PCDATA)>
-       <!ELEMENT OUTPUT_FORMAT (#PCDATA)>
-       <!ELEMENT SIZE (#PCDATA)>
-       <!ELEMENT STATUS (STATE, MESSAGE?, PERCENT?)>
-       <!ELEMENT STATE (#PCDATA)>
-       <!ELEMENT MESSAGE (#PCDATA)>
-       <!ELEMENT PERCENT (#PCDATA)>
-       <!ELEMENT EXPIRATION_DATETIME (#PCDATA)>
-       <!ELEMENT EXPIRATION_DATETIME (#PCDATA)>
-    ``
+    ::
+       <!ELEMENT REPORT (ID, TITLE, TYPE, USER_LOGIN, LAUNCH_DATETIME, OUTPUT_FORMAT, SIZE, STATUS, EXPIRATION_DATETIME)>
+           <!ELEMENT ID (#PCDATA)>
+           <!ELEMENT TITLE (#PCDATA)>
+           <!ELEMENT TYPE (#PCDATA)>
+           <!ELEMENT USER_LOGIN (#PCDATA)>
+           <!ELEMENT LAUNCH_DATETIME (#PCDATA)>
+           <!ELEMENT OUTPUT_FORMAT (#PCDATA)>
+           <!ELEMENT SIZE (#PCDATA)>
+           <!ELEMENT STATUS (STATE, MESSAGE?, PERCENT?)>
+           <!ELEMENT STATE (#PCDATA)>
+           <!ELEMENT MESSAGE (#PCDATA)>
+           <!ELEMENT PERCENT (#PCDATA)>
+           <!ELEMENT EXPIRATION_DATETIME (#PCDATA)>
+           <!ELEMENT EXPIRATION_DATETIME (#PCDATA)>
     Properties:
 
         .. note::
             previously used ordered arguments are depricated.  Right now the
             class is backwards compatible, but you cannot mix and match.  You have to
             use the previous named order or keyword arguments, not both.
-        :property expiration_datetime:
-            required expiration time of the report
-        id                  -- required id of the report
-        launch_datetime     -- when the report was launched
-        output_format       -- the output format of the report
-        size                -- the size of the report file to download
-        status              -- current qualys state of the report (scheduled, completed, paused, etc...)
-        type                -- report type
-        user_login          -- user who requested the report
+        :property expiration_datetime: required expiration time of the report
+        :property id: required id of the report
+        :property launch_datetime: when the report was launched
+        :property output_format: the output format of the report
+        :property size: the size of the report file to download
+        :property status: current qualys state of the report (scheduled, completed, paused, etc...)
+        :property type: report type
+        :property user_login: user who requested the report
     '''
     expiration_datetime = None #: required expiration time of the report
     id                  = None #: required id of the report
@@ -470,12 +518,11 @@ class Report(CacheableQualysObject):
 
     class ReportStatus(CacheableQualysObject):
         '''Encapsulate report status
-        ``
+        ::
            <!ELEMENT STATUS (STATE, MESSAGE?, PERCENT?)>
            <!ELEMENT STATE (#PCDATA)>
            <!ELEMENT MESSAGE (#PCDATA)>
            <!ELEMENT PERCENT (#PCDATA)>
-        ``
         '''
         state = None
         message = None
@@ -583,65 +630,32 @@ class QKBVuln(CacheableQualysObject):
     '''
     A class respresentation of a Qualys Knowledge Base entry.
     Properties:
-        :property qid:
-            the qualys id
-        :property vtype:
-            the qualys vuln type identifier
-        :property severity:
-            the qualys severity
-        :property title:
-            a human readable title-length description of the vulnerability
-        :property vcat:
-            a qualys-specific category for the vulnerability
-        :property usermod_date:
-            the most recent date that this vuln was modified by the auth account manager
-        :property servicemod_date:
-            the most recent date that this vuln was modified by the service
-        :property publ_date:
-            the date that this vuln was published
-        :property bugtraq_listing:
-            mozilla bugtraq information. A list of Bugtraq objects
-        :property patch_avail:
-            Boolean conversion of QKB 0/1 value.  Indicates a known patch is available.
-        :property diagnosis:
-            The Qualys service-provided evalution.
-        :property diagnosis_notes:
-            Admin/user account diagnosis recommendation notes.
-        :property consequence:
-            Service provided projected exploit fallout description.
-        :property consequence_notes:
-            Admin/user account notes on consequences.
-        :property solution:
-            Qualys/Service recommended remediation.
-        :property solution_notes:
-            Admin/user solution notes.
-        :property pci_mustfix:
-            PCI compliance fix mandated (boolean)
-        :property pci_reasons:
-            optional depending on query argument to provide pci pass/fail reasons.
-        a list of PCIReason objects.
-        :property cvss:
-            a CVSS object.
-        :property affected_software:
-            An ordered list (KQB ordering) of specific affected
-        software (VulnSoftware class instances)
-        :property assoc_vendors:
-            An unordered dictionary of software vendors associated
-        with any software associated with this vulnerability.  The dictionary is
-        key=vendor_id, value=VulnVendor
-        :property compliance_notice_list:
-            A service-provided list of SLA/Standards that are
-        or may be affected by this vulnerability.  Ordered list of Compliance
-        objects, ordered as sent from qualys.
-        :property known_exploits:
-            a list of correlated known exploits (Exploit obj)
-        :property known_malware:
-            a list of known malware using exploits (Malware obj)
-        :property remote_detectable:
-            boolean
-        :property auth_type_list:
-            a list of auth types that can be used to detect
-    vulnerability.  Strings.
+        :property qid: the qualys id
+        :property vtype: the qualys vuln type identifier
+        :property severity: the qualys severity
+        :property title: a human readable title-length description of the vulnerability
+        :property vcat: a qualys-specific category for the vulnerability
+        :property usermod_date: the most recent date that this vuln was modified by the auth account manager
+        :property servicemod_date: the most recent date that this vuln was modified by the service
+        :property publ_date: the date that this vuln was published
+        :property bugtraq_listing: mozilla bugtraq information. A list of Bugtraq objects
+        :property patch_avail: Boolean conversion of QKB 0/1 value.  Indicates a known patch is available.
+        :property diagnosis: The Qualys service-provided evalution.
+        :property diagnosis_notes: Admin/user account diagnosis recommendation notes.
+        :property consequence: Service provided projected exploit fallout description.
+        :property consequence_notes: Admin/user account notes on consequences.
+        :property solution: Qualys/Service recommended remediation.
+        :property solution_notes: Admin/user solution notes.
+        :property pci_mustfix: PCI compliance fix mandated (boolean)
+        :property pci_reasons: optional depending on query argument to provide pci pass/fail reasons. a list of PCIReason objects.
+        :property cvss: a CVSS object. :class:`CVSS`
+        :property affected_software: An ordered list (KQB ordering) of specific affected software (:class:`VulnSoftware` instances)
+        :property assoc_vendors: An unordered dictionary of software vendors associated with any software associated with this vulnerability.  The dictionary is key=vendor_id, value=VulnVendor (see :class:`VulnVendor` )
+        :property compliance_notice_list: A service-provided list of SLA/Standards that are or may be affected by this vulnerability.  Ordered list of Compliance objects, ordered as sent from qualys.
+        :property known_exploits: a list of correlated known exploits (Exploit obj)
+        :property known_malware: a list of known malware using exploits (Malware obj)
+        :property remote_detectable: boolean
+        :property auth_type_list: a list of auth types that can be used to detect vulnerability.  Strings.
     '''
     qid                    = None
     vtype                  = None
@@ -705,73 +719,34 @@ class QKBVuln(CacheableQualysObject):
         '''
         CVSS metadata encoding wrapper object and helpers.
         ##CVSS element DTD:
-        ``
-        <!ELEMENT CVSS (BASE, TEMPORAL?, ACCESS?, IMPACT?,
-                        AUTHENTICATION?, EXPLOITABILITY?,
-                        REMEDIATION_LEVEL?, REPORT_CONFIDENCE?)>
-          <!ELEMENT BASE (#PCDATA)>
-            <!ATTLIST BASE source CDATA #IMPLIED>
-          <!ELEMENT TEMPORAL (#PCDATA)>
-          <!ELEMENT ACCESS (VECTOR?, COMPLEXITY?)>
-            <!ELEMENT VECTOR (#PCDATA)>
-            <!ELEMENT COMPLEXITY (#PCDATA)>
-          <!ELEMENT IMPACT (CONFIDENTIALITY?, INTEGRITY?, AVAILABILITY?)>
-            <!ELEMENT CONFIDENTIALITY (#PCDATA)>
-            <!ELEMENT INTEGRITY (#PCDATA)>
-            <!ELEMENT AVAILABILITY (#PCDATA)>
-          <!ELEMENT AUTHENTICATION (#PCDATA)>
-          <!ELEMENT EXPLOITABILITY (#PCDATA)>
-          <!ELEMENT REMEDIATION_LEVEL (#PCDATA)>
-          <!ELEMENT REPORT_CONFIDENCE (#PCDATA)>
-        ``
+        ::
+            <!ELEMENT CVSS (BASE, TEMPORAL?, ACCESS?, IMPACT?,
+                AUTHENTICATION?, EXPLOITABILITY?,
+                REMEDIATION_LEVEL?, REPORT_CONFIDENCE?)>
+                <!ELEMENT BASE (#PCDATA)>
+                <!ATTLIST BASE source CDATA #IMPLIED>
+                <!ELEMENT TEMPORAL (#PCDATA)>
+                <!ELEMENT ACCESS (VECTOR?, COMPLEXITY?)>
+                <!ELEMENT VECTOR (#PCDATA)>
+                <!ELEMENT COMPLEXITY (#PCDATA)>
+                <!ELEMENT IMPACT (CONFIDENTIALITY?, INTEGRITY?, AVAILABILITY?)>
+                <!ELEMENT CONFIDENTIALITY (#PCDATA)>
+                <!ELEMENT INTEGRITY (#PCDATA)>
+                <!ELEMENT AVAILABILITY (#PCDATA)>
+                <!ELEMENT AUTHENTICATION (#PCDATA)>
+                <!ELEMENT EXPLOITABILITY (#PCDATA)>
+                <!ELEMENT REMEDIATION_LEVEL (#PCDATA)>
+                <!ELEMENT REPORT_CONFIDENCE (#PCDATA)>
         Parameters:
 
-        :property base:
-            BASE element.  CVSS base score.  (A CVSS base score assigned to
-        the vulnerability. (This element appears only when the CVSS Scoring
-        feature is turned on in the user’s subscription and the API request is
-        for “Basic” details or “All” details.)
-        :property temporal_score:
-            TEMPORAL element.  A CVSS temporal score. (This
-        element appears only when the CVSS Scoring feature is turned on in the
-        user’s subscription and the API request is for “Basic” details or “All”
-        details.)
-        :property access:
-            ACCESS element/class.
-        :property impact:
-            IMPACT element/class.
-        authentication    -- AUTHENTICATION child element.  A CVSS
-        authentication metric. This metric measures the number of times an
-        attacker must authenticate to a target in order to exploit a
-        vulnerability. The value is: Undefined, Non required, Require single
-        instance, or Require multiple instances. See “CVSS V2 Sub Metrics
-        Mapping” below. (This element appears only when the CVSS Scoring
-        feature is turned on in the user’s subscription and the API
-        request includes the parameter details=All.)
-        exploitability    -- EXPLOITABILITY child element.  A CVSS
-        exploitability metric. This metric measures the current state of
-        exploit techniques or code availability. The value is: Undefined,
-        Unproven, Proof-of- concept, Functional, or Widespread. See “CVSS V2
-        Sub Metrics Mapping” below. (This element appears only when the CVSS
-        Scoring feature is turned on in the user’s subscription and the
-        API request includes the parameter details=All.)
-        :property remediation_level:
-            REMEDIATION_LEVEL child element.  A CVSS
-        remediation level metric. The remediation level of a vulnerability is
-        an important factor for prioritization. The value is: Undefined,
-        Official-fix, Temporary-fix, Workaround, or Unavailable. See “CVSS V2
-        Sub Metrics Mapping” below. (This element appears only when the CVSS
-        Scoring feature is turned on in the user’s subscription and the
-        API request includes the parameter details=All.)
-        :property report_confidence:
-            REPORT_CONFIDENCE child element.  A CVSS report
-        confidence metric. This metric measures the degree of confidence in the
-        existence of the vulnerability and the credibility of the known
-        technical details. The value is: Undefined, Not confirmed,
-        Uncorroborated, or Confirmed. See “CVSS V2 Sub Metrics Mapping” below.
-        (This element appears only when the CVSS Scoring feature is turned on
-        in the user’s subscription and the API request includes the parameter
-        details=All.)
+        :property base: BASE element.  CVSS base score.  (A CVSS base score assigned to the vulnerability. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request is for “Basic” details or “All” details.)
+        :property temporal_score: TEMPORAL element.  A CVSS temporal score. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request is for “Basic” details or “All” details.)
+        :property access: :class:`CVSSAccess` instance or None.
+        :property impact: :class:`CVSSImpact` or None.
+        :property authentication: AUTHENTICATION child element.  A CVSS authentication metric. This metric measures the number of times an attacker must authenticate to a target in order to exploit a vulnerability. The value is: Undefined, Non required, Require single instance, or Require multiple instances. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
+        :property exploitability: EXPLOITABILITY child element.  A CVSS exploitability metric. This metric measures the current state of        exploit techniques or code availability. The value is: Undefined, Unproven, Proof-of- concept, Functional, or Widespread. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
+        :property remediation_level: REMEDIATION_LEVEL child element.  A CVSS remediation level metric. The remediation level of a vulnerability is an important factor for prioritization. The value is: Undefined, Official-fix, Temporary-fix, Workaround, or Unavailable. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
+        :property report_confidence: REPORT_CONFIDENCE child element.  A CVSS report confidence metric. This metric measures the degree of confidence in the existence of the vulnerability and the credibility of the known technical details. The value is: Undefined, Not confirmed, Uncorroborated, or Confirmed. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
         '''
 
         base = None
@@ -1315,7 +1290,9 @@ class MapReportRecord(CacheableQualysObject):
     pass
 
 class RequestEcho(CacheableQualysObject):
-    '''A wrapper for embedded request echo in response request.
+    '''
+    A wrapper for embedded request echo in response request.
+    ::
        <!ELEMENT REQUEST (DATETIME, USER_LOGIN, RESOURCE, PARAM_LIST?,
                           POST_DATA?)>
        <!ELEMENT DATETIME (#PCDATA)>
@@ -1352,7 +1329,7 @@ class RequestEcho(CacheableQualysObject):
 
 class SimpleReturn():
     '''Handle request/response elements from a SIMPLE_RETURN
-    ``
+    ::
        <!-- QUALYS SIMPLE_RETURN DTD -->
        <!ELEMENT SIMPLE_RETURN (REQUEST?, RESPONSE)>
        <!ELEMENT REQUEST (DATETIME, USER_LOGIN, RESOURCE, PARAM_LIST?,
@@ -1371,7 +1348,6 @@ class SimpleReturn():
        <!ELEMENT TEXT (#PCDATA)>
        <!ELEMENT ITEM_LIST (ITEM+)>
        <!ELEMENT ITEM (KEY, VALUE*)>
-    ``
     '''
 
     class SimpleReturnResponse(CacheableQualysObject):
@@ -1387,7 +1363,7 @@ class SimpleReturn():
         isn't private, but it should be considered protected.  Mostly.
 
         DTD associated with this class:
-        ``
+        ::
            <!-- QUALYS SIMPLE_RETURN DTD -->
            <!ELEMENT SIMPLE_RETURN (REQUEST?, RESPONSE)>
            <!ELEMENT REQUEST (DATETIME, USER_LOGIN, RESOURCE, PARAM_LIST?,
@@ -1406,7 +1382,6 @@ class SimpleReturn():
            <!ELEMENT TEXT (#PCDATA)>
            <!ELEMENT ITEM_LIST (ITEM+)>
            <!ELEMENT ITEM (KEY, VALUE*)>
-        ``
         '''
         reponse_time   = None
         response_text  = None
@@ -1507,9 +1482,10 @@ class SimpleReturn():
 class QualysUser(CacheableQualysObject):
     ''' Common shared wrapper class for a User representation of the User
     element.
-    <!ELEMENT LOGIN     (# PCDATA)>
-    <!ELEMENT FIRSTNAME (# PCDATA)>
-    <!ELEMENT LASTNAME  (# PCDATA)>
+    ::
+        <!ELEMENT LOGIN     (# PCDATA)>
+        <!ELEMENT FIRSTNAME (# PCDATA)>
+        <!ELEMENT LASTNAME  (# PCDATA)>
     Params
     login     -- username
     :property firstname:
@@ -1541,7 +1517,8 @@ class ReportTemplate(CacheableQualysObject):
     ''' Wrapper class for a report template
 
     DTD:
-        ```<!ELEMENT REPORT_TEMPLATE (ID,
+    ::
+        <!ELEMENT REPORT_TEMPLATE (ID,
                 TYPE,
                 TEMPLATE_TYPE,
                 TITLE,
@@ -1599,13 +1576,14 @@ class ReportTemplate(CacheableQualysObject):
 class IPRange(CacheableQualysObject):
     '''Defines and handles an IP range.
     Params:
-    <!ELEMENT RANGE (START, END)>
-    :property network_id:
-        str from <!ATTLIST RANGE network_id  CDATA #IMPLIED>
-    :property start:
-        str from <!ELEMENT START (#PCDATA)>
-    :property end:
-        str from <!ELEMENT END (#PCDATA)>
+    ::
+        <!ELEMENT RANGE (START, END)>
+            <!ATTLIST RANGE network_id  CDATA #IMPLIED>
+            <!ELEMENT START (#PCDATA)>
+            <!ELEMENT END (#PCDATA)>
+    :property network_id: str from <!ATTLIST RANGE network_id  CDATA #IMPLIED>
+    :property start: str from <!ELEMENT START (#PCDATA)>
+    :property end: str from <!ELEMENT END (#PCDATA)>
     '''
     def __init__(self, *args, **kwargs):
         self.network_id = kwargs.pop('network_id', None)
@@ -1647,22 +1625,17 @@ class AssetGroup(CacheableQualysObject):
 
 class ReportTarget(CacheableQualysObject):
     '''Handles REPORT_TARGET part of a ReportHeader
-    ``
+    ::
+        <!ELEMENT TARGET (USER_ASSET_GROUPS?, USER_IP_LIST?, COMBINED_IP_LIST?, ASSET_TAG_LIST?)>
+            <!ELEMENT USER_ASSET_GROUPS (ASSET_GROUP_TITLE+)>
+            <!ELEMENT USER_IP_LIST (RANGE*)>
+            <!ELEMENT COMBINED_IP_LIST (RANGE*)>
 
-    Trigger: <!ELEMENT TARGET (USER_ASSET_GROUPS?, USER_IP_LIST?, COMBINED_IP_LIST?, ASSET_TAG_LIST?)>
-
-    Params/Children:
-    :property user_asset_groups:
-        list of str from <!ELEMENT USER_ASSET_GROUPS (ASSET_GROUP_TITLE+)>
-    :property user_ip_list:
-        List of IPRange objects from <!ELEMENT USER_IP_LIST (RANGE*)>
-    :property combined_ip_list:
-        list of IPRange objects from <!ELEMENT COMBINED_IP_LIST (RANGE*)>
-
-
-    included_tags - list of str from <!ELEMENT ASSET_TAG_LIST (INCLUDED_TAGS, EXCLUDED_TAGS?)>
-    excluded_tags - list of str from 
-    ``
+    :property user_asset_groups: list of str from <!ELEMENT USER_ASSET_GROUPS (ASSET_GROUP_TITLE+)>
+    :property user_ip_list: List of IPRange objects from <!ELEMENT USER_IP_LIST (RANGE*)>
+    :property combined_ip_list: list of IPRange objects from <!ELEMENT COMBINED_IP_LIST (RANGE*)>
+    :property included_tags: list of str from <!ELEMENT ASSET_TAG_LIST (INCLUDED_TAGS, EXCLUDED_TAGS?)>
+    :property excluded_tags: list of str from 
     '''
     asset_groups = None
     ranges       = None
@@ -1681,11 +1654,8 @@ class ReportTarget(CacheableQualysObject):
 
 class AssetTagSet(CacheableQualysObject):
     '''A list of asset tag strings, a scope attribute, and useful functions.
-    :property scope:
-        A string delimiter from the scope attribute of a list of asset
-    tags from Qualys.
-    :property tags:
-        List of str
+    :property scope: A string delimiter from the scope attribute of a list of asset tags from Qualys.
+    :property tags: List of str
     '''
     def __init__(self, *args, **kwargs):
         scope = kwargs.pop('scope', None)
@@ -1703,14 +1673,13 @@ class AssetTagSet(CacheableQualysObject):
 
 class ReportHeader(CacheableQualysObject):
     '''Handles Report Headers
-    ``
-    <!ELEMENT HEADER (COMPANY, USERNAME, GENERATION_DATETIME, TEMPLATE, TARGET, RISK_SCORE_SUMMARY?)>
+    ::
+        <!ELEMENT HEADER (COMPANY, USERNAME, GENERATION_DATETIME, TEMPLATE, TARGET, RISK_SCORE_SUMMARY?)>
 
-    <!ELEMENT COMPANY (#PCDATA)>
-    <!ELEMENT USERNAME (#PCDATA)>
-    <!ELEMENT GENERATION_DATETIME (#PCDATA)>
-    <!ELEMENT TEMPLATE (#PCDATA)>
-    ``
+            <!ELEMENT COMPANY (#PCDATA)>
+            <!ELEMENT USERNAME (#PCDATA)>
+            <!ELEMENT GENERATION_DATETIME (#PCDATA)>
+            <!ELEMENT TEMPLATE (#PCDATA)>
     '''
     company             = None
     username            = None

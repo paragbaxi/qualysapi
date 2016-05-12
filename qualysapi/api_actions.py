@@ -426,7 +426,7 @@ parser.')
         :parameter filter:
             A dictionary used to filter the result set.  The result set can be
             filter on any property/value pair for a Report object
-        .. seealso:: Report
+        .. seealso:: :class:`qualysapi.api_objects.Report`
         '''
         call = '/api/2.0/fo/report/'
         parameters = {
@@ -594,3 +594,10 @@ parser.')
             for item in results:
                 if isinstance(item, Report):
                     return item
+
+    def hostDetectionQuery(self, **kwargs):
+        """hostDetectionQuery
+
+        :param **kwargs: keyword arguments for api call
+        """
+        pass
