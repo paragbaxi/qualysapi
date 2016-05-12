@@ -400,14 +400,21 @@ class Host(CacheableQualysObject):
             param_map = kwargs.pop('param_map', {})
         kwargs['param_map'] = param_map
         kwargs['param_map'].update({
-            'IP'               : ('ip', self.IP),
+            'IP'                 : ('ip', self.IP),
+            'IPV6'               : ('ip', self.IP), # overwrite ip
+            'ID'                 : ('id',                  str ),
+            'NETWORK_ID'         : ('network_id',          str ),
+            'LAST_SCAN_DATETIME' : ('last_scan_datetime', str ),
             'TRACKING_METHOD'  : ('tracking_method',           str ),
             'ASSET_TAGS'       : ('asset_tags', ObjTypeList(   str ,
                 xpath='ASSET_TAG')),
+            'TAGS'             : ('asset_tags', ObjTypeList(   str ,
+                xpath='TAG')),
             'DNS'              : ('dns',                       str ),
             'NETBIOS'          : ('netbios',                   str ),
             'QG_HOSTID'        : ('qg_hostid',                 str ),
             'OPERATING_SYSTEM' : ('operating_system',          str ),
+            'OS'                 : ( 'operating_system',   str ),
             'OS_CPE'           : ('os_cpe',                    str ),
             'IP_INTERFACES'    : ('interfaces', ObjTypeList(self.IP,
                 xpath='IP')),
@@ -415,6 +422,7 @@ class Host(CacheableQualysObject):
                 xpath='ASSET_GROUP_TITLE')),
             'VULN_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
                 xpath='VULN_INFO')),
+            'DETECTION_LIST'     : ('detection_list',     str ),
         })
         super(Host, self).__init__(*args, **kwargs)
 
