@@ -56,6 +56,7 @@ class CacheableQualysObject(object):
     '''
     A base class implementing the api framework
     '''
+    cdata = None
     def __init__(self, **kwargs):
         '''Superclass init function that handles json serializaiton'''
         if 'json' in kwargs:
@@ -71,6 +72,8 @@ class CacheableQualysObject(object):
                     exmsg = 'param_map specified with no element or xml'
                     raise exceptions.QualysFrameworkException(exmsg)
             self.populateParameters(elem, kwargs.get('param_map'))
+            #set any additional text value as self.cdata using itertext.
+            self.cdata = ''.join(elem.itertext())
 
     def getKey(self):
         raise exceptions.QualysFrameworkException('You must implement this'
@@ -448,15 +451,183 @@ class Host(CacheableQualysObject):
 
 
 class AssetGroup(CacheableQualysObject):
-    def __init__(self, business_impact, id, last_update, scanips, scandns,
-            scanner_appliances, title):
-        self.business_impact = str(business_impact)
-        self.id = int(id)
-        self.last_update = str(last_update)
-        self.scanips = scanips
-        self.scandns = scandns
-        self.scanner_appliances = scanner_appliances
-        self.title = str(title)
+    """AssetGroup
+    Class wrapper for ASSET_GROUP elements.  This can be from reports as well
+    as the asset_group_list_output.dtd for the Asset Group API.
+    ::
+        <!-- Asset group api DTD element definition -->
+        <!ELEMENT ASSET_GROUP (ID, TITLE?,
+            OWNER_USER_ID?, OWNER_UNIT_ID?, (NETWORK_ID|NETWORK_IDS)?,
+            LAST_UPDATE?, BUSINESS_IMPACT?,
+            CVSS_ENVIRO_CDP?, CVSS_ENVIRO_TD?, CVSS_ENVIRO_CR?,
+            CVSS_ENVIRO_IR?, CVSS_ENVIRO_AR?,
+            DEFAULT_APPLIANCE_ID?, APPLIANCE_IDS?,
+            IP_SET?, DOMAIN_LIST?, DNS_LIST?, NETBIOS_LIST?,
+            EC2_ID_LIST?, HOST_IDS?,
+            ASSIGNED_USER_IDS?, ASSIGNED_UNIT_IDS?
+        )>
+        <!ELEMENT ID (#PCDATA)>
+        <!ELEMENT TITLE (#PCDATA)>
+        <!ELEMENT OWNER_USER_ID (#PCDATA)>
+        <!ELEMENT OWNER_UNIT_ID (#PCDATA)>
+        <!ELEMENT NETWORK_ID (#PCDATA)>
+        <!ELEMENT NETWORK_IDS (#PCDATA)>
+        <!ELEMENT LAST_UPDATE (#PCDATA)>
+        <!ELEMENT BUSINESS_IMPACT (#PCDATA)>
+
+        <!-- CVSS -->
+        <!ELEMENT CVSS_ENVIRO_CDP (#PCDATA)>
+        <!ELEMENT CVSS_ENVIRO_TD (#PCDATA)>
+        <!ELEMENT CVSS_ENVIRO_CR (#PCDATA)>
+        <!ELEMENT CVSS_ENVIRO_IR (#PCDATA)>
+        <!ELEMENT CVSS_ENVIRO_AR (#PCDATA)>
+
+        <!-- APPLIANCE_LIST -->
+        <!ELEMENT DEFAULT_APPLIANCE_ID (#PCDATA)>
+        <!ELEMENT APPLIANCE_IDS (#PCDATA)>
+
+        <!-- IP_SET -->
+        <!ELEMENT IP_SET ((IP|IP_RANGE)+)>
+        <!ELEMENT IP (#PCDATA)>
+        <!ATTLIST IP network_id CDATA #IMPLIED>
+        <!ELEMENT IP_RANGE (#PCDATA)>
+        <!ATTLIST IP_RANGE network_id CDATA #IMPLIED>
+
+        <!-- DOMAIN_LIST -->
+        <!ELEMENT DOMAIN_LIST (DOMAIN+)>
+        <!ELEMENT DOMAIN (#PCDATA)>
+        <!ATTLIST DOMAIN netblock CDATA "">
+        <!ATTLIST DOMAIN network_id CDATA #IMPLIED>
+
+        <!-- DNS_LIST -->
+        <!ELEMENT DNS_LIST (DNS+)>
+        <!ELEMENT DNS (#PCDATA)>
+        <!ATTLIST DNS network_id CDATA "0">
+
+        <!-- NETBIOS_LIST -->
+        <!ELEMENT NETBIOS_LIST (NETBIOS+)>
+        <!ELEMENT NETBIOS (#PCDATA)>
+        <!ATTLIST NETBIOS network_id CDATA "0">
+
+        <!-- EC2_IDS -->
+        <!ELEMENT EC2_IDS (#PCDATA)>
+
+        <!-- HOST_IDS -->
+        <!ELEMENT HOST_IDS (#PCDATA)>
+
+        <!-- USER_IDS -->
+        <!ELEMENT ASSIGNED_USER_IDS (#PCDATA)>
+
+        <!-- UNIT_IDS -->
+        <!ELEMENT ASSIGNED_UNIT_IDS (#PCDATA)>
+    """
+    def __init__(self, *args, **kwargs):
+        # backwards-compatible with old qualysapi
+        if len(args) > 0:
+            # business_impact
+            self.business_impact = str(args[0])
+            # id
+            self.id = int(args[1])
+            # last_update
+            self.last_update = str(args[2])
+            # scanips
+            self.scanips = args[3]
+            # scandns
+            self.scandns = args[4]
+            # scanner_appliances
+            self.scanner_appliances = args[5]
+            # title
+            self.title = str(args[6])
+
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
+            'ID' : ('id' , str),
+            'TITLE' : ('title' , str),
+            'OWNER_USER_ID' : ('owner_user_id' , str),
+            'OWNER_UNIT_ID' : ('owner_unit_id' , str),
+            'NETWORK_ID' : ('network_id' , str),
+            'NETWORK_IDS' : ('network_ids' , str),
+            'LAST_UPDATE' : ('last_update' , str),
+            'BUSINESS_IMPACT' : ('business_impact' , str),
+            'CVSS_ENVIRO_CDP' : ('cvss_enviro_cdp' , str),
+            'CVSS_ENVIRO_TD' : ('cvss_enviro_td' , str),
+            'CVSS_ENVIRO_CR' : ('cvss_enviro_cr' , str),
+            'CVSS_ENVIRO_IR' : ('cvss_enviro_ir' , str),
+            'CVSS_ENVIRO_AR' : ('cvss_enviro_ar' , str),
+            'DEFAULT_APPLIANCE_ID' : ('default_appliance_id' , str),
+            'APPLIANCE_IDS' : ('appliance_ids' , str),
+            # <!-- IP_SET -->
+            'IP_SET' : ('ip_set' , self.IpSet),
+            #<!ELEMENT DOMAIN_LIST (DOMAIN+)>
+            'DOMAIN' : ('domain' , str),
+
+            # <!-- DNS_LIST -->
+            # <!ELEMENT DNS_LIST (DNS+)>
+            # <!ATTLIST DNS network_id CDATA "0">
+            'DNS_LIST' : ('dns_list', ObjTypeList( str, xpath="DNS")),
+            #<!-- NETBIOS_LIST -->
+            # <!ELEMENT NETBIOS_LIST (NETBIOS+)>
+            # <!ATTLIST NETBIOS network_id CDATA "0">
+            'NETBIOS_LIST' : ('netbios_list', ObjTypeList( str,
+                xpath="NETBIOS")),
+            'EC2_IDS' : ('ec2_ids' , str),
+            'HOST_IDS' : ('host_ids' , str),
+            'ASSIGNED_USER_IDS' : ('assigned_user_ids' , str),
+            'ASSIGNED_UNIT_IDS' : ('assigned_unit_ids' , str),
+        })
+        super(AssetGroup, self).__init__(*args, **kwargs)
+
+    class Domain(CacheableQualysObject):
+        '''Name + Netblock range for a domain.
+        ::
+            <!ATTLIST DOMAIN netblock CDATA "">
+            <!ATTLIST DOMAIN network_id CDATA #IMPLIED>
+        '''
+        netblock   = None #: string list of ips
+        network_id = None #: string list of ip ranges
+        #aliased domain property from cdata
+        @property
+        def domain(self):
+            return self.cdata
+
+        @domain.setter
+        def domain(self, value):
+            self.cdata = value
+
+        def __init__(self, *args, **kwargs):
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
+                'netblock'   : ('netblock',   str ),
+                'network_id' : ('network_id', str ),
+            })
+            super(AssetGroup.Domain, self).__init__(*args, **kwargs)
+
+    class IpSet(CacheableQualysObject):
+        '''Element group handling for IPSET tags. Network ID attributes are
+        ignored.
+        ::
+            <!ATTLIST IP network_id CDATA #IMPLIED>
+            <!ATTLIST IP_RANGE network_id CDATA #IMPLIED>
+        '''
+        ips       = None #: string list of ips
+        ip_ranges = None #: string list of ip ranges
+
+        def __init__(self, *args, **kwargs):
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
+             'IP'       : ('ips'       , list),
+             'IP_RANGE' : ('ip_ranges' , list),
+            })
+            super(AssetGroup.IpSet, self).__init__(*args, **kwargs)
 
     def addAsset(conn, ip):
         call = '/api/2.0/fo/asset/group/'

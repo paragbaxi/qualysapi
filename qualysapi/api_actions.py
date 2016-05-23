@@ -601,3 +601,34 @@ parser.')
         :param **kwargs: keyword arguments for api call
         """
         pass
+
+    def assetGroupQuery(self,  **kwargs):
+        """assetGroupQuery
+
+        Implements the list functions from the qualys Asset Group API.
+
+        """
+        # p;ckle name/default pairs for kwargs
+        optional_params = [
+            ('action',           'list'),
+            ('echo_request',     '0' ),
+            ('ids',              None ),
+            ('id_min',           None ),
+            ('id_max',           None ),
+            ('truncation_limit', None ), # default is 1000
+            ('network_ids',      None ),
+            ('unit_id',          None ),
+            ('user_id',          None ),
+            ('title',            None ),
+            ('show_attributes',  'All' ), # see docs for list
+        ]
+        call = '/api/2.0/fo/asset/group'
+        params = {
+                key:kwargs.get(key, deafult) for (key, default) in
+                optional_params if kwargs.get(key, default) is not None
+        }
+        # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
+        # report and not a SimpleReturn (which can happen)
+        return self.parseResponse(source=call, data=params,
+                consumer_prototype=consumer_prototype)
+
