@@ -5,7 +5,7 @@ import traceback
 import pprint
 import logging
 import json
-from io import BytesIO 
+from io import BytesIO
 
 from qualysapi import util
 

@@ -602,10 +602,12 @@ parser.')
         """
         pass
 
-    def assetGroupQuery(self,  **kwargs):
+    def assetGroupQuery(self, consumer_prototype=None, **kwargs):
         """assetGroupQuery
 
         Implements the list functions from the qualys Asset Group API.
+
+        :Note: show_attributes=ALL can take a very long time
 
         """
         # p;ckle name/default pairs for kwargs
@@ -620,11 +622,11 @@ parser.')
             ('unit_id',          None ),
             ('user_id',          None ),
             ('title',            None ),
-            ('show_attributes',  'All' ), # see docs for list
+            ('show_attributes',  'TITLE' ), # see docs for list
         ]
-        call = '/api/2.0/fo/asset/group'
+        call = '/api/2.0/fo/asset/group/'
         params = {
-                key:kwargs.get(key, deafult) for (key, default) in
+                key:kwargs.get(key, default) for (key, default) in
                 optional_params if kwargs.get(key, default) is not None
         }
         # return 1 or None.  API doesn't allow multiple.  Also make sure it's a

@@ -74,6 +74,7 @@ api_methods['2'] = set([
     'api/2.0/fo/asset/ip/',
     'api/2.0/fo/asset/ip/v4_v6/',
     'api/2.0/fo/asset/vhost/',
+    'api/2.0/fo/asset/group/',
     'api/2.0/fo/auth/',
     # 'api/2.0/fo/auth/{type}/', # Added below.
     'api/2.0/fo/compliance/',

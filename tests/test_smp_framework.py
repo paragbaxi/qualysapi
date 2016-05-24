@@ -128,6 +128,9 @@ class TestAPIMethods(unittest.TestCase):
         logging.debug(report)
         #now do tests on the map report
 
+    def test_asset_group_list(self):
+        """Pulls a list of asset groups."""
+        #actions =
 
     def test_report_list(self):
         ''' Pulls a list of scans'''
@@ -138,9 +141,21 @@ class TestAPIMethods(unittest.TestCase):
         #for counter,scan in enumerate(scans):
         #    logging.debug('%02d:\r%s' % (counter, scan))
 
+    def test_ag_query(self):
+        """Test AG List from Asset Group API"""
+        actions = smpapi.QGSMPActions(cache_connection =
+                self.cache_instance)
+        ags = actions.assetGroupQuery(truncation_limit='10')
+        self.assertGreaterEqual(len(ags),1)
+        logging.debug(pprint.pformat(ags))
+        for ag in ags:
+            logging.info('ID: %s, Title: %s' % (ag.id, ag.title))
+
+
+
 
 #stand-alone test execution
 if __name__ == '__main__':
     import nose2
-    nose2.main(argv=['fake', '--log-capture'])
+    nose2.main(argv=['fake', '--log-capture', 'TestAPIMethods.test_ag_query'])
 
