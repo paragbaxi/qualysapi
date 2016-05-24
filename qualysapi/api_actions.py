@@ -634,3 +634,44 @@ parser.')
         return self.parseResponse(source=call, data=params,
                 consumer_prototype=consumer_prototype)
 
+    def hostListQuery(self, consumer_prototype=None, **kwargs):
+        """hostListQuery
+
+        :param consumer_prototype: Optional multiprocess consumer
+        :param **kwargs: optional api parameters and keyword args
+        """
+        # p;ckle name/default pairs for kwargs
+        optional_params = [
+            ('action',                   'list'),
+            ('truncation_limit',         None ), # default is 1000
+            ('details',                  'Basic'), # see docs for list
+            ('ips',                      None ),
+            ('ids',                      None ),
+            ('ag_ids',                   None ),
+            ('ag_titles',                None ),
+            ('id_min',                   None ),
+            ('id_max',                   None ),
+            ('network_ids',              None ),
+            ('no_vm_scan_since',         None ), #: {date}
+            ('no_compliance_scan_since', None ), #: {date}]
+            ('vm_scan_since',            None ), #: {date}
+            ('compliance_scan_since',    None ), #: {date}
+            ('compliance_enabled',       None ), #: {0|1}
+            ('os_pattern',               None ), #: {expression}
+            ('use_tags',                 None ), #: {0|1}
+            ('tag_set_by',               None ), #: {id|name}
+            ('tag_include_selector',     None ), #: {any|all}
+            ('tag_exclude_selector',     None ), #: {any|all}
+            ('tag_set_include',          None ), #: {value}
+            ('tag_set_exclude',          None ), #: {value}
+            ('show_tags',                None ), #: {0|1}
+        ]
+        call = '/api/2.0/fo/asset/host/'
+        params = {
+                key:kwargs.get(key, default) for (key, default) in
+                optional_params if kwargs.get(key, default) is not None
+        }
+        # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
+        # report and not a SimpleReturn (which can happen)
+        return self.parseResponse(source=call, data=params,
+                consumer_prototype=consumer_prototype)
