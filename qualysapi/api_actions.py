@@ -718,7 +718,7 @@ parser.')
             ('suppress_duplicated_data_from_csv', None ), #: {0|1}
             ('max_days_since_last_vm_scan',       None ), #: {value}
         ]
-        call = '/api/2.0/fo/asset/host/'
+        call = '/api/2.0/fo/asset/host/vm/detection/'
         params = {
             key:kwargs.get(key, default) for (key, default) in
             optional_params if kwargs.get(key, default) is not None

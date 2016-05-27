@@ -515,7 +515,7 @@ class Host(CacheableQualysObject):
             'ASSET_GROUP_IDS'  : ('asset_groups',                         str),
             'VULN_INFO_LIST'   : ('vulns',      ObjTypeList(VulnInfo,
                 xpath='VULN_INFO')),
-            'DETECTION_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
+            'DETECTION_LIST'   : ('vulns', ObjTypeList(VulnInfo,
                 xpath='DETECTION')),
         })
         super(Host, self).__init__(*args, **kwargs)
