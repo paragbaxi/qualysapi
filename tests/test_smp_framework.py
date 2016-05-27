@@ -155,16 +155,26 @@ class TestAPIMethods(unittest.TestCase):
         """Test AG List from Asset Group API"""
         actions = smpapi.QGSMPActions(cache_connection =
                 self.cache_instance)
-        ags = actions.hostListQuery(truncation_limit='10')
-        self.assertGreaterEqual(len(ags),1)
-        logging.debug(pprint.pformat(ags))
-        for ag in ags:
-            logging.info('ID: %s, Title: %s' % (ag.id, ag.title))
+        hosts = actions.hostListQuery(truncation_limit='10')
+        self.assertGreaterEqual(len(hosts),1)
+        logging.debug(pprint.pformat(hosts))
+#         for host in hosts:
+#             logging.info('ID: %s, Title: %s' % (host.id, host.title))
 
+    def test_host_detection_query(self):
+        """Test AG List from Asset Group API"""
+        actions = smpapi.QGSMPActions(cache_connection =
+                self.cache_instance)
+        hosts = actions.hostDetectionQuery(truncation_limit='10',show_tags=1)
+        self.assertGreaterEqual(len(hosts),1)
+        logging.debug(pprint.pformat(hosts))
+#         for host in hosts:
+#             logging.info('ID: %s, Title: %s' % (host.id, host.title))
 
 
 #stand-alone test execution
 if __name__ == '__main__':
     import nose2
-    nose2.main(argv=['fake', '--log-capture', 'TestAPIMethods.test_host_query'])
+    nose2.main(argv=['fake', '--log-capture',
+        'TestAPIMethods.test_host_detection_query'])
 

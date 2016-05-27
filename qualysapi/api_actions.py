@@ -626,8 +626,8 @@ parser.')
         ]
         call = '/api/2.0/fo/asset/group/'
         params = {
-                key:kwargs.get(key, default) for (key, default) in
-                optional_params if kwargs.get(key, default) is not None
+            key:kwargs.get(key, default) for (key, default) in
+            optional_params if kwargs.get(key, default) is not None
         }
         # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
         # report and not a SimpleReturn (which can happen)
@@ -668,8 +668,60 @@ parser.')
         ]
         call = '/api/2.0/fo/asset/host/'
         params = {
-                key:kwargs.get(key, default) for (key, default) in
-                optional_params if kwargs.get(key, default) is not None
+            key:kwargs.get(key, default) for (key, default) in
+            optional_params if kwargs.get(key, default) is not None
+        }
+        # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
+        # report and not a SimpleReturn (which can happen)
+        return self.parseResponse(source=call, data=params,
+                consumer_prototype=consumer_prototype)
+
+    def hostDetectionQuery(self, consumer_prototype=None, **kwargs):
+        """hostListQuery
+
+        :param consumer_prototype: Optional multiprocess consumer
+        :param **kwargs: optional api parameters and keyword args
+        """
+        # p;ckle name/default pairs for kwargs
+        optional_params = [
+            ('action',                            'list'),
+            ('echo_request',                      '0' ), #: optional but default
+            ('output_format',                     None ), #: {XML|CSV| CSV_NO_METADATA}
+            ('truncation_limit',                  None ), # default is 1000
+            ('ids',                               None ),
+            ('id_min',                            None ),
+            ('id_max',                            None ),
+            ('ips',                               None ),
+            ('ag_ids',                            None ),
+            ('ag_titles',                         None ),
+            ('network_ids',                       None ),
+            ('vm_scan_since',                     None ), #: {date}
+            ('no_vm_scan_since',                  None ), #: {date}
+            ('no_compliance_scan_since',          None ), #: {date}]
+            ('os_pattern',                        None ), #: {expression}
+            ('active_kernels_only',               None ), #: {0|1}
+            ('truncation_limit',                  None ), #: {value}
+            ('status',                            None ), #: {value} compliance_enabled={0|1}
+            ('qids',                              None ), #: {value}
+            ('severities',                        None ), #: {value}
+            ('show_igs',                          None ), #: {0|1}
+            ('include_search_list_titles',        None ), #: {value}
+            ('exclude_search_list_titles',        None ), #: {value}
+            ('include_search_list_ids',           None ), #: {value,value...}
+            ('exclude_search_list_ids',           None ), #: {value,value...}
+            ('use_tags',                          None ), #: {0|1} tag_set_by={id|name}
+            ('tag_include_selector',              None ), #: {any|all}
+            ('tag_exclude_selector',              None ), #: {any|all}
+            ('tag_set_include',                   None ), #: {value}
+            ('tag_set_exclude',                   None ), #: {value}
+            ('show_tags',                         None ), #: {0|1}
+            ('suppress_duplicated_data_from_csv', None ), #: {0|1}
+            ('max_days_since_last_vm_scan',       None ), #: {value}
+        ]
+        call = '/api/2.0/fo/asset/host/'
+        params = {
+            key:kwargs.get(key, default) for (key, default) in
+            optional_params if kwargs.get(key, default) is not None
         }
         # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
         # report and not a SimpleReturn (which can happen)

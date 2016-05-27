@@ -178,6 +178,7 @@ class CacheableQualysObject(object):
 class VulnInfo(CacheableQualysObject):
     '''
     A specific vulnerability.  Can be used in multiple reports and contexts.
+    This class is used for both VULN_INFO and DETECTION
     ::
         <!ELEMENT VULN_INFO (QID, TYPE, PORT?, SERVICE?, FQDN?, PROTOCOL?, SSL?,
             INSTANCE?, RESULT?, FIRST_FOUND?, LAST_FOUND?, TIMES_FOUND?,
@@ -227,20 +228,76 @@ class VulnInfo(CacheableQualysObject):
             # attribute just says 'table'.  We will have to do discovery
             # at some point to expose parsing functionality for this data that
             # isn't XML based parsing.
-            'RESULT'        : ('result',         str ),
-            'FIRST_FOUND'   : ('first_found',    str ),
-            'LAST_FOUND'    : ('last_found',     str ),
-            'TIMES_FOUND'   : ('times_found',    str ),
-            'VULN_STATUS'   : ('vuln_status',    str ),
-            'CVSS_FINAL'    : ('cvss_final',     str ),
-            'TICKET_NUMBER' : ('ticket_number',  str ),
-            'TICKET_STATE'  : ('ticket_state',   str ),
-            'INSTANCE'      : ('instance',       str ),
+            'RESULT'               : ('result',               str ),
+            'RESULTS'              : ('result',               str ),
+            'FIRST_FOUND'          : ('first_found',          str ),
+            'LAST_FOUND'           : ('last_found',           str ),
+            'FIRST_FOUND_DATETIME' : ('first_found',          str ),
+            'LAST_FOUND_DATETIME'  : ('last_found',           str ),
+            'LAST_TEST_DATETIME'   : ('last_test_datetime',   str ),
+            'LAST_UPDATE_DATETIME' : ('last_update_datetime', str ),
+            'LAST_FIXED_DATETIME'  : ('last_fixed_datetime', str ),
+            'TIMES_FOUND'          : ('times_found',          str ),
+            'VULN_STATUS'          : ('status',               str ),
+            'STATUS'               : ('status',               str ),
+            'CVSS_FINAL'           : ('cvss_final',           str ),
+            'TICKET_NUMBER'        : ('ticket_number',        str ),
+            'TICKET_STATE'         : ('ticket_state',         str ),
+            'INSTANCE'             : ('instance',             str ),
+            'SEVERITY'             : ('severity',             str ),
         })
         super(VulnInfo, self).__init__(*args, **kwargs)
         # format the last scan into a dagtetime
         for datefield in ('first_found', 'last_found'):
             self.date_convert(datefield)
+
+
+class UserDefs(CacheableQualysObject):
+    """UserDefs
+    Encapsulates user label/value pairs (max 3).  This object is iterable for
+    ease of use.
+    :Example:
+    ::
+        for (label,value) in Host.user_def:
+            print(label,value)
+    ::
+        <!ELEMENT USER_DEF (LABEL_1?, LABEL_2?, LABEL_3?, VALUE_1?, VALUE_2?,
+            VALUE_3?)>
+        <!ELEMENT LABEL_1 (#PCDATA)>
+        <!ELEMENT LABEL_2 (#PCDATA)>
+        <!ELEMENT LABEL_3 (#PCDATA)>
+        <!ELEMENT VALUE_1 (#PCDATA)>
+        <!ELEMENT VALUE_2 (#PCDATA)>
+        <!ELEMENT VALUE_3 (#PCDATA)>
+    """
+    label_1 = None
+    label_2 = None
+    label_3 = None
+    value_1 = None
+    value_2 = None
+    value_3 = None
+    def __init__(self):
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
+            'LABEL_1' : ('label_1', str),
+            'LABEL_2' : ('label_2', str),
+            'LABEL_3' : ('label_3', str),
+            'VALUE_1' : ('value_1', str),
+            'VALUE_2' : ('value_2', str),
+            'VALUE_3' : ('value_3', str),
+        })
+        super(Host.IP, self).__init__(*args, **kwargs)
+        elem = kwargs.get('elem', None)
+        if elem is not None:
+            self.value = ''.join(elem.itertext())
+
+    def __iter__(self):
+        for x in range(1,4):
+            yield (getattr(self, 'label_%d' % x),
+                   getattr(self, 'value_%d' % x))
 
 
 class Host(CacheableQualysObject):
@@ -353,9 +410,31 @@ class Host(CacheableQualysObject):
         def __str__(self):
             return self.value
 
+    class IdSet(CacheableQualysObject):
+        '''Element group handling for IPSET tags. Network ID attributes are
+        ignored.
+        ::
+            <!ATTLIST ID network_id CDATA #IMPLIED>
+            <!ATTLIST ID_RANGE network_id CDATA #IMPLIED>
+        '''
+        ids       = None #: string list of ips
+        id_ranges = None #: string list of ip ranges
+
+        def __init__(self, *args, **kwargs):
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
+             'ID'       : ('ids'       , list),
+             'ID_RANGE' : ('id_ranges' , list),
+            })
+            super(AssetGroup.IdSet, self).__init__(*args, **kwargs)
+
 
     dns              = None #: FQDN if available
     id               = None #: Qualys Internal host ID
+    id_set           = None #: a set of ids linking hosts together
     ip               = None #: :class:`IP` primary.interface
     last_scan        = None #: Last time scanned.
     netbios          = None #: NETBIOS if available
@@ -403,29 +482,41 @@ class Host(CacheableQualysObject):
             param_map = kwargs.pop('param_map', {})
         kwargs['param_map'] = param_map
         kwargs['param_map'].update({
-            'IP'                 : ('ip', self.IP),
-            'IPV6'               : ('ip', self.IP), # overwrite ip
-            'ID'                 : ('id',                  str ),
-            'NETWORK_ID'         : ('network_id',          str ),
+            'IP'              : ('ip', self.IP),
+            'IP_ADDRESS'      : ('ip', self.IP),
+            'IP_LIST'         : ('ip_ranges', ObjTypeList(IPRange,
+                xpath='RANGE')),
+            'IPV6'            : ('ip', self.IP), # overwrite ip
+            'ID_SET'          : ('id_set' ,                        self.IdSet),
+            'ID'              : ('id',                                   str ),
+            'NETWORK_ID'      : ('network_id',                           str ),
+            'OWNER'           : ('owner',                                str ),
+            'COMMENTS'        : ('comments',                             str ),
+            'EC2_INSTANCE_ID' : ('ec2_instance_id',                      str ),
+            'LAST_COMPLIANCE_SCAN_DATETIME' : ('last_compliance_scan_datetime', str),
+            'LAST_VULN_SCAN_DATETIME' : ('last_vuln_scan_datetime', str),
             'LAST_SCAN_DATETIME' : ('last_scan_datetime', str ),
-            'TRACKING_METHOD'  : ('tracking_method',           str ),
-            'ASSET_TAGS'       : ('asset_tags', ObjTypeList(   str ,
+            'TRACKING_METHOD'  : ('tracking_method',         str ),
+            'USER_DEF'         : ('user_def',                UserDefs),
+            'ASSET_TAGS'       : ('asset_tags',              ObjTypeList( str,
                 xpath='ASSET_TAG')),
-            'TAGS'             : ('asset_tags', ObjTypeList(   str ,
+            'TAGS'             : ('asset_tags',              ObjTypeList( str,
                 xpath='TAG')),
-            'DNS'              : ('dns',                       str ),
-            'NETBIOS'          : ('netbios',                   str ),
-            'QG_HOSTID'        : ('qg_hostid',                 str ),
-            'OPERATING_SYSTEM' : ('operating_system',          str ),
-            'OS'                 : ( 'operating_system',   str ),
-            'OS_CPE'           : ('os_cpe',                    str ),
+            'DNS'              : ('dns',                                  str),
+            'NETBIOS'          : ('netbios',                              str),
+            'QG_HOSTID'        : ('qg_hostid',                            str),
+            'OPERATING_SYSTEM' : ('operating_system',                     str),
+            'OS'                 : ( 'operating_system',                  str),
+            'OS_CPE'           : ('os_cpe',                               str),
             'IP_INTERFACES'    : ('interfaces', ObjTypeList(self.IP,
                 xpath='IP')),
-            'ASSET_GROUPS'     : ('asset_groups', ObjTypeList( str ,
+            'ASSET_GROUPS'     : ('asset_groups',            ObjTypeList( str,
                 xpath='ASSET_GROUP_TITLE')),
-            'VULN_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
+            'ASSET_GROUP_IDS'  : ('asset_groups',                         str),
+            'VULN_INFO_LIST'   : ('vulns',      ObjTypeList(VulnInfo,
                 xpath='VULN_INFO')),
-            'DETECTION_LIST'     : ('detection_list',     str ),
+            'DETECTION_INFO_LIST'   : ('vulns', ObjTypeList(VulnInfo,
+                xpath='DETECTION')),
         })
         super(Host, self).__init__(*args, **kwargs)
 
@@ -583,7 +674,7 @@ class AssetGroup(CacheableQualysObject):
             'CVSS_ENVIRO_AR'       : ('cvss_enviro_ar' ,           str ),
             'DEFAULT_APPLIANCE_ID' : ('default_appliance_id' ,     str ),
             'APPLIANCE_IDS'        : ('appliance_ids' ,            str ),
-            'IP_SET'               : ('ip_set' , self.IpSet),
+            'IP_SET'               : ('ip_set' ,             self.IpSet),
             'DOMAIN_LIST'          : ('domain_list', ObjTypeList( str,
                 xpath="DOMAIN")),
             'DNS_LIST'             : ('dns_list', ObjTypeList( str,
@@ -646,7 +737,7 @@ class AssetGroup(CacheableQualysObject):
              'IP'       : ('ips'       , list),
              'IP_RANGE' : ('ip_ranges' , list),
             })
-            super(AssetGroup.IpSet, self).__init__(*args, **kwargs)
+            super(IpSet, self).__init__(*args, **kwargs)
 
     def addAsset(conn, ip):
         call = '/api/2.0/fo/asset/group/'
