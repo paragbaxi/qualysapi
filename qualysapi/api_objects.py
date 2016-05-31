@@ -3,6 +3,7 @@ import lxml
 import logging
 import pprint
 import json
+from urllib import parse as urlparse
 from multiprocessing import Process, Pool, Manager, get_context
 from multiprocessing.queues import Queue
 
@@ -1948,7 +1949,7 @@ class AssetTagSet(CacheableQualysObject):
     '''
     def __init__(self, *args, **kwargs):
         scope = kwargs.pop('scope', None)
-        tags = kwrags.pop('ASSET_TAG', None)
+        tags = kwargs.pop('ASSET_TAG', None)
         param_map = {}
         if 'param_map' in kwargs:
             param_map = kwargs.pop('param_map', {})
@@ -2029,6 +2030,33 @@ class AssetDataReport(Report):
         self.hosts.append(hosts)
 
 
+class AssetWarning(CacheableQualysObject):
+    '''Qualys WARNING element handler for most Asset API calls.
+    ::
+        <!ELEMENT WARNING (CODE?, TEXT, URL?)>
+        <!ELEMENT CODE (#PCDATA)>
+        <!ELEMENT TEXT (#PCDATA)>
+        <!ELEMENT URL (#PCDATA)>
+    '''
+    code = None
+    text = None
+    url  = None
+    def __init__(self, *args, **kwargs):
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
+            'CODE' : ( 'code', str ),
+            'TEXT' : ( 'text', str ),
+            'URL'  : ( 'url',  str ),
+        })
+        super(AssetWarning, self).__init__(*args, **kwargs)
+
+    def getQueryDict(self):
+        return dict(urlparse.parse_qsl(urlparse.urlsplit(self.url).query))
+
+
 # element to api_object mapping
 # this is temporary in lieu of an object which allows for user-override of
 # parse object (subclass parse consumers)
@@ -2043,5 +2071,6 @@ obj_elem_map = {
     'ASSET_DATA_REPORT' : AssetDataReport,
     'ASSET_GROUP'       : AssetGroup,
     # this is disabled (for now)
-    'HOST'              : Host, 
+    'HOST'              : Host,
+    'WARNING'           : AssetWarning,
 }

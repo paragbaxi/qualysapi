@@ -727,3 +727,67 @@ parser.')
         # report and not a SimpleReturn (which can happen)
         return self.parseResponse(source=call, data=params,
                 consumer_prototype=consumer_prototype)
+
+    def iterativeHostDetectionQuery(self, consumer_prototype=None, max_hosts=0,
+            **kwargs):
+        """iterativehostDetectionQuery
+
+        Feeds iteration off the WARNING element to pull all of the hosts in
+        blocks.  This is, obviously, iterative.
+
+        :param consumer_prototype:
+        :param **kwargs:
+        """
+        results = []
+        #1000 is the default so no need to pass on
+        truncation_limit = int(kwargs.get('truncation_limit', 1000))
+        # ok so basically if there is a WARNING then check the CODE, parse the
+        # URL and continue the loop.  Logging is preferred.
+        id_min = kwargs.get('id_min', 1)
+        itercount = 0
+        while id_min:
+            itercount+=1
+            if max_hosts > 0 and truncation_limit * itercount > max_hosts:
+                id_min = None
+                continue
+            # update the id_min for this iteration
+            kwargs['id_min'] = id_min
+            prev_result = self.hostDetectionQuery(consumer_prototype, **kwargs)
+            results.extend(prev_result)
+            id_min = None
+            for itm in reversed(prev_result):
+                if isinstance(itm, AssetWarning):
+                    id_min = itm.getQueryDict()['id_min']
+        return results
+
+    def iterativeHostListQuery(self, consumer_prototype=None, max_hosts=0,
+            **kwargs):
+        """iterativeHostListQuery
+
+        Feeds iteration off the WARNING element to pull all of the hosts in
+        blocks.  This is, obviously, iterative.
+
+        :param consumer_prototype:
+        :param **kwargs:
+        """
+        results = []
+        #1000 is the default so no need to pass on
+        truncation_limit = int(kwargs.get('truncation_limit', 1000))
+        # ok so basically if there is a WARNING then check the CODE, parse the
+        # URL and continue the loop.  Logging is preferred.
+        id_min = kwargs.get('id_min', 1)
+        itercount = 0
+        while id_min:
+            itercount+=1
+            if max_hosts > 0 and truncation_limit * itercount > max_hosts:
+                id_min = None
+                continue
+            # update the id_min for this iteration
+            kwargs['id_min'] = id_min
+            prev_result = self.hostListQuery(consumer_prototype, **kwargs)
+            results.extend(prev_result)
+            id_min = None
+            for itm in reversed(prev_result):
+                if isinstance(itm, AssetWarning):
+                    id_min = itm.getQueryDict()['id_min']
+        return results

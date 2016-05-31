@@ -155,11 +155,12 @@ class TestAPIMethods(unittest.TestCase):
         """Test AG List from Asset Group API"""
         actions = smpapi.QGSMPActions(cache_connection =
                 self.cache_instance)
-        hosts = actions.hostListQuery(truncation_limit='10')
+        hosts = actions.hostListQuery(truncation_limit='10',
+            details='All/AGs',
+            id_min='2507435',
+            show_tags=1)
         self.assertGreaterEqual(len(hosts),1)
         logging.debug(pprint.pformat(hosts))
-#         for host in hosts:
-#             logging.info('ID: %s, Title: %s' % (host.id, host.title))
 
     def test_host_detection_query(self):
         """Test AG List from Asset Group API"""
@@ -168,13 +169,33 @@ class TestAPIMethods(unittest.TestCase):
         hosts = actions.hostDetectionQuery(truncation_limit='10',show_tags=1)
         self.assertGreaterEqual(len(hosts),1)
         logging.debug(pprint.pformat(hosts))
-#         for host in hosts:
-#             logging.info('ID: %s, Title: %s' % (host.id, host.title))
+
+    def test_itrhost_query(self):
+        """Test AG List from Asset Group API"""
+        actions = smpapi.QGSMPActions(cache_connection =
+                self.cache_instance)
+        hosts = actions.iterativeHostListQuery(truncation_limit='10',
+            details='All/AGs',
+            show_tags=1,
+            max_hosts=100)
+        self.assertGreaterEqual(len(hosts),1)
+        logging.debug(pprint.pformat(hosts))
+
+    def test_itrhost_detection_query(self):
+        """Test AG List from Asset Group API"""
+        actions = smpapi.QGSMPActions(cache_connection =
+                self.cache_instance)
+        hosts = actions.iterativeHostDetectionQuery(truncation_limit=10000,
+            details='Basic/AGs',
+            show_tags=1,
+            max_hosts=20000)
+        self.assertGreaterEqual(len(hosts),1)
+        logging.debug(pprint.pformat(hosts))
 
 
 #stand-alone test execution
 if __name__ == '__main__':
     import nose2
     nose2.main(argv=['fake', '--log-capture',
-        'TestAPIMethods.test_host_detection_query'])
+        'TestAPIMethods.test_itrhost_detection_query'])
 

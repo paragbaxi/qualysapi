@@ -761,11 +761,13 @@ class QGSMPActions(QGActions):
                 ' and subclasses can be passed to this function as reports.')
 
         context = etree.iterparse(response, events=('end',))
+        #optional default elem/obj mapping override
+        local_elem_map = kwargs.get('obj_elem_map', obj_elem_map)
         for event, elem in context:
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             stag = etree.QName(elem.tag).localname.upper()
-            if stag in obj_elem_map:
-                import_buffer.add(obj_elem_map[stag](elem=elem,
+            if stag in local_elem_map:
+                import_buffer.add(local_elem_map[stag](elem=elem,
                     report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.
         results = import_buffer.finish() if block else import_buffer
