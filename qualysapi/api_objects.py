@@ -569,6 +569,21 @@ class AssetGroupList(CacheableQualysObject):
     def __iter__(self):
         return iter(self.asset_groups)
 
+    def extend(self, items):
+        if isinstance(items, type(self)):
+            self.asset_groups.extend(items.asset_groups)
+        else:
+            self.asset_groups.extend(items)
+
+    def append(self, item):
+        if isinstance(item, type(self)):
+            self.extend(item)
+        else:
+            self.asset_groups.append(item)
+
+    def items(self):
+        return self.asset_groups
+
 
 #TODO: Add in API source signature identification ability.
 class AssetGroup(CacheableQualysObject):

@@ -831,7 +831,15 @@ parser.')
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.assetGroupQuery(consumer_prototype, **kwargs)
-            results.extend(prev_result)
+            if list_type_combine is not None:
+                for itm in prev_result:
+                    if isinstance(itm, list_type_combine):
+                        if extlist:
+                            extlist.extend(itm)
+                        else:
+                            extlist = itm
+            else:
+                results.extend(prev_result)
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):

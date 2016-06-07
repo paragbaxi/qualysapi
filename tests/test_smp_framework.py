@@ -207,11 +207,26 @@ class TestAPIMethods(unittest.TestCase):
         self.assertGreaterEqual(len(hosts),max_hosts)
         logger.debug('Found %d hosts' % (len(hosts)))
 
+    def test_itr_asset_group_query(self):
+        """Test AG List from Asset Group API"""
+        #alter with non-cache connection
+        #simple_connect = connect(qconf)
+        max_ags = 2000
+        actions = smpapi.QGSMPActions(connection=self.instance)
+        agls = actions.iterativeAssetGroupQuery(truncation_limit=1000,
+            max_ags=max_ags)
+        total_ags = 0
+        for agl in agls:
+            if isinstance(agl, api_objects.AssetGroupList):
+                total_ags += len(agl.items())
+        self.assertEquals(total_ags,max_ags)
+#        logger.debug('Found %d agls' % (len(agls)))
+
 
 #stand-alone test execution
 if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     import nose2
     nose2.main(argv=['fake', '--log-capture',
-        'TestAPIMethods.test_ag_query'])
+        'TestAPIMethods.test_itr_asset_group_query'])
 
