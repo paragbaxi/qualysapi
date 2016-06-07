@@ -372,7 +372,14 @@ class QGConnector:
             request.close()
         return response
 
-    def stream_request(self, api_call, **kwargs):
+    def stream_request(self,
+            api_call,
+            data=None,
+            api_version=None,
+            http_method=None,
+            concurrent_scans_retries=0,
+            concurrent_scans_retry_delay=0,
+            **kwargs):
         """ Return QualysGuard API response as a raw input stream.  This is a
         single request and does not handle concurrent requests.  It is a
         redesigned version of the original request method and is intended for
@@ -381,16 +388,11 @@ class QGConnector:
         be used should cache individual result objects and not the massive xml
         response.
         """
-        data = kwargs.pop(None)
-        api_version = kwargs.pop(None)
-        http_method = kwargs.pop(None)
-        concurrent_scans_retries = kwargs.pop(0)
-        concurrent_scans_retry_delay = kwargs.pop(0)
 
         #
         # Determine API version.
         # Preformat call.
-        api_call = self.preformat_call(api_call)
+        api_call = util.preformat_call(api_call)
         if api_version:
             # API version specified, format API version inputted.
             api_version = self.format_api_version(api_version)
@@ -425,6 +427,7 @@ class QGConnector:
         # this call should be results/maps oriented for large domains and/or maps and/or asset groups so
         # there really is no need or benefit to using concurrent scans here...
         # use a stream-based non-blocking request
+        response = None
         if http_method == 'get':
             # GET
             logger.debug('GET request.')
@@ -449,8 +452,8 @@ class QGConnector:
                     stream=True,
                     timeout=180, # add a 3 minute timeout.. q b slow
                 )
-        if request.status_code == 401:
-            request.close()
+        if response is not None and response.status_code == 401:
+            response.close()
             raise QualysAuthenticationException('Bad Qualys username or \
                 password.')
         response.raise_for_status()

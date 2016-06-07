@@ -729,13 +729,15 @@ parser.')
                 consumer_prototype=consumer_prototype)
 
     def iterativeHostDetectionQuery(self, consumer_prototype=None, max_hosts=0,
-            **kwargs):
+            list_type_combine=None, **kwargs):
         """iterativehostDetectionQuery
 
         Feeds iteration off the WARNING element to pull all of the hosts in
         blocks.  This is, obviously, iterative.
 
         :param consumer_prototype:
+        :param max_hosts: The maximum number of hosts to return
+        :param list_type_combine: Combine chunked result lists.
         :param **kwargs:
         """
         results = []
@@ -761,13 +763,15 @@ parser.')
         return results
 
     def iterativeHostListQuery(self, consumer_prototype=None, max_hosts=0,
-            **kwargs):
+            list_type_combine=None, **kwargs):
         """iterativeHostListQuery
 
         Feeds iteration off the WARNING element to pull all of the hosts in
         blocks.  This is, obviously, iterative.
 
         :param consumer_prototype:
+        :param max_hosts: The maximum number of hosts to return
+        :param list_type_combine: Combine chunked result lists.
         :param **kwargs:
         """
         results = []
@@ -780,11 +784,53 @@ parser.')
         while id_min:
             itercount+=1
             if max_hosts > 0 and truncation_limit * itercount > max_hosts:
-                id_min = None
-                continue
+                truncation_limit = max_hosts - (truncation_limit*(itercount-1))
+                if truncation_limit <= 0:
+                    id_min = None
+                    continue
+                else:
+                    kwargs['truncation_limit'] = truncation_limit
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.hostListQuery(consumer_prototype, **kwargs)
+            results.extend(prev_result)
+            id_min = None
+            for itm in reversed(prev_result):
+                if isinstance(itm, AssetWarning):
+                    id_min = itm.getQueryDict()['id_min']
+        return results
+
+    def iterativeAssetGroupQuery(self, consumer_prototype=None, max_ags=0,
+            list_type_combine=None, **kwargs):
+        """iterativeHostListQuery
+
+        Feeds iteration off the WARNING element to pull all of the asset groups
+        in blocks.  This is, obviously, iterative.
+
+        :param consumer_prototype:
+        :param max_ags: The maximum number of asset groups to return
+        :param list_type_combine: Combine chunked result lists.
+        :param **kwargs:
+        """
+        results = []
+        #1000 is the default so no need to pass on
+        truncation_limit = int(kwargs.get('truncation_limit', 1000))
+        # ok so basically if there is a WARNING then check the CODE, parse the
+        # URL and continue the loop.  Logging is preferred.
+        id_min = kwargs.get('id_min', 1)
+        itercount = 0
+        while id_min:
+            itercount+=1
+            if max_ags > 0 and truncation_limit * itercount > max_ags:
+                truncation_limit = max_ags - (truncation_limit*(itercount-1))
+                if truncation_limit <= 0:
+                    id_min = None
+                    continue
+                else:
+                    kwargs['truncation_limit'] = truncation_limit
+            # update the id_min for this iteration
+            kwargs['id_min'] = id_min
+            prev_result = self.assetGroupQuery(consumer_prototype, **kwargs)
             results.extend(prev_result)
             id_min = None
             for itm in reversed(prev_result):

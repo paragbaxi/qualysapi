@@ -1,6 +1,7 @@
 import datetime
 import lxml
 import logging
+logger = logging.getLogger(__name__)
 import pprint
 import json
 from urllib import parse as urlparse
@@ -9,6 +10,9 @@ from multiprocessing.queues import Queue
 
 import threading
 from qualysapi import exceptions
+
+#debug
+import pudb
 
 
 def jsonify(obj):
@@ -114,8 +118,8 @@ class CacheableQualysObject(object):
         tag names on elements.  This makes creating parsers easier for
         this particular API. '''
         #DEBUG
-#        logging.debug(pprint.pformat(elem))
-#        logging.debug(pprint.pformat(param_map))
+#        logger.debug(pprint.pformat(elem))
+#        logger.debug(pprint.pformat(param_map))
         # TODO at some point make this a set/union funciton rather than
         # iterative
         #handle attributes
@@ -528,24 +532,53 @@ class Host(CacheableQualysObject):
         # the following is being used for Q/A and debug only.  remove later.
         dumpme = False
         if not self.interfaces:
-            logging.warn('No interfaces for host %s' % self.dns)
+            logger.warn('No interfaces for host %s' % self.dns)
             dumpme = True
         if not self.vulns:
-            logging.warn('No vulns for host %s' % self.dns)
+            logger.warn('No vulns for host %s' % self.dns)
             dumpme = True
         if not self.asset_groups:
-            logging.warn('No asset_groups for host %s' % self.dns)
+            logger.warn('No asset_groups for host %s' % self.dns)
             dumpme = True
 
         if dumpme:
-            logging.debug(self)
-            logging.debug(lxml.etree.tostring(kwargs['elem'], pretty_print=True))
+            logger.debug(self)
+            logger.debug(lxml.etree.tostring(kwargs['elem'], pretty_print=True))
+
+class AssetGroupList(CacheableQualysObject):
+    """AssetGroupList
+    A set of AssetGroup objects specific to a document.  Useful for the
+    glossary in an ASSET_GROUP_LIST_OUTPUT document or, abreviated within, a
+    HOST_LIST_OUTPUT document.
+    ::
+        <!ELEMENT ASSET_GROUP_LIST (ASSET_GROUP+)>
+    """
+    asset_groups = None
+
+    def __init__(self, *args, **kwargs):
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
+            'ASSET_GROUP' : ('asset_groups' , ObjTypeList(AssetGroup)),
+        })
+        #logger.debug(lxml.etree.tostring(kwargs.get('elem', None)))
+        super(AssetGroupList, self).__init__(*args, **kwargs)
+
+    def __iter__(self):
+        return iter(self.asset_groups)
 
 
+#TODO: Add in API source signature identification ability.
 class AssetGroup(CacheableQualysObject):
     """AssetGroup
     Class wrapper for ASSET_GROUP elements.  This can be from reports as well
-    as the asset_group_list_output.dtd for the Asset Group API.
+    as the asset_group_list_output.dtd for the Asset Group API (v2) or even the
+    v1 asset_group_list.php.
+
+    This means that properties will be different between APIs used.  Please see
+    the API documentation for which properties will be present.
     ::
         <!-- Asset group api DTD element definition -->
         <!ELEMENT ASSET_GROUP (ID, TITLE?,
@@ -638,7 +671,7 @@ class AssetGroup(CacheableQualysObject):
     assigned_unit_ids     = None
 
     def __init__(self, *args, **kwargs):
-        # backwards-compatible with old qualysapi
+        # backwards-compatible with old qualysapi (v1 api)
         if len(args) > 0:
             # business_impact
             self.business_impact = str(args[0])
@@ -2069,7 +2102,7 @@ obj_elem_map = {
     'REPORT_TEMPLATE'   : ReportTemplate,
     'SIMPLE_RETURN'     : SimpleReturn,
     'ASSET_DATA_REPORT' : AssetDataReport,
-    'ASSET_GROUP'       : AssetGroup,
+    'ASSET_GROUP_LIST'  : AssetGroupList,
     # this is disabled (for now)
     'HOST'              : Host,
     'WARNING'           : AssetWarning,
