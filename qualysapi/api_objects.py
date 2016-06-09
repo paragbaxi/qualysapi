@@ -12,7 +12,7 @@ import threading
 from qualysapi import exceptions
 
 #debug
-import pudb
+#import pudb
 
 
 def jsonify(obj):
@@ -451,6 +451,7 @@ class Host(CacheableQualysObject):
     asset_groups     = None #: List of associated asset groups.
     vulns            = None #: Known vulnerabilities.
     operating_system = None #: host-reported OS
+    asset_group_ids  = None #: CSV list of agids from Asset API Host List
     parent_stub      = None
 
     def __init__(self, *args, **kwargs):
@@ -517,7 +518,7 @@ class Host(CacheableQualysObject):
                 xpath='IP')),
             'ASSET_GROUPS'     : ('asset_groups',            ObjTypeList( str,
                 xpath='ASSET_GROUP_TITLE')),
-            'ASSET_GROUP_IDS'  : ('asset_groups',                         str),
+            'ASSET_GROUP_IDS'  : ('asset_group_ids',                      str),
             'VULN_INFO_LIST'   : ('vulns',      ObjTypeList(VulnInfo,
                 xpath='VULN_INFO')),
             'DETECTION_LIST'   : ('vulns', ObjTypeList(VulnInfo,
@@ -583,6 +584,9 @@ class AssetGroupList(CacheableQualysObject):
 
     def items(self):
         return self.asset_groups
+
+    def size(self):
+        return len(self.asset_groups)
 
 
 #TODO: Add in API source signature identification ability.

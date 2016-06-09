@@ -94,9 +94,11 @@ prototype is not an instance.')
     def checkResults(self, results):
         '''check for actionable response errors'''
         api_response = None
-        if not results:
+        if results is None:
             raise exceptions.QualysFrameworkException('Got a NoneType from the \
 parser.')
+        elif not results:
+            logger.debug('Empty result list from parser.')
         if isinstance(results, list) and \
             len(results) > 0 and \
             issubclass(type(results[0]),SimpleReturn):
@@ -830,7 +832,8 @@ parser.')
                     kwargs['truncation_limit'] = truncation_limit
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
-            prev_result = self.assetGroupQuery(consumer_prototype, **kwargs)
+            prev_result = self.assetGroupQuery(
+                    consumer_prototype = consumer_prototype, **kwargs)
             if list_type_combine is not None:
                 for itm in prev_result:
                     if isinstance(itm, list_type_combine):
@@ -844,4 +847,5 @@ parser.')
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
                     id_min = itm.getQueryDict()['id_min']
+            logger.debug('Requesting next at %s' % id_min)
         return results

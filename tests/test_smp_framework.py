@@ -213,13 +213,16 @@ class TestAPIMethods(unittest.TestCase):
         #simple_connect = connect(qconf)
         max_ags = 2000
         actions = smpapi.QGSMPActions(connection=self.instance)
-        agls = actions.iterativeAssetGroupQuery(truncation_limit=1000,
-            max_ags=max_ags)
-        total_ags = 0
-        for agl in agls:
-            if isinstance(agl, api_objects.AssetGroupList):
-                total_ags += len(agl.items())
-        self.assertEquals(total_ags,max_ags)
+#         agls = actions.iterativeAssetGroupQuery(truncation_limit=1000,
+#             max_ags=max_ags)
+#         total_ags = 0
+#         for agl in agls:
+#             if isinstance(agl, api_objects.AssetGroupList):
+#                 total_ags += len(agl.items())
+#         self.assertEquals(total_ags,max_ags)
+        agls = actions.iterativeAssetGroupQuery(
+            # consumer_prototype = self.consumer,
+            truncation_limit   = 10000)
 #        logger.debug('Found %d agls' % (len(agls)))
 
 
