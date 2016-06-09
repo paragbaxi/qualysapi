@@ -257,6 +257,8 @@ class ImportBuffer(object):
 
     def add(self, item):
         '''Place a new object into the buffer'''
+        #TODO: only put an item in the queue if it is process deferred,
+        #otherwise put it into a simple list to return immediately.
         self.queue.put(item)
         # check for finished consumers and clean them up before we check to see
         # if we need to add additional consumers.

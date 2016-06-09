@@ -2126,3 +2126,4 @@ obj_elem_map = {
     'HOST'              : Host,
     'WARNING'           : AssetWarning,
 }
+
