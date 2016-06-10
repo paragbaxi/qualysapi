@@ -773,7 +773,7 @@ class QGSMPActions(QGActions):
                 import_buffer.queueAdd(local_elem_map[stag](elem=elem,
                     report_stub=rstub))
             elif stag in obj_elem_map:
-                import_buffer.add(local_elem_map[stag](elem=elem,
+                import_buffer.add(obj_elem_map[stag](elem=elem,
                     report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.
         results = import_buffer.finish() if block else \
