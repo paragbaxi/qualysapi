@@ -254,11 +254,7 @@ class ImportBuffer(object):
         self.queue = BufferQueue(ctx=multiprocessing.get_context())
         self.response_error = multiprocessing.Event
 
-
-    def add(self, item):
-        '''Place a new object into the buffer'''
-        #TODO: only put an item in the queue if it is process deferred,
-        #otherwise put it into a simple list to return immediately.
+    def queueAdd(self, item):
         self.queue.put(item)
         # check for finished consumers and clean them up before we check to see
         # if we need to add additional consumers.
@@ -275,6 +271,12 @@ class ImportBuffer(object):
                     response_error=self.response_error)
             new_consumer.start()
             self.running.append(new_consumer)
+
+    def add(self, item):
+        '''Place a new object into the buffer'''
+        #TODO: only put an item in the queue if it is process deferred,
+        #otherwise put it into a simple list to return immediately.
+        self.results_list.append(item)
 
     def setCallback(self, callback):
         '''set or replace a callback in an existing buffer instance.'''
@@ -733,9 +735,8 @@ class QGSMPActions(QGActions):
         #of this object
         #TODO: consider replacing this requirement
         if not block and not callback:
-            raise exceptions.QualysFrameworkException('A callback outlet is '
-            'required for nonblocking calls to the parser/consumer framework.')
-
+            logger.warn('No callback on nonblocking call.  No smp results ' +\
+                'will be returned.')
         #select the response file-like object
         response = None
         if isinstance(source, str):
@@ -768,11 +769,15 @@ class QGSMPActions(QGActions):
         for event, elem in context:
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             stag = etree.QName(elem.tag).localname.upper()
-            if stag in local_elem_map:
+            if stag in queue_elem_map:
+                import_buffer.queueAdd(local_elem_map[stag](elem=elem,
+                    report_stub=rstub))
+            elif stag in local_elem_map:
                 import_buffer.add(local_elem_map[stag](elem=elem,
                     report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.
-        results = import_buffer.finish() if block else import_buffer
+        results = import_buffer.finish() if block else \
+            import_buffer.results_list
         self.checkResults(results)
 
         # special case: report encapsulization...
@@ -852,3 +857,10 @@ class QGSMPActions(QGActions):
         # we should now have a specific subset to generate reports on...
 
 
+queue_elem_map = {
+    'MAP_RESULT'        : MapResult,
+    'VULN'              : QKBVuln,
+    'ASSET_GROUP_LIST'  : AssetGroupList,
+    # this is disabled (for now)
+    'HOST'              : Host,
+}

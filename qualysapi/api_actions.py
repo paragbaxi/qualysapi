@@ -634,7 +634,7 @@ parser.')
         # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
         # report and not a SimpleReturn (which can happen)
         return self.parseResponse(source=call, data=params,
-                consumer_prototype=consumer_prototype)
+                consumer_prototype=consumer_prototype, **kwargs)
 
     def hostListQuery(self, consumer_prototype=None, **kwargs):
         """hostListQuery
@@ -676,7 +676,7 @@ parser.')
         # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
         # report and not a SimpleReturn (which can happen)
         return self.parseResponse(source=call, data=params,
-                consumer_prototype=consumer_prototype)
+                consumer_prototype=consumer_prototype, **kwargs)
 
     def hostDetectionQuery(self, consumer_prototype=None, **kwargs):
         """hostListQuery
@@ -728,7 +728,7 @@ parser.')
         # return 1 or None.  API doesn't allow multiple.  Also make sure it's a
         # report and not a SimpleReturn (which can happen)
         return self.parseResponse(source=call, data=params,
-                consumer_prototype=consumer_prototype)
+                consumer_prototype=consumer_prototype, **kwargs)
 
     def iterativeHostDetectionQuery(self, consumer_prototype=None, max_hosts=0,
             list_type_combine=None, **kwargs):

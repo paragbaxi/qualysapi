@@ -222,7 +222,8 @@ class TestAPIMethods(unittest.TestCase):
 #         self.assertEquals(total_ags,max_ags)
         agls = actions.iterativeAssetGroupQuery(
             # consumer_prototype = self.consumer,
-            truncation_limit   = 10000)
+            truncation_limit   = 10000,
+            block=False)
 #        logger.debug('Found %d agls' % (len(agls)))
 
 
