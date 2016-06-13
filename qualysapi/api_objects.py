@@ -78,7 +78,7 @@ class CacheableQualysObject(object):
                     raise exceptions.QualysFrameworkException(exmsg)
             self.populateParameters(elem, kwargs.get('param_map'))
             #set any additional text value as self.cdata using itertext.
-            self.cdata = ''.join(elem.itertext())
+            self.cdata = lxml.etree.tostring(elem, method="text")
 
     def getKey(self):
         raise exceptions.QualysFrameworkException('You must implement this'
@@ -506,7 +506,7 @@ class Host(CacheableQualysObject):
             'USER_DEF'         : ('user_def',                UserDefs),
             'ASSET_TAGS'       : ('asset_tags',              ObjTypeList( str,
                 xpath='ASSET_TAG')),
-            'TAGS'             : ('asset_tags',              ObjTypeList( str,
+            'TAGS'             : ('asset_tags', ObjTypeList(AssetTag,
                 xpath='TAG')),
             'DNS'              : ('dns',                                  str),
             'NETBIOS'          : ('netbios',                              str),
@@ -1994,6 +1994,26 @@ class ReportTarget(CacheableQualysObject):
         super(ReportTarget, self).__init__(*args, **kwargs)
 
 
+class AssetTag(CacheableQualysObject):
+    """AssetTag
+    asset tag id/name pair object
+    """
+    tag_id = None
+    name   = None
+    def __init__(self, *args, **kwargs):
+        scope = kwargs.pop('scope', None)
+        tags = kwargs.pop('ASSET_TAG', None)
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
+            'TAG_ID' : ('tag_id', str ),
+            'NAME'   : ('name',   str ),
+        })
+        super(AssetTag, self).__init__(*args, **kwargs)
+
+
 class AssetTagSet(CacheableQualysObject):
     '''A list of asset tag strings, a scope attribute, and useful functions.
     :property scope: A string delimiter from the scope attribute of a list of asset tags from Qualys.
@@ -2107,6 +2127,46 @@ class AssetWarning(CacheableQualysObject):
 
     def getQueryDict(self):
         return dict(urlparse.parse_qsl(urlparse.urlsplit(self.url).query))
+
+
+class ImportBuffer(object):
+    """ImportBuffer
+    Base class for import buffers (extended result handling methods)
+
+    This class is iterable.  SMP/MT classes should implement alternate
+    iterators for queues if their queues are iterable.
+    """
+    results_list = None
+    def __init__(self, *args, **kwargs):
+        self.results_list = []
+        super(ImportBuffer, self).__init__(*args, **kwargs)
+
+    def add(self, item):
+        '''Place a new object into the buffer'''
+        #TODO: only put an item in the queue if it is process deferred,
+        #otherwise put it into a simple list to return immediately.
+        self.results_list.append(item)
+
+    def __iter__(self):
+        return iter(self.results_list)
+
+    def __str__(self):
+        return pprint.pformat(self.results_list)
+
+    def finish(self, block=True, **kwargs):
+        """finish
+
+        This method is a stub for MP/MT child classes.  It allows a standard
+        way to ensure processing is finished before cleanup.
+
+        :param block:
+        for asynchronous processing children, this induces blocking to return
+        results.  Otherwise it just returns non-async results for efficiency.
+
+        This allows selective defer for MT/MP processes.
+        """
+
+        return self.results_list
 
 
 # element to api_object mapping

@@ -94,10 +94,11 @@ class BufferConsumer(multiprocessing.Process):
     the process controller to end all processing and then pass of the error to
     the response error handler.
     '''
-    bite_size = 1
-    queue = None
+    bite_size    = 1
+    queue        = None
     results_list = None
-    response_err = None
+    response_err = None #: event to communicate with queue.  Optional.
+    logger       = None
     def __init__(self, **kwargs):
         '''
         initialize this consumer with a bite_size to consume from the buffer.
@@ -110,6 +111,7 @@ class BufferConsumer(multiprocessing.Process):
         can stop processing and raise a fatal exception.
         '''
         super(BufferConsumer, self).__init__() #pass to parent
+        self.logger = logging.getLogger(__class__.__name__)
         self.bite_size = kwargs.get('bite_size', 1000)
         self.queue = kwargs.get('queue', None)
         if self.queue is None:
@@ -117,10 +119,7 @@ class BufferConsumer(multiprocessing.Process):
             'without an input queue.')
 
         self.results_list = kwargs.get('results_list', None)
-        if 'response_error' not in kwargs:
-            raise exceptions.QualysFrameworkException('Buffer Consumers '
-                    'require a bubble-up bound semaphore.')
-        self.resopnse_err = kwargs.get('response_error')
+        self.response_error = kwargs.get('response_error', None)
         self.setUp()
 
 
@@ -165,10 +164,33 @@ class BufferConsumer(multiprocessing.Process):
                 logging.debug('Queue timed out and empty, assuming closed.')
                 if self.queue.empty():
                     done = True
+            except Exception as e:
+                #general thread exception.
+                self.logger.error('Consumer exception %s' % e)
+                #TODO: continue trying/trap exceptions?
+                raise
         self.cleanUp()
 
 
-class ImportBuffer(object):
+class QueueImportBuffer(ImportBuffer):
+    queue = None
+    def __init__(self, *args, **kwargs):
+        self.queue = queue.Queue()
+        super(QueueImportBuffer, self).__init__(*args, **kwargs)
+
+    #TODO: break up ImportBuffer for ST/MT/MP
+    #NOTE: make sure to add a queue finished dump
+
+
+class MTQueueImportBuffer(QueueImportBuffer):
+    """MTQueueImportBuffer
+    Adds thread-library support for Queue processing with consumer framework.
+    """
+    def __init__(self, *args, **kwargs):
+        super(MTQueueImportBuffer, self).__init__(*args, **kwargs)
+
+
+class MPQueueImportBuffer(QueueImportBuffer):
     # TODO: add min/max buffer consumer controls
     '''
         This is a queue manager for a multiprocesses queue consumer for
@@ -190,7 +212,7 @@ class ImportBuffer(object):
         comitted to the database will be detected by another process.
         Obviously.
     '''
-    queue = None
+    #TODO: move stats into parent class.  Standard stat framework needed.
     stats = BufferStats()
     consumer = None
     response_error = None
@@ -199,7 +221,6 @@ class ImportBuffer(object):
     bite_size = 1000
     max_consumers = 5
 
-    results_list = None
     running = []
 
     callback = None
@@ -242,7 +263,10 @@ class ImportBuffer(object):
         if mxcons is not None:
             self.max_consumers = mxcons
 
+        super(MPQueueImportBuffer, self).__init__(*args, **kwargs)
+
         self.manager = multiprocessing.Manager()
+        #override default list
         self.results_list = self.manager.list()
 
         self.consumer = kwargs.pop('consumer', None)
@@ -251,6 +275,7 @@ class ImportBuffer(object):
 
         self.callback = kwargs.pop('callback', None)
 
+        # make parent queue an MP queue
         self.queue = BufferQueue(ctx=multiprocessing.get_context())
         self.response_error = multiprocessing.Event
 
@@ -272,39 +297,33 @@ class ImportBuffer(object):
             new_consumer.start()
             self.running.append(new_consumer)
 
-    def add(self, item):
-        '''Place a new object into the buffer'''
-        #TODO: only put an item in the queue if it is process deferred,
-        #otherwise put it into a simple list to return immediately.
-        self.results_list.append(item)
-
     def setCallback(self, callback):
         '''set or replace a callback in an existing buffer instance.'''
         self.callback = callback
 
-    def finish(self):
+    def finish(self, block=True, **kwargs):
         '''
         Notifies the buffer that we are done filling it.
         This command binds to any processes still running and lets them
         finish and then copies and flushes the managed results list.
         '''
         # close the queue and wait until it is consumed
-        self.queue.close()
-        self.queue.join_thread()
-        # make sure the consumers are done consuming the queue
-        for csmr in self.running:
-            csmr.join()
-        # turn this into a list instead of a managed list
         result = list(self.results_list)
-        del self.results_list[:]
+        if block:
+            self.queue.close()
+            self.queue.join_thread()
+            # make sure the consumers are done consuming the queue
+            for csmr in self.running:
+                csmr.join()
+            # turn this into a list instead of a managed list
         if self.callback:
             return self.callback(result)
         else:
             return result
 
 
-# class ReportImportBuffer(ImportBuffer):
-#     """ReportImportBuffer
+# class ReportMPQueueImportBuffer(MPQueueImportBuffer):
+#     """ReportMPQueueImportBuffer
 #         Specifically designed to handle report line items during report
 #         processing since the nesting tree for other elements breaks for
 #         reports.
@@ -321,7 +340,7 @@ class ImportBuffer(object):
 #         expansion/parent pass-through
 #         """
 #         self.report_ref = report
-#         super(ReportImportBuffer, *args, **kwargs)
+#         super(ReportMPQueueImportBuffer, *args, **kwargs)
 
 
 class SMPActionPool(object):
@@ -427,7 +446,7 @@ class ActionPool(object):
                             qcache.APICacheInstance(self.config))
                 else:
                     import_buffer_proto = self.import_buffer_proto if \
-                        self.import_buffer_proto is not None else ImportBuffer
+                        self.import_buffer_proto is not None else MPQueueImportBuffer
                     actn = proto(connection = connector.QGConnector(
                         self.config.get_auth(),
                         hostname=self.config.get_hostname(),
@@ -688,9 +707,9 @@ class QGSMPActions(QGActions):
         '''
         :param kwargs:
             buffer_prototype -- Optional.  A prototype to use instead of the
-            base ImportBuffer
+            base MPQueueImportBuffer
             consumer_prototype -- Optional.  A prototype to pass to any new
-            instance of ImportBuffer and subclasses which consumes the buffer.
+            instance of MPQueueImportBuffer and subclasses which consumes the buffer.
         '''
         super(QGSMPActions, self).__init__(*args, **kwargs)
         self.buffer_prototype = kwargs.get('buffer_prototype', None)
@@ -729,7 +748,7 @@ class QGSMPActions(QGActions):
         if not source:
             raise QualysException('No source file or URL or raw stream found.')
 
-        block = kwargs.pop('block', True)
+        block = kwargs.get('block', True)
         callback = kwargs.pop('completion_callback', None)
         #TODO: consider passing in an import_buffer for thread management reuse
         #of this object
@@ -752,7 +771,7 @@ class QGSMPActions(QGActions):
             consumer = self.consumer_prototype
 
         if self.buffer_prototype is None:
-            import_buffer = ImportBuffer(callback=callback, consumer=consumer)
+            import_buffer = MPQueueImportBuffer(callback=callback, consumer=consumer)
         else:
             import_buffer = self.buffer_prototype(callback=callback,
                     consumer=consumer)
@@ -776,8 +795,7 @@ class QGSMPActions(QGActions):
                 import_buffer.add(obj_elem_map[stag](elem=elem,
                     report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.
-        results = import_buffer.finish() if block else \
-            import_buffer.results_list
+        results = import_buffer.finish(block=block)
         self.checkResults(results)
 
         # special case: report encapsulization...
@@ -855,6 +873,18 @@ class QGSMPActions(QGActions):
                 kwargs.get('map_names', []) ]
 
         # we should now have a specific subset to generate reports on...
+
+    def addBuffer(self, parse_buffer):
+        '''
+        Add an MPQueueImportBuffer to this action object.
+        '''
+        self.import_buffer = parse_buffer
+
+    def safeReturn(self):
+        if self.import_buffer:
+            return self.import_buffer.finish()
+        else:
+            return []
 
 
 queue_elem_map = {

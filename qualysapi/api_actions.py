@@ -23,18 +23,14 @@ from threading import Thread, Event
 # multi-request parsing/consuming by a single calling program.
 
 
-def defaultCompletionHandler(IB):
-    logging.info('Import buffer completed.')
-    logging.info(repr(IB))
-
-
 class QGActions(object):
 
-    import_buffer = None
-    request = None
-    stream_request = None
+    import_buffer    = None
+    buffer_prototype = None
+    request          = None
+    stream_request   = None
 
-    conn = None
+    conn             = None
 
 
     def __init__(self, *args, **kwargs):
@@ -85,11 +81,49 @@ prototype is not an instance.')
 
 
     def parseResponse(self, **kwargs):
-        '''single-thread/process parseResponse.'''
-        # TODO: when you implement this, remember to incldue the improved
-        # response checker
-        # self.checkResults(results)
-        raise exceptions.QualysFrameworkException('Not yet implemented.')
+        """parseResponse
+        inline parsing for requests.  Part of the overhaul.
+        :param **kwargs:
+        """
+        source = kwargs.pop('source', None)
+        if not source:
+            raise QualysException('No source file or URL or raw stream found.')
+
+        #select the response file-like object
+        response = None
+        if isinstance(source, str):
+            response = self.stream_request(source, **kwargs)
+        else:
+            response = source
+
+        import_buffer = None
+
+        if self.buffer_prototype is None:
+            import_buffer = ImportBuffer()
+        else:
+            import_buffer = self.buffer_prototype()
+        rstub = None
+        if 'report' in kwargs:
+            rstub = kwargs.get('report')
+            if not isinstance(rstub, Report):
+                raise exceptions.QualysFrameworkException('Only Report objects'
+                ' and subclasses can be passed to this function as reports.')
+
+        context = etree.iterparse(response, events=('end',))
+        #optional default elem/obj mapping override
+        local_elem_map = kwargs.get('obj_elem_map', obj_elem_map)
+        for event, elem in context:
+            # Use QName to avoid specifying or stripping the namespace, which we don't need
+            stag = etree.QName(elem.tag).localname.upper()
+            if stag in local_elem_map:
+                import_buffer.add(obj_elem_map[stag](elem=elem,
+                    report_stub=rstub))
+                # elem.clear() #don't fill up a dom we don't need.
+        results = import_buffer.finish(**kwargs)
+        #TODO: redress
+        self.checkResults(results)
+        # special case: report encapsulization...
+        return results
 
     def checkResults(self, results):
         '''check for actionable response errors'''
@@ -571,12 +605,6 @@ parser.')
                 scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE,
                 scan.USER_LOGIN)
 
-    def addBuffer(self, parse_buffer):
-        '''
-        Add an ImportBuffer to this action object.
-        '''
-        self.import_buffer = parse_buffer
-
     def getConnectionConfig(self):
         return self.conn.getConfig()
 
@@ -752,8 +780,12 @@ parser.')
         while id_min:
             itercount+=1
             if max_hosts > 0 and truncation_limit * itercount > max_hosts:
-                id_min = None
-                continue
+                truncation_limit = max_hosts - (truncation_limit*(itercount-1))
+                if truncation_limit <= 0:
+                    id_min = None
+                    continue
+                else:
+                    kwargs['truncation_limit'] = truncation_limit
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.hostDetectionQuery(consumer_prototype, **kwargs)
@@ -849,3 +881,6 @@ parser.')
                     id_min = itm.getQueryDict()['id_min']
             logger.debug('Requesting next at %s' % id_min)
         return results
+
+    def finish(self):
+        return self.import_buffer.finish(block=True)
