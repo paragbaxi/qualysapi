@@ -2139,7 +2139,7 @@ class ImportBuffer(object):
     results_list = None
     def __init__(self, *args, **kwargs):
         self.results_list = []
-        super(ImportBuffer, self).__init__(*args, **kwargs)
+        super(ImportBuffer, self).__init__()
 
     def add(self, item):
         '''Place a new object into the buffer'''
