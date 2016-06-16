@@ -176,8 +176,12 @@ class CacheableQualysObject(object):
                             getattr(self, attrname).append(
                                     attrtype.class_type(elem=child))
             else:
-                setattr(self, attrname,
+                try:
+                    setattr(self, attrname,
                         attrtype(elem=child, attrname=attrname))
+                except:
+                    logging.error('Uknown element handler type.')
+                    logging.error('\tType: %s' % attrtype)
 
 
 class VulnInfo(CacheableQualysObject):
@@ -294,7 +298,7 @@ class UserDefs(CacheableQualysObject):
             'VALUE_2' : ('value_2', str),
             'VALUE_3' : ('value_3', str),
         })
-        super(Host.IP, self).__init__(*args, **kwargs)
+        super(UserDefs, self).__init__(*args, **kwargs)
         elem = kwargs.get('elem', None)
         if elem is not None:
             self.value = ''.join(elem.itertext())
@@ -519,9 +523,9 @@ class Host(CacheableQualysObject):
             'ASSET_GROUPS'     : ('asset_groups',            ObjTypeList( str,
                 xpath='ASSET_GROUP_TITLE')),
             'ASSET_GROUP_IDS'  : ('asset_group_ids',                      str),
-            'VULN_INFO_LIST'   : ('vulns',      ObjTypeList(VulnInfo,
+            'VULN_INFO_LIST'   : ('vulns',                ObjTypeList(VulnInfo,
                 xpath='VULN_INFO')),
-            'DETECTION_LIST'   : ('vulns', ObjTypeList(VulnInfo,
+            'DETECTION_LIST'   : ('vulns',                ObjTypeList(VulnInfo,
                 xpath='DETECTION')),
         })
         super(Host, self).__init__(*args, **kwargs)
