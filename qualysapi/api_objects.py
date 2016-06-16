@@ -309,6 +309,51 @@ class UserDefs(CacheableQualysObject):
                    getattr(self, 'value_%d' % x))
 
 
+class IP(CacheableQualysObject):
+    '''IP address along with metadata'''
+    network_id = None #: Attempts to cross-link NICs to hosts
+    ipv6       = None #: Flag for IPV6
+    value      = None #: Can be IPV4 or IPV6.  Tricky.
+    def __init__(self, *args, **kwargs):
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
+            'network_id' : ('network_id', str ),
+            'v6'         : ('ipv6',       str ),
+        })
+        super(IP, self).__init__(*args, **kwargs)
+        elem = kwargs.get('elem', None)
+        if elem is not None:
+            self.value = ''.join(elem.itertext())
+
+    def __str__(self):
+        return self.value
+
+
+class AssetGroupIdSet(CacheableQualysObject):
+    '''Element group handling for IPSET tags. Network ID attributes are
+    ignored.
+    ::
+        <!ATTLIST ID network_id CDATA #IMPLIED>
+        <!ATTLIST ID_RANGE network_id CDATA #IMPLIED>
+    '''
+    ids       = None #: string list of ips
+    id_ranges = None #: string list of ip ranges
+
+    def __init__(self, *args, **kwargs):
+        param_map = {}
+        if 'param_map' in kwargs:
+            param_map = kwargs.pop('param_map', {})
+        kwargs['param_map'] = param_map
+        kwargs['param_map'].update({
+         'ID'       : ('ids'       , list),
+         'ID_RANGE' : ('id_ranges' , list),
+        })
+        super(AssetGroupIdSet, self).__init__(*args, **kwargs)
+
+
 class Host(CacheableQualysObject):
     '''
     Upgraded host information for reports
@@ -366,81 +411,6 @@ class Host(CacheableQualysObject):
         available in the properties from a DL vuln than a VIL vuln.
 
     '''
-    class Tag(CacheableQualysObject):
-        """Tag
-        Encapsulates the Tag element as a class.
-        ::
-
-            <!ELEMENT TAG (TAG_ID?, NAME, COLOR?, BACKGROUND_COLOR?)>
-            <!ELEMENT TAG_ID (#PCDATA)>
-            <!ELEMENT NAME (#PCDATA)>
-            <!ELEMENT COLOR (#PCDATA)>
-            <!ELEMENT BACKGROUND_COLOR (#PCDATA)>
-        """
-        tag              = None
-        tag_id           = None
-        name             = None
-        color            = None
-        background_color = None
-        def __init__(self, *args, **kwargs):
-            kwargs['param_map'] = kwargs.pop('param_map', {})
-            kwargs['param_map'].update({
-                'tag'              : ('TAG',              str ),
-                'tag_id'           : ('TAG_ID',           str ),
-                'name'             : ('NAME',             str ),
-                'color'            : ('COLOR',            str ),
-                'background_color' : ('BACKGROUND_COLOR', str ),
-            })
-            super(Host.Tag, self).__init__(*args, **kwargs)
-
-        def __str__(self):
-            return self.name
-
-
-    class IP(CacheableQualysObject):
-        '''IP address along with metadata'''
-        network_id = None #: Attempts to cross-link NICs to hosts
-        ipv6       = None #: Flag for IPV6
-        value      = None #: Can be IPV4 or IPV6.  Tricky.
-        def __init__(self, *args, **kwargs):
-            param_map = {}
-            if 'param_map' in kwargs:
-                param_map = kwargs.pop('param_map', {})
-            kwargs['param_map'] = param_map
-            kwargs['param_map'].update({
-                'network_id' : ('network_id', str ),
-                'v6'         : ('ipv6',       str ),
-            })
-            super(Host.IP, self).__init__(*args, **kwargs)
-            elem = kwargs.get('elem', None)
-            if elem is not None:
-                self.value = ''.join(elem.itertext())
-
-        def __str__(self):
-            return self.value
-
-    class IdSet(CacheableQualysObject):
-        '''Element group handling for IPSET tags. Network ID attributes are
-        ignored.
-        ::
-            <!ATTLIST ID network_id CDATA #IMPLIED>
-            <!ATTLIST ID_RANGE network_id CDATA #IMPLIED>
-        '''
-        ids       = None #: string list of ips
-        id_ranges = None #: string list of ip ranges
-
-        def __init__(self, *args, **kwargs):
-            param_map = {}
-            if 'param_map' in kwargs:
-                param_map = kwargs.pop('param_map', {})
-            kwargs['param_map'] = param_map
-            kwargs['param_map'].update({
-             'ID'       : ('ids'       , list),
-             'ID_RANGE' : ('id_ranges' , list),
-            })
-            super(AssetGroup.IdSet, self).__init__(*args, **kwargs)
-
-
     dns              = None #: FQDN if available
     id               = None #: Qualys Internal host ID
     id_set           = None #: a set of ids linking hosts together
@@ -492,12 +462,12 @@ class Host(CacheableQualysObject):
             param_map = kwargs.pop('param_map', {})
         kwargs['param_map'] = param_map
         kwargs['param_map'].update({
-            'IP'              : ('ip', self.IP),
-            'IP_ADDRESS'      : ('ip', self.IP),
+            'IP'              : ('ip', IP),
+            'IP_ADDRESS'      : ('ip', IP),
             'IP_LIST'         : ('ip_ranges', ObjTypeList(IPRange,
                 xpath='RANGE')),
-            'IPV6'            : ('ip', self.IP), # overwrite ip
-            'ID_SET'          : ('id_set' ,                        self.IdSet),
+            'IPV6'            : ('ip', IP), # overwrite ip
+            'ID_SET'          : ('id_set' ,                   AssetGroupIdSet),
             'ID'              : ('id',                                   str ),
             'NETWORK_ID'      : ('network_id',                           str ),
             'OWNER'           : ('owner',                                str ),
@@ -518,9 +488,9 @@ class Host(CacheableQualysObject):
             'OPERATING_SYSTEM' : ('operating_system',                     str),
             'OS'                 : ( 'operating_system',                  str),
             'OS_CPE'           : ('os_cpe',                               str),
-            'IP_INTERFACES'    : ('interfaces', ObjTypeList(self.IP,
+            'IP_INTERFACES'    : ('interfaces',                ObjTypeList( IP,
                 xpath='IP')),
-            'ASSET_GROUPS'     : ('asset_groups',            ObjTypeList( str,
+            'ASSET_GROUPS'     : ('asset_groups',              ObjTypeList( str,
                 xpath='ASSET_GROUP_TITLE')),
             'ASSET_GROUP_IDS'  : ('asset_group_ids',                      str),
             'VULN_INFO_LIST'   : ('vulns',                ObjTypeList(VulnInfo,
@@ -2002,8 +1972,11 @@ class AssetTag(CacheableQualysObject):
     """AssetTag
     asset tag id/name pair object
     """
-    tag_id = None
-    name   = None
+    tag              = None
+    tag_id           = None
+    name             = None
+    color            = None
+    background_color = None
     def __init__(self, *args, **kwargs):
         scope = kwargs.pop('scope', None)
         tags = kwargs.pop('ASSET_TAG', None)
@@ -2012,8 +1985,11 @@ class AssetTag(CacheableQualysObject):
             param_map = kwargs.pop('param_map', {})
         kwargs['param_map'] = param_map
         kwargs['param_map'].update({
-            'TAG_ID' : ('tag_id', str ),
-            'NAME'   : ('name',   str ),
+            'TAG'              : ('tag',              str ),
+            'TAG_ID'           : ('tag_id',           str ),
+            'NAME'             : ('name',             str ),
+            'COLOR'            : ('color',            str ),
+            'BACKGROUND_COLOR' : ('background_color', str ),
         })
         super(AssetTag, self).__init__(*args, **kwargs)
 
