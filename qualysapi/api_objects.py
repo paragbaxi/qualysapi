@@ -501,24 +501,6 @@ class Host(CacheableQualysObject):
         super(Host, self).__init__(*args, **kwargs)
 
         self.parent_stub = kwargs.get('report_stub', None)
-        # this gives consumers a hook back to information about the report being
-        # processed without having to have the whole darn report in memory...
-
-        # the following is being used for Q/A and debug only.  remove later.
-        dumpme = False
-        if not self.interfaces:
-            logger.warn('No interfaces for host %s' % self.dns)
-            dumpme = True
-        if not self.vulns:
-            logger.warn('No vulns for host %s' % self.dns)
-            dumpme = True
-        if not self.asset_groups:
-            logger.warn('No asset_groups for host %s' % self.dns)
-            dumpme = True
-
-        if dumpme:
-            logger.debug(self)
-            logger.debug(lxml.etree.tostring(kwargs['elem'], pretty_print=True))
 
 class AssetGroupList(CacheableQualysObject):
     """AssetGroupList
