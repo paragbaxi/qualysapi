@@ -886,7 +886,7 @@ class QGSMPActions(QGActions):
         '''
         self.import_buffer = parse_buffer
 
-    def safeReturn(self):
+    def finish(self):
         if self.import_buffer:
             return self.import_buffer.finish(block=True)
         else:
