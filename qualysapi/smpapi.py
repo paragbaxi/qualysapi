@@ -888,7 +888,7 @@ class QGSMPActions(QGActions):
 
     def safeReturn(self):
         if self.import_buffer:
-            return self.import_buffer.finish()
+            return self.import_buffer.finish(block=True)
         else:
             return []
 

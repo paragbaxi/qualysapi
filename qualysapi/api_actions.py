@@ -770,7 +770,6 @@ parser.')
         :param list_type_combine: Combine chunked result lists.
         :param **kwargs:
         """
-        results = []
         #1000 is the default so no need to pass on
         truncation_limit = int(kwargs.get('truncation_limit', 1000))
         # ok so basically if there is a WARNING then check the CODE, parse the
@@ -789,12 +788,11 @@ parser.')
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.hostDetectionQuery(consumer_prototype, **kwargs)
-            results.extend(prev_result)
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
                     id_min = itm.getQueryDict()['id_min']
-        return results
+        return self.finish()
 
     def iterativeHostListQuery(self, consumer_prototype=None, max_hosts=0,
             list_type_combine=None, **kwargs):
@@ -808,7 +806,6 @@ parser.')
         :param list_type_combine: Combine chunked result lists.
         :param **kwargs:
         """
-        results = []
         #1000 is the default so no need to pass on
         truncation_limit = int(kwargs.get('truncation_limit', 1000))
         # ok so basically if there is a WARNING then check the CODE, parse the
@@ -827,12 +824,11 @@ parser.')
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.hostListQuery(consumer_prototype, **kwargs)
-            results.extend(prev_result)
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
                     id_min = itm.getQueryDict()['id_min']
-        return results
+        return self.finish()
 
     def iterativeAssetGroupQuery(self, consumer_prototype=None, max_ags=0,
             list_type_combine=None, **kwargs):
@@ -846,7 +842,6 @@ parser.')
         :param list_type_combine: Combine chunked result lists.
         :param **kwargs:
         """
-        results = []
         #1000 is the default so no need to pass on
         truncation_limit = int(kwargs.get('truncation_limit', 1000))
         # ok so basically if there is a WARNING then check the CODE, parse the
@@ -873,14 +868,12 @@ parser.')
                             extlist.extend(itm)
                         else:
                             extlist = itm
-            else:
-                results.extend(prev_result)
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
                     id_min = itm.getQueryDict()['id_min']
             logger.debug('Requesting next at %s' % id_min)
-        return results
+        return self.finish()
 
     def finish(self):
         return self.import_buffer.finish(block=True)
