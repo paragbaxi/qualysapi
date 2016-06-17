@@ -280,7 +280,13 @@ class MPQueueImportBuffer(QueueImportBuffer):
         self.response_error = multiprocessing.Event
 
     def queueAdd(self, item):
-        self.queue.put(item)
+        try:
+            self.queue.put(item)
+        except BrokenPipeError:
+            #workaround for pipe issue
+            address = 'localhost'
+            if address in multiprocessing.managers.BaseProxy._address_to_local:
+                del BaseProxy._address_to_local[address][0].connection
         # check for finished consumers and clean them up before we check to see
         # if we need to add additional consumers.
         for csmr in self.running:

@@ -78,7 +78,11 @@ class CacheableQualysObject(object):
                     raise exceptions.QualysFrameworkException(exmsg)
             self.populateParameters(elem, kwargs.get('param_map'))
             #set any additional text value as self.cdata using itertext.
-            self.cdata = lxml.etree.tostring(elem, method="text")
+            try:
+                self.cdata = lxml.etree.tostring(elem, method="text")
+            except:
+                logger.warn(
+                    'Failed text encode on field %s\n\t%r' % (elem.tag, self))
 
     def getKey(self):
         raise exceptions.QualysFrameworkException('You must implement this'
@@ -180,8 +184,8 @@ class CacheableQualysObject(object):
                     setattr(self, attrname,
                         attrtype(elem=child, attrname=attrname))
                 except:
-                    logging.error('Uknown element handler type.')
-                    logging.error('\tType: %s' % attrtype)
+                    logging.error('Unknown element handler type.\r\t'+\
+                    'Type: %s' % attrtype)
 
 
 class VulnInfo(CacheableQualysObject):
@@ -285,7 +289,7 @@ class UserDefs(CacheableQualysObject):
     value_1 = None
     value_2 = None
     value_3 = None
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         param_map = {}
         if 'param_map' in kwargs:
             param_map = kwargs.pop('param_map', {})
@@ -299,9 +303,6 @@ class UserDefs(CacheableQualysObject):
             'VALUE_3' : ('value_3', str),
         })
         super(UserDefs, self).__init__(*args, **kwargs)
-        elem = kwargs.get('elem', None)
-        if elem is not None:
-            self.value = ''.join(elem.itertext())
 
     def __iter__(self):
         for x in range(1,4):
