@@ -282,6 +282,10 @@ class MPQueueImportBuffer(QueueImportBuffer):
     def queueAdd(self, item):
         try:
             self.queue.put(item)
+        except AssertionError:
+            #queue has been closed, remake it (let the other GC)
+            self.queue = BufferQueue(ctx=multiprocessing.get_context())
+            self.queue.put(item)
         except BrokenPipeError:
             #workaround for pipe issue
             address = 'localhost'
