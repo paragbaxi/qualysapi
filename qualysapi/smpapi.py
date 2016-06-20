@@ -769,18 +769,18 @@ class QGSMPActions(QGActions):
         else:
             response = source
 
-        import_buffer = None
         consumer = None
         if 'consumer_prototype' in kwargs:
             consumer = kwargs.pop('consumer_prototype')
         else:
             consumer = self.consumer_prototype
 
-        if self.buffer_prototype is None:
-            import_buffer = MPQueueImportBuffer(callback=callback, consumer=consumer)
-        else:
-            import_buffer = self.buffer_prototype(callback=callback,
-                    consumer=consumer)
+        if self.import_buffer is None:
+            if self.buffer_prototype is None:
+                self.import_buffer = MPQueueImportBuffer(callback=callback, consumer=consumer)
+            else:
+                self.import_buffer = self.buffer_prototype(callback=callback,
+                        consumer=consumer)
         rstub = None
         if 'report' in kwargs:
             rstub = kwargs.get('report')
@@ -795,13 +795,13 @@ class QGSMPActions(QGActions):
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             stag = etree.QName(elem.tag).localname.upper()
             if stag in local_elem_map:
-                import_buffer.queueAdd(local_elem_map[stag](elem=elem,
+                self.import_buffer.queueAdd(local_elem_map[stag](elem=elem,
                     report_stub=rstub))
             elif stag in obj_elem_map:
-                import_buffer.add(obj_elem_map[stag](elem=elem,
+                self.import_buffer.add(obj_elem_map[stag](elem=elem,
                     report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.
-        results = import_buffer.finish(block=block)
+        results = self.import_buffer.finish(block=block)
         self.checkResults(results)
 
         # special case: report encapsulization...
@@ -880,7 +880,7 @@ class QGSMPActions(QGActions):
 
         # we should now have a specific subset to generate reports on...
 
-    def addBuffer(self, parse_buffer):
+    def replaceBuffer(self, parse_buffer):
         '''
         Add an MPQueueImportBuffer to this action object.
         '''

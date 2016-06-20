@@ -2,6 +2,7 @@ from lxml import objectify, etree
 from qualysapi.api_objects import *
 from qualysapi.exceptions import *
 from qualysapi.api_methods import api_methods
+from qualysapi.util import date_param_format, qualys_datetime_to_python
 import logging
 import pprint
 import json
@@ -96,12 +97,11 @@ prototype is not an instance.')
         else:
             response = source
 
-        import_buffer = None
-
-        if self.buffer_prototype is None:
-            import_buffer = ImportBuffer()
-        else:
-            import_buffer = self.buffer_prototype()
+        if self.import_buffer is None:
+            if self.buffer_prototype is None:
+                self.import_buffer = ImportBuffer()
+            else:
+                self.import_buffer = self.buffer_prototype()
         rstub = None
         if 'report' in kwargs:
             rstub = kwargs.get('report')
@@ -116,10 +116,10 @@ prototype is not an instance.')
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             stag = etree.QName(elem.tag).localname.upper()
             if stag in local_elem_map:
-                import_buffer.add(obj_elem_map[stag](elem=elem,
+                self.import_buffer.add(obj_elem_map[stag](elem=elem,
                     report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.
-        results = import_buffer.finish(**kwargs)
+        results = self.import_buffer.finish(**kwargs)
         #TODO: redress
         self.checkResults(results)
         # special case: report encapsulization...
@@ -382,19 +382,19 @@ parser.')
 
         Params:
 
-        :parameter qids:
+        :parameter ids:
             a list of Qualys QIDs to pull QKB entries for.  Limits the
             result set.  Can be empty or none if pulling all.
         :parameter all:
-            boolean.  Causes quids to be ignored if set.  Pulls the entire
+            boolean.  Causes qids to be ignored if set.  Pulls the entire
             knowledge base.
-        :parameter changes_since:
+        :parameter last_modified_after:
             an inclusive subset of new and modified entries since
             a specific date.  Can be a datetime (which will be converted to a
             string query parameter) or a string formatted as Qualys expects
             .  It is up to the calling function to ensure strings are correct if
             you choose to use them.  This brackets all of the XX_after variables.
-        :parameter changes_before:
+        :parameter last_modified_before:
             an inclusive subset old entries.  This brackets all
             of the XX_before variables.
         :parameter details:
@@ -423,19 +423,58 @@ parser.')
         Retuns of this function depend on the parse consumers.  A list of
         objects or None.
         '''
-        if 'quids' in kwargs:
-            raise exceptions.QualysFrameworkException('Not yet implemented.')
-        elif 'all' in kwargs:
-            raise exceptions.QualysFrameworkException('Not yet implemented.')
-        elif 'changes_since' in kwargs:
-            raise exceptions.QualysFrameworkException('Not yet implemented.')
-        else:
-            if 'file' not in kwargs:
-                raise exceptions.QualysFrameworkException('You must provide at\
- least some parameters to this function.')
+        optional_params = [
+            ('action',                         'list'),
+            ('echo_request',                   '0' ), #: optional but default
+            ('details',                         None ), #: {Basic|All| None }
+            ('ids',                             None ), #: {value}
+            ('id_min',                          None ), #: {value}
+            ('id_max',                          None ), #: {value}
+            ('is_patchable',                    None ), #: {0|1}
+            ('last_modified_after',             None ), #: {date}
+            ('last_modified_before',            None ), #: {date}
+            ('last_modified_by_user_after',     None ), #: {date}
+            ('last_modified_by_user_before',    None ), #: {date}
+            ('last_modified_by_service_after',  None ), #: {date}
+            ('last_modified_by_service_before', None ), #: {date}
+            ('published_after',                 None ), #: {date}
+            ('published_before',                None ), #: {date}
+            ('discovery_method',                None ), #: {value}
+            ('discovery_auth_types',            None ), #: {value}
+            ('show_pci_reasons',                None ), #: {0|1}
+        ]
+        call = '/api/2.0/fo/knowledge_base/vuln/'
+        params = {
+            key:kwargs.get(key, default) for (key, default) in
+            optional_params if kwargs.get(key, default) is not None
+        }
+        # turn python Datetimes into qualys args...
+        # TODO: implement date conversion.
+        convert = (
+            'last_modified_after',
+            'last_modified_before',
+            'last_modified_by_user_after',
+            'last_modified_by_user_before',
+            'last_modified_by_service_after',
+            'last_modified_by_service_before',
+            'published_after',
+            'published_before',
+        )
+        for dparam in convert:
+            if dparam in params:
+                try:
+                    if type(params[dparam]) != str:
+                        params[dparam] = date_param_format(params[dparam])
+                except:
+                    logger.warn(
+                        'strange date param %s - %s' % (dparam, params[dparam]))
+        result = None
+        if 'file' in kwargs:
             sourcefile = open(kwargs.pop('file'), 'rb')
             result = self.parseResponse(source=sourcefile)
             sourcefile.close()
+        else:
+            result = self.parseResponse(source=call, data=params)
 
         return result
 
@@ -488,8 +527,7 @@ parser.')
         today = datetime.date.today()
         for host in hostData.RESPONSE.HOST_LIST.HOST:
             last_scan = str(host.LAST_VULN_SCAN_DATETIME).split('T')[0]
-            last_scan = datetime.date(int(last_scan.split('-')[0]),
-                    int(last_scan.split('-')[1]), int(last_scan.split('-')[2]))
+            last_scan = qualys_datetime_to_python(last_scan)
             if (today - last_scan).days >= days:
                 hostArray.append(Host(host.DNS, host.ID, host.IP,
                     host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS,
@@ -860,6 +898,50 @@ parser.')
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.assetGroupQuery(
+                    consumer_prototype = consumer_prototype, **kwargs)
+            if list_type_combine is not None:
+                for itm in prev_result:
+                    if isinstance(itm, list_type_combine):
+                        if extlist:
+                            extlist.extend(itm)
+                        else:
+                            extlist = itm
+            id_min = None
+            for itm in reversed(prev_result):
+                if isinstance(itm, AssetWarning):
+                    id_min = itm.getQueryDict()['id_min']
+            logger.debug('Requesting next at %s' % id_min)
+        return self.finish()
+
+    def iterativeKnowledgeBaseQuery(self, consumer_prototype=None, max_kbes=0,
+            list_type_combine=None, **kwargs):
+        """iterativeKnowledgeBaseQuery
+
+        Iteratively query the knowledge base (for a data dump)
+
+        :param consumer_prototype:
+        :param max_kbes: Maximum # of knowledge base entries to return per iter
+        :param list_type_combine: Combine result lists together by type
+        :param **kwargs: API parameters to pass to the API
+        """
+        #1000 is the default so no need to pass on
+        truncation_limit = int(kwargs.get('truncation_limit', 1000))
+        # ok so basically if there is a WARNING then check the CODE, parse the
+        # URL and continue the loop.  Logging is preferred.
+        id_min = kwargs.get('id_min', 1)
+        itercount = 0
+        while id_min:
+            itercount+=1
+            if max_kbes > 0 and truncation_limit * itercount > max_kbes:
+                truncation_limit = max_kbes - (truncation_limit*(itercount-1))
+                if truncation_limit <= 0:
+                    id_min = None
+                    continue
+                else:
+                    kwargs['truncation_limit'] = truncation_limit
+            # update the id_min for this iteration
+            kwargs['id_min'] = id_min
+            prev_result = self.queryQKB(
                     consumer_prototype = consumer_prototype, **kwargs)
             if list_type_combine is not None:
                 for itm in prev_result:

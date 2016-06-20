@@ -1,5 +1,7 @@
 """ A set of utility functions for QualysConnect module. """
 import logging
+import dateutil
+import strict_rfc3339
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
@@ -20,3 +22,17 @@ def preformat_call(api_call):
         # Show difference
         logger.debug('api_call post strip =\n%s' % api_call_formatted)
     return api_call_formatted
+
+def date_param_format(date):
+    """date_param_format
+
+    Converts python datetime to qualys date/time
+
+    :param date: A python datetime object
+    """
+    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(date.timestamp())
+
+def qualys_datetime_to_python(qdatestr):
+    return dateparse.parse(sdate)
+    # return datetime.date(int(qdatestr.split('-')[0]),
+    #     int(qdatestr.split('-')[1]), int(qdatestr.split('-')[2]))

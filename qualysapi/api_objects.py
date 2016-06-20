@@ -1012,7 +1012,7 @@ class QKBVuln(CacheableQualysObject):
             else:
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
-            super(QKBVuln.PCIReason, self).__init__(*args, **kwargs)
+            super(QKBVuln.CVE, self).__init__(*args, **kwargs)
 
     class CVSS(CacheableQualysObject):
         '''

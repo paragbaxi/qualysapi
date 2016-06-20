@@ -226,11 +226,20 @@ class TestAPIMethods(unittest.TestCase):
             block=False)
 #        logger.debug('Found %d agls' % (len(agls)))
 
+    def test_kqb(self):
+        '''Tests the distributed parser against a static sample file.'''
+        actions = smpapi.QGSMPActions(connection =
+                self.instance)
+        args = {
+            'details' : 'Basic',
+        }
+        qkbobs = actions.queryQKB(**args)
 
 #stand-alone test execution
 if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     import nose2
     nose2.main(argv=['fake', '--log-capture',
-        'TestAPIMethods.test_itrhost_query'])
+        #'TestAPIMethods.test_itrhost_query'])
+        'TestAPIMethods.test_kqb'])
 
