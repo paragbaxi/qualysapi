@@ -826,10 +826,18 @@ parser.')
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.hostDetectionQuery(consumer_prototype, **kwargs)
+            prev_id_min = id_min
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
-                    id_min = itm.getQueryDict()['id_min']
+                    id_min_tmp = itm.getQueryDict()['id_min']
+                    try:
+                        id_min_tmp = int(id_min_tmp)
+                        if id_min_tmp > prev_id_min:
+                            id_min = id_min_tmp
+                            break
+                    except:
+                        break
         return self.finish()
 
     def iterativeHostListQuery(self, consumer_prototype=None, max_hosts=0,
@@ -862,10 +870,18 @@ parser.')
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
             prev_result = self.hostListQuery(consumer_prototype, **kwargs)
+            prev_id_min = id_min
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
-                    id_min = itm.getQueryDict()['id_min']
+                    id_min_tmp = itm.getQueryDict()['id_min']
+                    try:
+                        id_min_tmp = int(id_min_tmp)
+                        if id_min_tmp > prev_id_min:
+                            id_min = id_min_tmp
+                            break
+                    except:
+                        break
         return self.finish()
 
     def iterativeAssetGroupQuery(self, consumer_prototype=None, max_ags=0,
@@ -906,54 +922,18 @@ parser.')
                             extlist.extend(itm)
                         else:
                             extlist = itm
+            prev_id_min = id_min
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
-                    id_min = itm.getQueryDict()['id_min']
-            logger.debug('Requesting next at %s' % id_min)
-        return self.finish()
-
-    def iterativeKnowledgeBaseQuery(self, consumer_prototype=None, max_kbes=0,
-            list_type_combine=None, **kwargs):
-        """iterativeKnowledgeBaseQuery
-
-        Iteratively query the knowledge base (for a data dump)
-
-        :param consumer_prototype:
-        :param max_kbes: Maximum # of knowledge base entries to return per iter
-        :param list_type_combine: Combine result lists together by type
-        :param **kwargs: API parameters to pass to the API
-        """
-        #1000 is the default so no need to pass on
-        truncation_limit = int(kwargs.get('truncation_limit', 1000))
-        # ok so basically if there is a WARNING then check the CODE, parse the
-        # URL and continue the loop.  Logging is preferred.
-        id_min = kwargs.get('id_min', 1)
-        itercount = 0
-        while id_min:
-            itercount+=1
-            if max_kbes > 0 and truncation_limit * itercount > max_kbes:
-                truncation_limit = max_kbes - (truncation_limit*(itercount-1))
-                if truncation_limit <= 0:
-                    id_min = None
-                    continue
-                else:
-                    kwargs['truncation_limit'] = truncation_limit
-            # update the id_min for this iteration
-            kwargs['id_min'] = id_min
-            prev_result = self.queryQKB(
-                    consumer_prototype = consumer_prototype, **kwargs)
-            if list_type_combine is not None:
-                for itm in prev_result:
-                    if isinstance(itm, list_type_combine):
-                        if extlist:
-                            extlist.extend(itm)
-                        else:
-                            extlist = itm
-            id_min = None
-            for itm in reversed(prev_result):
-                if isinstance(itm, AssetWarning):
-                    id_min = itm.getQueryDict()['id_min']
+                    id_min_tmp = itm.getQueryDict()['id_min']
+                    try:
+                        id_min_tmp = int(id_min_tmp)
+                        if id_min_tmp > prev_id_min:
+                            id_min = id_min_tmp
+                            break
+                    except:
+                        break
             logger.debug('Requesting next at %s' % id_min)
         return self.finish()
 
