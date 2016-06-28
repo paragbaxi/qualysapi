@@ -825,6 +825,8 @@ parser.')
                     kwargs['truncation_limit'] = truncation_limit
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
+            #make sure blocking is disabled
+            kwargs['block']=False
             prev_result = self.hostDetectionQuery(consumer_prototype, **kwargs)
             prev_id_min = id_min
             id_min = None
@@ -869,6 +871,8 @@ parser.')
                     kwargs['truncation_limit'] = truncation_limit
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
+            #make sure blocking is disabled
+            kwargs['block']=False
             prev_result = self.hostListQuery(consumer_prototype, **kwargs)
             prev_id_min = id_min
             id_min = None
@@ -913,8 +917,10 @@ parser.')
                     kwargs['truncation_limit'] = truncation_limit
             # update the id_min for this iteration
             kwargs['id_min'] = id_min
+            #make sure blocking is disabled
+            kwargs['block']=False
             prev_result = self.assetGroupQuery(
-                    consumer_prototype = consumer_prototype, **kwargs)
+                consumer_prototype = consumer_prototype, **kwargs)
             if list_type_combine is not None:
                 for itm in prev_result:
                     if isinstance(itm, list_type_combine):

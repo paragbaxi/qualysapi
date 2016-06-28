@@ -110,17 +110,17 @@ class BufferConsumer(multiprocessing.Process):
         consuemrs to alert that there is a critical consumer failure so that it
         can stop processing and raise a fatal exception.
         '''
-        super(BufferConsumer, self).__init__() #pass to parent
         self.logger = logging.getLogger(__class__.__name__)
-        self.bite_size = kwargs.get('bite_size', 1000)
-        self.queue = kwargs.get('queue', None)
+        self.bite_size = kwargs.pop('bite_size', 1000)
+        self.queue = kwargs.pop('queue', None)
         if self.queue is None:
             raise exceptions.ParsingBufferException('Consumer initialized'
             'without an input queue.')
 
-        self.results_list = kwargs.get('results_list', None)
-        self.response_error = kwargs.get('response_error', None)
+        self.results_list = kwargs.pop('results_list', None)
+        self.response_error = kwargs.pop('response_error', None)
         self.setUp()
+        super(BufferConsumer, self).__init__(**kwargs) #pass to parent
 
 
     def singleItemHandler(self, item):
@@ -176,6 +176,7 @@ class QueueImportBuffer(ImportBuffer):
     queue = None
     def __init__(self, *args, **kwargs):
         self.queue = queue.Queue()
+        self.logger = logging.getLogger(__class__.__name__)
         super(QueueImportBuffer, self).__init__(*args, **kwargs)
 
     #TODO: break up ImportBuffer for ST/MT/MP
@@ -284,6 +285,7 @@ class MPQueueImportBuffer(QueueImportBuffer):
             self.queue.put(item)
         except AssertionError:
             #queue has been closed, remake it (let the other GC)
+            self.logger.warn('Queue closed early.')
             self.queue = BufferQueue(ctx=multiprocessing.get_context())
             self.queue.put(item)
         except BrokenPipeError:
@@ -291,6 +293,12 @@ class MPQueueImportBuffer(QueueImportBuffer):
             address = 'localhost'
             if address in multiprocessing.managers.BaseProxy._address_to_local:
                 del BaseProxy._address_to_local[address][0].connection
+            self.queue.put(item)
+        except Exception as e:
+            #general thread exception.
+            self.logger.error('Buffer queue exception %s' % e)
+            #TODO: continue trying/trap exceptions?
+            raise
         # check for finished consumers and clean them up before we check to see
         # if we need to add additional consumers.
         for csmr in self.running:
