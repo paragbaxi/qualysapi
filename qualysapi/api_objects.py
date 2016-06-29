@@ -79,7 +79,8 @@ class CacheableQualysObject(object):
             self.populateParameters(elem, kwargs.get('param_map'))
             #set any additional text value as self.cdata using itertext.
             try:
-                self.cdata = lxml.etree.tostring(elem, method="text")
+                self.cdata = lxml.etree.tostring(elem, method="text",
+                        encoding='UTF-8')
             except:
                 logger.warn(
                     'Failed text encode on field %s\n\t%r' % (elem.tag, self))

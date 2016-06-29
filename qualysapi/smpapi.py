@@ -161,9 +161,15 @@ class BufferConsumer(multiprocessing.Process):
                     if rval:
                         self.results_list.append(rval)
             except queue.Empty:
-                logging.debug('Queue timed out and empty, assuming closed.')
-                if self.queue.empty():
-                    done = True
+                logging.debug('Queue timed out after 3 seconds.')
+#                 logging.debug('Queue timed out and empty, assuming closed.')
+#                 if self.queue.empty():
+#                     done = True
+            except EOFError:
+                #queue has been closed
+                logging.info(
+                    '%s has finished consuming queue.' % (__class__.__name__))
+                done = True
             except Exception as e:
                 #general thread exception.
                 self.logger.error('Consumer exception %s' % e)
@@ -772,8 +778,8 @@ class QGSMPActions(QGActions):
         #of this object
         #TODO: consider replacing this requirement
         if not block and not callback:
-            logger.warn('No callback on nonblocking call.  No smp results ' +\
-                'will be returned.')
+            logger.info('No callback on nonblocking call.  No smp results ' +\
+                'will be returned by this function.  Consumer only.')
         #select the response file-like object
         response = None
         if isinstance(source, str):
