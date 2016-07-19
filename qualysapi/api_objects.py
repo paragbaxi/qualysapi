@@ -155,7 +155,7 @@ class CacheableQualysObject(object):
                     setattr(self, attrname, False)
             elif attrtype is dict:
                 self.populateParameters(child, attrname)
-            elif attrtype is types.FunctionType:
+            elif type(attrtype) is types.FunctionType:
                 setattr(self, attrname, attrtype(child.text))
             elif type(attrtype) is ObjTypeList:
                 if attrtype.isXpath():
@@ -484,9 +484,9 @@ class Host(CacheableQualysObject):
             'EC2_INSTANCE_ID' : ('ec2_instance_id',                      str ),
             'LAST_COMPLIANCE_SCAN_DATETIME' : ('last_compliance_scan_datetime',
                 qualys_datetime_to_python),
-            'LAST_VULN_SCAN_DATETIME' : ('last_vuln_scan_datetime',
+            'LAST_VULN_SCAN_DATETIME'       : ('last_vuln_scan_datetime',
                 qualys_datetime_to_python),
-            'LAST_SCAN_DATETIME' : ('last_scan_datetime',
+            'LAST_SCAN_DATETIME'            : ('last_scan_datetime',
                 qualys_datetime_to_python),
             'TRACKING_METHOD'  : ('tracking_method',         str ),
             'USER_DEF'         : ('user_def',                UserDefs),
