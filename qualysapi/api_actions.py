@@ -944,4 +944,5 @@ parser.')
         return self.finish()
 
     def finish(self):
-        return self.import_buffer.finish(block=True)
+        if import_buffer is not None:
+            return self.import_buffer.finish(block=True)

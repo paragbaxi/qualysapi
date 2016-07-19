@@ -240,6 +240,6 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     import nose2
     nose2.main(argv=['fake', '--log-capture',
-        #'TestAPIMethods.test_itrhost_query'])
-        'TestAPIMethods.test_kqb'])
+        'TestAPIMethods.test_itrhost_query'])
+        #'TestAPIMethods.test_kqb'])
 

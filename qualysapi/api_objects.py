@@ -4,12 +4,14 @@ import logging
 logger = logging.getLogger(__name__)
 import pprint
 import json
+import types
 from urllib import parse as urlparse
 from multiprocessing import Process, Pool, Manager, get_context
 from multiprocessing.queues import Queue
 
 import threading
 from qualysapi import exceptions
+from qualysapi.util import qualys_datetime_to_python
 
 #debug
 #import pudb
@@ -153,6 +155,8 @@ class CacheableQualysObject(object):
                     setattr(self, attrname, False)
             elif attrtype is dict:
                 self.populateParameters(child, attrname)
+            elif attrtype is types.FunctionType:
+                setattr(self, attrname, attrtype(child.text))
             elif type(attrtype) is ObjTypeList:
                 if attrtype.isXpath():
                     if attrtype.class_type is str:
@@ -248,9 +252,12 @@ class VulnInfo(CacheableQualysObject):
             'LAST_FOUND'           : ('last_found',           str ),
             'FIRST_FOUND_DATETIME' : ('first_found',          str ),
             'LAST_FOUND_DATETIME'  : ('last_found',           str ),
-            'LAST_TEST_DATETIME'   : ('last_test_datetime',   str ),
-            'LAST_UPDATE_DATETIME' : ('last_update_datetime', str ),
-            'LAST_FIXED_DATETIME'  : ('last_fixed_datetime', str ),
+            'LAST_TEST_DATETIME'   : ('last_test_datetime',
+                qualys_datetime_to_python),
+            'LAST_UPDATE_DATETIME' : ('last_update_datetime',
+                qualys_datetime_to_python),
+            'LAST_FIXED_DATETIME'  : ('last_fixed_datetime',
+                qualys_datetime_to_python),
             'TIMES_FOUND'          : ('times_found',          str ),
             'VULN_STATUS'          : ('status',               str ),
             'STATUS'               : ('status',               str ),
@@ -475,9 +482,12 @@ class Host(CacheableQualysObject):
             'OWNER'           : ('owner',                                str ),
             'COMMENTS'        : ('comments',                             str ),
             'EC2_INSTANCE_ID' : ('ec2_instance_id',                      str ),
-            'LAST_COMPLIANCE_SCAN_DATETIME' : ('last_compliance_scan_datetime', str),
-            'LAST_VULN_SCAN_DATETIME' : ('last_vuln_scan_datetime', str),
-            'LAST_SCAN_DATETIME' : ('last_scan_datetime', str ),
+            'LAST_COMPLIANCE_SCAN_DATETIME' : ('last_compliance_scan_datetime',
+                qualys_datetime_to_python),
+            'LAST_VULN_SCAN_DATETIME' : ('last_vuln_scan_datetime',
+                qualys_datetime_to_python),
+            'LAST_SCAN_DATETIME' : ('last_scan_datetime',
+                qualys_datetime_to_python),
             'TRACKING_METHOD'  : ('tracking_method',         str ),
             'USER_DEF'         : ('user_def',                UserDefs),
             'ASSET_TAGS'       : ('asset_tags',              ObjTypeList( str,
@@ -887,9 +897,11 @@ class Report(CacheableQualysObject):
         kwargs['param_map'] = param_map
         kwargs['param_map'].update({
             'TITLE'               : ('title',               str ),
-            'EXPIRATION_DATETIME' : ('expiration_datetime', str ),
+            'EXPIRATION_DATETIME' : ('expiration_datetime',
+                qualys_datetime_to_python),
             'ID'                  : ('id',                  str ),
-            'LAUNCH_DATETIME'     : ('launch_datetime',     str ),
+            'LAUNCH_DATETIME'     : ('launch_datetime',
+                qualys_datetime_to_python),
             'OUTPUT_FORMAT'       : ('output_format',       str ),
             'SIZE'                : ('size',                str ),
             'STATUS'              : ('status',              self.ReportStatus ),
@@ -913,8 +925,8 @@ class Report(CacheableQualysObject):
         # set keyword values, prefer over ordered argument values if both get
         # supplied
         # post attribute assignment processing
-        self.expiration_datetime = str(self.expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
-        self.launch_datetime = str(self.launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
+        #self.expiration_datetime = str(self.expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
+        #self.launch_datetime = str(self.launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
         # if id is a string change it to an int (used by other api objects)
         if isinstance(self.id, str):
             self.id = int(self.id)
