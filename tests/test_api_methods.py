@@ -14,8 +14,8 @@ from qualysapi import connect, qcache, config, exceptions
 from qualysapi import api_actions, api_objects
 
 #pudb nice debugger
-import pudb
-pu.db
+# import pudb
+# pu.db
 
 class TestAPIMethods(unittest.TestCase):
     '''

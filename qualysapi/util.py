@@ -1,8 +1,8 @@
 """ A set of utility functions for QualysConnect module. """
 import logging
-import dateutil
+from dateutil import parser as iso8601parser
 import strict_rfc3339
-import dateparser
+#import dateparser
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
@@ -34,6 +34,6 @@ def date_param_format(date):
     return strict_rfc3339.timestamp_to_rfc3339_utcoffset(date.timestamp())
 
 def qualys_datetime_to_python(qdatestr):
-    return dateparser.parse(qdatestr)
+    return iso8601parser.parse(qdatestr)
     # return datetime.date(int(qdatestr.split('-')[0]),
     #     int(qdatestr.split('-')[1]), int(qdatestr.split('-')[2]))

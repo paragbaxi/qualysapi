@@ -13,7 +13,7 @@ import threading
 from qualysapi import exceptions
 from qualysapi.util import qualys_datetime_to_python
 
-#debug
+#debugger
 #import pudb
 
 
@@ -156,10 +156,7 @@ class CacheableQualysObject(object):
             elif attrtype is dict:
                 self.populateParameters(child, attrname)
             elif type(attrtype) is types.FunctionType:
-                setattr(self, attrname, attrtype(
-                        ''.join(child.itertext())
-                    )
-                )
+                setattr(self, attrname, attrtype(''.join(child.itertext())))
             elif type(attrtype) is ObjTypeList:
                 if attrtype.isXpath():
                     if attrtype.class_type is str:
@@ -253,8 +250,10 @@ class VulnInfo(CacheableQualysObject):
             'RESULTS'              : ('result',               str ),
             'FIRST_FOUND'          : ('first_found',          str ),
             'LAST_FOUND'           : ('last_found',           str ),
-            'FIRST_FOUND_DATETIME' : ('first_found',          str ),
-            'LAST_FOUND_DATETIME'  : ('last_found',           str ),
+            'FIRST_FOUND_DATETIME' : ('first_found',
+                qualys_datetime_to_python),
+            'LAST_FOUND_DATETIME'  : ('last_found',
+                qualys_datetime_to_python),
             'LAST_TEST_DATETIME'   : ('last_test_datetime',
                 qualys_datetime_to_python),
             'LAST_UPDATE_DATETIME' : ('last_update_datetime',
@@ -503,7 +502,7 @@ class Host(CacheableQualysObject):
             'EC2_INSTANCE_ID' : ('ec2_instance_id',                      str ),
             'LAST_COMPLIANCE_SCAN_DATETIME' : ('last_compliance_scan_datetime',
                 qualys_datetime_to_python),
-            'LAST_VULN_SCAN_DATETIME'       : ('last_vuln_scan_datetime',
+            'LAST_VULN_SCAN_DATETIME'       : ('last_scan_datetime',
                 qualys_datetime_to_python),
             'LAST_SCAN_DATETIME'            : ('last_scan_datetime',
                 qualys_datetime_to_python),
