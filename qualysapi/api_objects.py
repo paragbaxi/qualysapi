@@ -146,7 +146,7 @@ class CacheableQualysObject(object):
                 if getattr(self, attrname) is None:
                     setattr(self, attrname, [''.join(child.itertext())])
                 else:
-                    getattr(self, attrname).append([''.join(child.itertext())])
+                    getattr(self, attrname).append(''.join(child.itertext()))
             elif attrtype is bool:
                 text = ''.join(child.itertext())
                 if text and int(text) == 0:
@@ -156,7 +156,10 @@ class CacheableQualysObject(object):
             elif attrtype is dict:
                 self.populateParameters(child, attrname)
             elif type(attrtype) is types.FunctionType:
-                setattr(self, attrname, attrtype(child.text))
+                setattr(self, attrname, attrtype(
+                        ''.join(child.itertext())
+                    )
+                )
             elif type(attrtype) is ObjTypeList:
                 if attrtype.isXpath():
                     if attrtype.class_type is str:
@@ -420,22 +423,38 @@ class Host(CacheableQualysObject):
         available in the properties from a DL vuln than a VIL vuln.
 
     '''
-    dns              = None #: FQDN if available
-    id               = None #: Qualys Internal host ID
-    id_set           = None #: a set of ids linking hosts together
-    ip               = None #: :class:`IP` primary.interface
-    last_scan        = None #: Last time scanned.
-    netbios          = None #: NETBIOS if available
-    os_cpe           = None #: Host OS Common Platform Enumeration
-    tracking_method  = None #: The field used to identify host
-    asset_tags       = None #: List of associated asset tags.
-    tags             = None #: Alternate list of associated asset tags.
-    interfaces       = None #: List of all detected interfaces
-    asset_groups     = None #: List of associated asset groups.
-    vulns            = None #: Known vulnerabilities.
-    operating_system = None #: host-reported OS
-    asset_group_ids  = None #: CSV list of agids from Asset API Host List
-    parent_stub      = None
+    dns                           = None #: FQDN if available
+    id                            = None #: Qualys Internal host ID
+    id_set                        = None #: a set of ids linking hosts together
+    ip                            = None #: :class:`IP` primary.interface
+    last_scan                     = None #: Last time scanned.
+    netbios                       = None #: NETBIOS if available
+    os_cpe                        = None #: Host OS Common Platform Enumeration
+    tracking_method               = None #: The field used to identify host
+    asset_tags                    = None #: List of associated asset tags.
+    tags                          = None #: Alternate list of associated asset tags.
+    interfaces                    = None #: List of all detected interfaces
+    asset_groups                  = None #: List of associated asset groups.
+    vulns                         = None #: Known vulnerabilities.
+    operating_system              = None #: host-reported OS
+    asset_group_ids               = None #: CSV list of agids from Asset API Host List
+    parent_stub                   = None
+    comments                      = None
+    ec2_instance_id               = None
+    ip_ranges                     = None
+    last_compliance_scan_datetime = None
+    last_vuln_scan_datetime       = None
+    network_id                    = None
+    owner                         = None
+    qg_hostid                     = None
+    user_def                      = None
+    @property
+    def last_scan_datetime(self):
+        return self.last_scan
+
+    @last_scan_datetime.setter
+    def last_scan_datetime(self, dtobj):
+        self.last_scan = dtobj
 
     def __init__(self, *args, **kwargs):
         """__init__

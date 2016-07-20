@@ -16,7 +16,7 @@ from qualysapi import smpapi, api_objects
 #pudb nice debugger
 import pudb
 
-class TestAPIMethods(unittest.TestCase):
+class TestSMPAPIMethods(unittest.TestCase):
     '''
     APICache unittest class
 
@@ -74,7 +74,7 @@ class TestAPIMethods(unittest.TestCase):
                 remember_me=True)
         self.instance = connect(config=qconf)
         self.cache_instance = qcache.APICacheInstance(qconf)
-        super(TestAPIMethods, self).__init__(*args, **kwargs)
+        super(TestSMPAPIMethods, self).__init__(*args, **kwargs)
 #    def setUp(self):
 #
 #    def tearDown(self):
@@ -179,7 +179,7 @@ class TestAPIMethods(unittest.TestCase):
         #alter with non-cache connection
         actions = smpapi.QGSMPActions(connection=self.instance)
         max_hosts = 100
-        hosts = actions.iterativeHostListQuery(truncation_limit='10',
+        hosts = actions.iterativeHostListQuery(truncation_limit='1000',
             details='All/AGs',
             show_tags=1,
             max_hosts=max_hosts)
@@ -193,12 +193,14 @@ class TestAPIMethods(unittest.TestCase):
                 typecount[type(itm)] = 1
         logger.debug(pprint.pformat(typecount))
         #logger.debug('Found %d hosts' % (len(hosts)))
+        for host in hosts:
+            logger.debug(host)
 
     def test_itrhost_detection_query(self):
         """Test AG List from Asset Group API"""
         #alter with non-cache connection
         #simple_connect = connect(qconf)
-        max_hosts = 2000
+        max_ags = 100
         actions = smpapi.QGSMPActions(connection=self.instance)
         hosts = actions.iterativeHostDetectionQuery(truncation_limit=1000,
             details='Basic/AGs',
@@ -206,12 +208,14 @@ class TestAPIMethods(unittest.TestCase):
             max_hosts=max_hosts)
         self.assertGreaterEqual(len(hosts),max_hosts)
         logger.debug('Found %d hosts' % (len(hosts)))
+        for host in hosts:
+            logger.debug(host)
 
     def test_itr_asset_group_query(self):
         """Test AG List from Asset Group API"""
         #alter with non-cache connection
         #simple_connect = connect(qconf)
-        max_ags = 2000
+        max_ags = 100
         actions = smpapi.QGSMPActions(connection=self.instance)
 #         agls = actions.iterativeAssetGroupQuery(truncation_limit=1000,
 #             max_ags=max_ags)
@@ -240,6 +244,6 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     import nose2
     nose2.main(argv=['fake', '--log-capture',
-        'TestAPIMethods.test_itrhost_query'])
-        #'TestAPIMethods.test_kqb'])
+        'TestSMPAPIMethods.test_itrhost_query'])
+        #'TestSMPAPIMethods.test_kqb'])
 

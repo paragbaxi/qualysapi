@@ -878,14 +878,15 @@ parser.')
             id_min = None
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
-                    id_min_tmp = itm.getQueryDict()['id_min']
-                    try:
-                        id_min_tmp = int(id_min_tmp)
-                        if id_min_tmp > prev_id_min:
-                            id_min = id_min_tmp
+                    id_min_tmp = itm.getQueryDict().get('id_min', None)
+                    if id_min:
+                        try:
+                            id_min_tmp = int(id_min_tmp)
+                            if id_min_tmp > prev_id_min:
+                                id_min = id_min_tmp
+                                break
+                        except:
                             break
-                    except:
-                        break
         return self.finish()
 
     def iterativeAssetGroupQuery(self, consumer_prototype=None, max_ags=0,
@@ -944,5 +945,5 @@ parser.')
         return self.finish()
 
     def finish(self):
-        if import_buffer is not None:
+        if self.import_buffer is not None:
             return self.import_buffer.finish(block=True)
