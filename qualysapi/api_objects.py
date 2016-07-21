@@ -227,6 +227,40 @@ class VulnInfo(CacheableQualysObject):
 
         <!ELEMENT INSTANCE (#PCDATA)>
     '''
+    cvss_final           = None
+    @property
+    def first_seen(self):
+        return self.first_found
+
+    @first_seen.setter
+    def first_seen(self, first_seen):
+        self.first_found = first_seen
+    first_found          = None
+    fqdn                 = None
+    instance             = None
+    last_fixed_datetime  = None
+    @property
+    def last_seen(self):
+        return self.last_found
+
+    @last_seen.setter
+    def last_seen(self, last_seen):
+        self.last_found = last_seen
+    last_found           = None
+    last_test_datetime   = None
+    last_update_datetime = None
+    port                 = None
+    protocol             = None
+    qid                  = None
+    result               = None
+    service              = None
+    severity             = None
+    ssl                  = None
+    status               = None
+    ticket_number        = None
+    ticket_state         = None
+    times_found          = None
+    type                 = None
     def __init__(self, *args, **kwargs):
         param_map = {}
         if 'param_map' in kwargs:
@@ -248,8 +282,10 @@ class VulnInfo(CacheableQualysObject):
             # isn't XML based parsing.
             'RESULT'               : ('result',               str ),
             'RESULTS'              : ('result',               str ),
-            'FIRST_FOUND'          : ('first_found',          str ),
-            'LAST_FOUND'           : ('last_found',           str ),
+            'FIRST_FOUND'          : ('first_found',
+                qualys_datetime_to_python),
+            'LAST_FOUND'           : ('last_found',
+                qualys_datetime_to_python),
             'FIRST_FOUND_DATETIME' : ('first_found',
                 qualys_datetime_to_python),
             'LAST_FOUND_DATETIME'  : ('last_found',
