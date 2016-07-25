@@ -24,6 +24,7 @@ from threading import Thread, Event
 # multi-request parsing/consuming by a single calling program.
 
 
+import pudb
 class QGActions(object):
 
     import_buffer    = None
@@ -816,7 +817,7 @@ parser.')
         itercount = 0
         while id_min:
             itercount+=1
-            if max_hosts > 0 and truncation_limit * itercount > max_hosts:
+            if max_hosts and truncation_limit * itercount > max_hosts:
                 truncation_limit = max_hosts - (truncation_limit*(itercount-1))
                 if truncation_limit <= 0:
                     id_min = None
@@ -862,7 +863,7 @@ parser.')
         itercount = 0
         while id_min:
             itercount+=1
-            if max_hosts > 0 and truncation_limit * itercount > max_hosts:
+            if max_hosts and truncation_limit * itercount > max_hosts:
                 truncation_limit = max_hosts - (truncation_limit*(itercount-1))
                 if truncation_limit <= 0:
                     id_min = None
@@ -879,14 +880,13 @@ parser.')
             for itm in reversed(prev_result):
                 if isinstance(itm, AssetWarning):
                     id_min_tmp = itm.getQueryDict().get('id_min', None)
-                    if id_min:
-                        try:
-                            id_min_tmp = int(id_min_tmp)
-                            if id_min_tmp > prev_id_min:
-                                id_min = id_min_tmp
-                                break
-                        except:
+                    try:
+                        id_min_tmp = int(id_min_tmp)
+                        if id_min_tmp > prev_id_min:
+                            id_min = id_min_tmp
                             break
+                    except:
+                        break
         return self.finish()
 
     def iterativeAssetGroupQuery(self, consumer_prototype=None, max_ags=0,

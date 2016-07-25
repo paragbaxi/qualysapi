@@ -172,7 +172,7 @@ class TestAPIMethods(unittest.TestCase):
         """Test AG List from Asset Group API"""
         #alter with non-cache connection
         actions = api_actions.QGActions(connection=self.instance)
-        max_hosts = 100
+        max_hosts = 3000
         hosts = actions.iterativeHostListQuery(truncation_limit='1000',
             details='All/AGs',
             show_tags=1,
