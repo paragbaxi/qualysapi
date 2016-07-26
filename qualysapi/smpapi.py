@@ -22,7 +22,6 @@ from qualysapi.api_actions import QGActions
 import queue
 
 #debug
-#import pudb
 
 class BufferQueue(multiprocessing.queues.Queue):
     '''A thread/process safe queue for append/pop operations with the import
@@ -99,13 +98,13 @@ class BufferConsumer(multiprocessing.Process):
     results_list = None
     response_err = None #: event to communicate with queue.  Optional.
     logger       = None
+    results_queue = None
     def __init__(self, **kwargs):
         '''
         initialize this consumer with a bite_size to consume from the buffer.
         @Parms
         queue -- a BufferQueue object
-        results_list -- Optional.  A list in which to store processing results.
-        None by default.
+        results_queue -- Optional.  An output queue for nonblocking results.
         consumer_error -- A semaphore to the process manager.  Used by buffer
         consuemrs to alert that there is a critical consumer failure so that it
         can stop processing and raise a fatal exception.
@@ -117,7 +116,7 @@ class BufferConsumer(multiprocessing.Process):
             raise exceptions.ParsingBufferException('Consumer initialized'
             'without an input queue.')
 
-        self.results_list = kwargs.pop('results_list', None)
+        self.results_queue = kwargs.pop('results_queue', None)
         self.response_error = kwargs.pop('response_error', None)
         self.setUp()
         super(BufferConsumer, self).__init__(**kwargs) #pass to parent
@@ -156,10 +155,9 @@ class BufferConsumer(multiprocessing.Process):
             try:
                 item = self.queue.get(timeout=3)
                 #the base class just logs this stuff
-                if self.results_list is not None:
-                    rval = self.singleItemHandler(item)
-                    if rval:
-                        self.results_list.append(rval)
+                rval = self.singleItemHandler(item)
+                if rval and self.results_queue:
+                    self.results_queue.put(rval)
             except queue.Empty:
                 logging.debug('Queue timed out after 3 seconds.')
 #                 logging.debug('Queue timed out and empty, assuming closed.')
@@ -231,6 +229,7 @@ class MPQueueImportBuffer(QueueImportBuffer):
     running = []
 
     callback = None
+    results_queue = None
 
 
     def __init__(self, *args, **kwargs):
@@ -274,7 +273,7 @@ class MPQueueImportBuffer(QueueImportBuffer):
 
         self.manager = multiprocessing.Manager()
         #override default list
-        self.results_list = self.manager.list()
+        #self.results_list = self.manager.list()
 
         self.consumer = kwargs.pop('consumer', None)
         if self.consumer is None:
@@ -284,6 +283,7 @@ class MPQueueImportBuffer(QueueImportBuffer):
 
         # make parent queue an MP queue
         self.queue = BufferQueue(ctx=multiprocessing.get_context())
+        self.results_queue = multiprocessing.Queue()
         self.response_error = multiprocessing.Event
 
     def queueAdd(self, item):
@@ -316,7 +316,7 @@ class MPQueueImportBuffer(QueueImportBuffer):
         if not self.running:
             new_consumer = self.consumer(
                     queue=self.queue,
-                    results_list=self.results_list,
+                    results_queue=self.results_queue,
                     response_error=self.response_error)
             new_consumer.start()
             self.running.append(new_consumer)
@@ -332,18 +332,23 @@ class MPQueueImportBuffer(QueueImportBuffer):
         finish and then copies and flushes the managed results list.
         '''
         # close the queue and wait until it is consumed
-        result = list(self.results_list)
         if block:
             self.queue.close()
             self.queue.join_thread()
             # make sure the consumers are done consuming the queue
             for csmr in self.running:
                 csmr.join()
-            # turn this into a list instead of a managed list
-        if self.callback:
-            return self.callback(result)
+            #TODO: implement this
+#             while not self.result_queue.empty():
+#                 try:
+#                     self.results_list.append(self.result_queue.get(timeout=0.1))
+#                 except queue.Empty:
+#                     break
+            del self.running[:]
+            if self.callback:
+                return self.callback(self.results_list)
         else:
-            return result
+            return self.results_list
 
 
 # class ReportMPQueueImportBuffer(MPQueueImportBuffer):

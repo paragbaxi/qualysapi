@@ -178,9 +178,10 @@ class TestSMPAPIMethods(unittest.TestCase):
         """Test AG List from Asset Group API"""
         #alter with non-cache connection
         actions = smpapi.QGSMPActions(connection=self.instance)
-        max_hosts = 100
-        hosts = actions.iterativeHostListQuery(truncation_limit='1000',
+        max_hosts = 20000
+        hosts = actions.iterativeHostListQuery(truncation_limit='5000',
             details='All/AGs',
+            id_min=58404470,
             show_tags=1,
             max_hosts=max_hosts)
         self.assertGreaterEqual(len(hosts),max_hosts)

@@ -2175,6 +2175,7 @@ class ImportBuffer(object):
         '''Place a new object into the buffer'''
         #TODO: only put an item in the queue if it is process deferred,
         #otherwise put it into a simple list to return immediately.
+        logger.debug('Adding item to results_list of type \'%s\'' % type(item))
         self.results_list.append(item)
 
     def __iter__(self):

@@ -175,6 +175,7 @@ class TestAPIMethods(unittest.TestCase):
         max_hosts = 3000
         hosts = actions.iterativeHostListQuery(truncation_limit='1000',
             details='All/AGs',
+            id_min=58404470,
             show_tags=1,
             max_hosts=max_hosts)
         self.assertGreaterEqual(len(hosts),max_hosts)
