@@ -160,6 +160,7 @@ class BufferConsumer(multiprocessing.Process):
                     self.results_queue.put(rval)
             except queue.Empty:
                 logging.debug('Queue timed out after 3 seconds.')
+                done = True
 #                 logging.debug('Queue timed out and empty, assuming closed.')
 #                 if self.queue.empty():
 #                     done = True
