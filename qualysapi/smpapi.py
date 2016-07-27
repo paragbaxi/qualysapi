@@ -23,7 +23,7 @@ import queue
 
 #debug
 
-class BufferQueue(multiprocessing.queues.Queue):
+class BufferQueue(multiprocessing.queues.JoinableQueue):
     '''A thread/process safe queue for append/pop operations with the import
     buffer.  Initially this is just a wrapper around a collections deque but in
     the future it will be based off of multiprocess queue for access across
@@ -156,6 +156,7 @@ class BufferConsumer(multiprocessing.Process):
                 item = self.queue.get(timeout=3)
                 #the base class just logs this stuff
                 rval = self.singleItemHandler(item)
+                self.queue.task_done()
                 if rval and self.results_queue:
                     self.results_queue.put(rval)
             except queue.Empty:
@@ -284,7 +285,7 @@ class MPQueueImportBuffer(QueueImportBuffer):
 
         # make parent queue an MP queue
         self.queue = BufferQueue(ctx=multiprocessing.get_context())
-        self.results_queue = multiprocessing.Queue()
+        self.results_queue = multiprocessing.JoinableQueue()
         self.response_error = multiprocessing.Event
 
     def queueAdd(self, item):

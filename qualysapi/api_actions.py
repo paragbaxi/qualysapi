@@ -856,15 +856,17 @@ parser.')
         :param **kwargs:
         """
         #1000 is the default so no need to pass on
-        truncation_limit = int(kwargs.get('truncation_limit', 1000))
+        orig_truncation_limit = int(kwargs.get('truncation_limit', 1000))
         # ok so basically if there is a WARNING then check the CODE, parse the
         # URL and continue the loop.  Logging is preferred.
         id_min = kwargs.get('id_min', 1)
         itercount = 0
         while id_min:
+            #reset each iteration
+            truncation_limit = orig_truncation_limit
             itercount+=1
-            if max_hosts and truncation_limit * itercount > max_hosts:
-                truncation_limit = max_hosts - (truncation_limit*(itercount-1))
+            if max_hosts and orig_truncation_limit * itercount > max_hosts:
+                truncation_limit = max_hosts - (orig_truncation_limit*(itercount-1))
                 if truncation_limit <= 0:
                     id_min = None
                     continue
