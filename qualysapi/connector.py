@@ -427,6 +427,12 @@ class QGConnector:
         # this call should be results/maps oriented for large domains and/or maps and/or asset groups so
         # there really is no need or benefit to using concurrent scans here...
         # use a stream-based non-blocking request
+        logger.debug('api_call =\n%s' % api_call)
+        logger.debug('api_version =\n%s' % api_version)
+        logger.debug('data %s =\n %s' % (type(data), str(data)))
+        logger.debug('http_method =\n%s' % http_method)
+        logger.debug('concurrent_scans_retries =\n%s' % str(concurrent_scans_retries))
+        logger.debug('concurrent_scans_retry_delay =\n%s' % str(concurrent_scans_retry_delay))
         response = None
         if http_method == 'get':
             # GET
