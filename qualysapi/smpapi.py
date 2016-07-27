@@ -311,11 +311,13 @@ class MPQueueImportBuffer(QueueImportBuffer):
         # if we need to add additional consumers.
         for csmr in self.running:
             if not csmr.is_alive():
+                logging.debug('Child dead, releasing.')
                 self.running.remove(csmr)
 
         #see if we should start a consumer...
         # TODO: add min/max processes (default and override)
         if not self.running:
+            logging.debug('Spawning consumer.')
             new_consumer = self.consumer(
                     queue=self.queue,
                     results_queue=self.results_queue,
