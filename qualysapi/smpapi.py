@@ -7,6 +7,7 @@
 import datetime
 from lxml import etree
 import logging
+logger = logging.getLogger(__name__)
 import pprint
 import json
 
@@ -97,7 +98,7 @@ class BufferConsumer(multiprocessing.Process):
     queue        = None
     results_list = None
     response_err = None #: event to communicate with queue.  Optional.
-    logger       = None
+    #logger       = None
     results_queue = None
     def __init__(self, **kwargs):
         '''
@@ -109,7 +110,7 @@ class BufferConsumer(multiprocessing.Process):
         consuemrs to alert that there is a critical consumer failure so that it
         can stop processing and raise a fatal exception.
         '''
-        self.logger = logging.getLogger(__class__.__name__)
+        #self.logger = getLogger(__class__.__name__)
         self.bite_size = kwargs.pop('bite_size', 1000)
         self.queue = kwargs.pop('queue', None)
         if self.queue is None:
@@ -159,15 +160,15 @@ class BufferConsumer(multiprocessing.Process):
                 if rval and self.results_queue:
                     self.results_queue.put(rval)
             except queue.Empty:
-                logging.debug('Queue timed out after 3 seconds.')
+                logger.debug('Queue timed out after 3 seconds.')
                 break
             except EOFError:
-                logging.info(
+                info(
                     '%s has finished consuming queue.' % (__class__.__name__))
                 break
             except Exception as e:
                 #general thread exception.
-                self.logger.error('Consumer exception %s' % e)
+                logger.error('Consumer exception %s' % e)
                 #TODO: continue trying/trap exceptions?
                 raise
         self.cleanUp()
@@ -177,7 +178,7 @@ class QueueImportBuffer(ImportBuffer):
     queue = None
     def __init__(self, *args, **kwargs):
         self.queue = queue.Queue()
-        self.logger = logging.getLogger(__class__.__name__)
+        #self.logger = getLogger(__class__.__name__)
         super(QueueImportBuffer, self).__init__(*args, **kwargs)
 
     #TODO: break up ImportBuffer for ST/MT/MP
@@ -288,12 +289,12 @@ class MPQueueImportBuffer(QueueImportBuffer):
             self.queue.put(item)
         except AssertionError:
             #queue has been closed, remake it (let the other GC)
-            self.logger.warn('Queue closed early.')
+            logger.warn('Queue closed early.')
             self.queue = BufferQueue(ctx=multiprocessing.get_context())
             self.queue.put(item)
         except BrokenPipeError:
             #workaround for pipe issue
-            self.logger.warn('Broken pipe, Forcing creation of new queue.')
+            logger.warn('Broken pipe, Forcing creation of new queue.')
             # all reading procesess should suicide and new ones spawned.
             self.queue = BufferQueue(ctx=multiprocessing.get_context())
 #             address = 'localhost'
@@ -302,20 +303,20 @@ class MPQueueImportBuffer(QueueImportBuffer):
             self.queue.put(item)
         except Exception as e:
             #general thread exception.
-            self.logger.error('Buffer queue exception %s' % e)
+            logger.error('Buffer queue exception %s' % e)
             #TODO: continue trying/trap exceptions?
             raise
         # check for finished consumers and clean them up before we check to see
         # if we need to add additional consumers.
         for csmr in self.running:
             if not csmr.is_alive():
-                logging.debug('Child dead, releasing.')
+                debug('Child dead, releasing.')
                 self.running.remove(csmr)
 
         #see if we should start a consumer...
         # TODO: add min/max processes (default and override)
         if not self.running:
-            logging.debug('Spawning consumer.')
+            debug('Spawning consumer.')
             new_consumer = self.consumer(
                     queue=self.queue,
                     results_queue=self.results_queue,
@@ -455,7 +456,7 @@ class ActionPool(object):
             if actn is not None:
                 self.available_actions.put(actn)
             else:
-                logging.warn('''Can't release action from unknown thread with name\
+                warn('''Can't release action from unknown thread with name\
  %s''' % (tname))
 
     def _get_action(self, proto):
