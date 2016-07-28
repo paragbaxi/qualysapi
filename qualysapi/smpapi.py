@@ -150,8 +150,7 @@ class BufferConsumer(multiprocessing.Process):
         (SimpleReturnResponse) objects by default if not implemented in a child
         class.
         '''
-        done = False
-        while not done:
+        while True:
             try:
                 item = self.queue.get(timeout=3)
                 #the base class just logs this stuff
@@ -161,15 +160,11 @@ class BufferConsumer(multiprocessing.Process):
                     self.results_queue.put(rval)
             except queue.Empty:
                 logging.debug('Queue timed out after 3 seconds.')
-                done = True
-#                 logging.debug('Queue timed out and empty, assuming closed.')
-#                 if self.queue.empty():
-#                     done = True
+                break
             except EOFError:
-                #queue has been closed
                 logging.info(
                     '%s has finished consuming queue.' % (__class__.__name__))
-                done = True
+                break
             except Exception as e:
                 #general thread exception.
                 self.logger.error('Consumer exception %s' % e)
@@ -298,9 +293,12 @@ class MPQueueImportBuffer(QueueImportBuffer):
             self.queue.put(item)
         except BrokenPipeError:
             #workaround for pipe issue
-            address = 'localhost'
-            if address in multiprocessing.managers.BaseProxy._address_to_local:
-                del BaseProxy._address_to_local[address][0].connection
+            self.logger.warn('Broken pipe, Forcing creation of new queue.')
+            # all reading procesess should suicide and new ones spawned.
+            self.queue = BufferQueue(ctx=multiprocessing.get_context())
+#             address = 'localhost'
+#             if address in multiprocessing.managers.BaseProxy._address_to_local:
+#                 del BaseProxy._address_to_local[address][0].connection
             self.queue.put(item)
         except Exception as e:
             #general thread exception.
