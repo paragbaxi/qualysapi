@@ -7,9 +7,11 @@ import logging
 import pprint
 import json
 
-from multiprocessing import pool
+#from multiprocessing import pool, Event
 
-from threading import Thread, Event
+#from threading import Thread, Event
+import multiprocessing
+import threading
 
 
 # two essential methods here include creating a semaphore-based local threading
@@ -798,7 +800,7 @@ parser.')
                 consumer_prototype=consumer_prototype, **kwargs)
 
     def iterativeHostDetectionQuery(self, consumer_prototype=None, max_hosts=0,
-            list_type_combine=None, **kwargs):
+            list_type_combine=None, exit=None, **kwargs):
         """iterativehostDetectionQuery
 
         Feeds iteration off the WARNING element to pull all of the hosts in
@@ -809,13 +811,15 @@ parser.')
         :param list_type_combine: Combine chunked result lists.
         :param **kwargs:
         """
+        if not exit:
+            exit = threading.Event()
         #1000 is the default so no need to pass on
         truncation_limit = int(kwargs.get('truncation_limit', 1000))
         # ok so basically if there is a WARNING then check the CODE, parse the
         # URL and continue the loop.  Logging is preferred.
         id_min = kwargs.get('id_min', 1)
         itercount = 0
-        while id_min:
+        while id_min and not exit.is_set():
             itercount+=1
             if max_hosts and truncation_limit * itercount > max_hosts:
                 truncation_limit = max_hosts - (truncation_limit*(itercount-1))
@@ -844,7 +848,7 @@ parser.')
         return self.finish()
 
     def iterativeHostListQuery(self, consumer_prototype=None, max_hosts=0,
-            list_type_combine=None, **kwargs):
+            list_type_combine=None, exit=None, **kwargs):
         """iterativeHostListQuery
 
         Feeds iteration off the WARNING element to pull all of the hosts in
@@ -855,13 +859,15 @@ parser.')
         :param list_type_combine: Combine chunked result lists.
         :param **kwargs:
         """
+        if not exit:
+            exit = threading.Event()
         #1000 is the default so no need to pass on
         orig_truncation_limit = int(kwargs.get('truncation_limit', 1000))
         # ok so basically if there is a WARNING then check the CODE, parse the
         # URL and continue the loop.  Logging is preferred.
         id_min = kwargs.get('id_min', 1)
         itercount = 0
-        while id_min:
+        while id_min and not exit.is_set():
             #reset each iteration
             truncation_limit = orig_truncation_limit
             itercount+=1
@@ -892,7 +898,7 @@ parser.')
         return self.finish()
 
     def iterativeAssetGroupQuery(self, consumer_prototype=None, max_ags=0,
-            list_type_combine=None, **kwargs):
+            list_type_combine=None, exit=None, **kwargs):
         """iterativeHostListQuery
 
         Feeds iteration off the WARNING element to pull all of the asset groups
@@ -901,15 +907,19 @@ parser.')
         :param consumer_prototype:
         :param max_ags: The maximum number of asset groups to return
         :param list_type_combine: Combine chunked result lists.
+        :param exit: can be either multiprocessing.Event or threading.Event.
+        Use .set() to interrupt this method prematurely.
         :param **kwargs:
         """
+        if not exit:
+            exit = threading.Event()
         #1000 is the default so no need to pass on
         truncation_limit = int(kwargs.get('truncation_limit', 1000))
         # ok so basically if there is a WARNING then check the CODE, parse the
         # URL and continue the loop.  Logging is preferred.
         id_min = kwargs.get('id_min', 1)
         itercount = 0
-        while id_min:
+        while id_min and not exit.is_set():
             itercount+=1
             if max_ags > 0 and truncation_limit * itercount > max_ags:
                 truncation_limit = max_ags - (truncation_limit*(itercount-1))

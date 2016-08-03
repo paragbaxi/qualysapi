@@ -5,6 +5,7 @@
 
 # bring in just the objects we will be working with a lot
 import datetime
+import time
 from lxml import etree
 import logging
 logger = logging.getLogger(__name__)
@@ -120,6 +121,9 @@ class BufferConsumer(multiprocessing.Process):
         self.results_queue = kwargs.pop('results_queue', None)
         self.response_error = kwargs.pop('response_error', None)
         self.setUp()
+        #work set the process name to the consumer.
+        if not 'name' in kwargs:
+            kwargs['name'] = __class__.__name__
         super(BufferConsumer, self).__init__(**kwargs) #pass to parent
 
 
@@ -141,6 +145,10 @@ class BufferConsumer(multiprocessing.Process):
     def cleanUp(self):
         '''Final processing command to flush any cached data, persist to the
         database, etc...'''
+        #give time for results_queue to flush, then force cancel.
+        #the queue creator and not this consumer are responsible.
+        time.sleep(0.3)
+        self.results_queue.cancel_join_thread()
         pass
 
     def run(self):
