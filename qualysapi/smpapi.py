@@ -348,7 +348,17 @@ class MPQueueImportBuffer(QueueImportBuffer):
             self.queue.join_thread()
             # make sure the consumers are done consuming the queue
             for csmr in self.running:
-                csmr.join()
+                #get everything on the results queue right now.
+                try:
+                    while csmr.is_alive():
+                        self.results_list.append(
+                            self.results_queue.get(timeout=0.5))
+                        self.results_queue.task_done()
+                except queue.Empty:
+                    if csmr.is_alive():
+                        logger.warn('Result queue empty but consumer alive.')
+                        logger.warn('joining %s.' % csmr.name)
+                        csmr.join()
             #TODO: implement this
 #             while not self.result_queue.empty():
 #                 try:
@@ -359,7 +369,14 @@ class MPQueueImportBuffer(QueueImportBuffer):
             if self.callback:
                 return self.callback(self.results_list)
         else:
-            return self.results_list
+            #read results immediately available.
+            try:
+                while True:
+                    self.results_list.append(self.results_queue.get_nowait())
+            except queue.Empty:
+                #got everything on the queue so far
+                pass
+        return self.results_list
 
 
 # class ReportMPQueueImportBuffer(MPQueueImportBuffer):
