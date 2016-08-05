@@ -89,6 +89,7 @@ prototype is not an instance.')
         inline parsing for requests.  Part of the overhaul.
         :param **kwargs:
         """
+        exit = kwargs.pop('exit', threading.Event())
         source = kwargs.pop('source', None)
         if not source:
             raise QualysException('No source file or URL or raw stream found.')
@@ -116,6 +117,9 @@ prototype is not an instance.')
         #optional default elem/obj mapping override
         local_elem_map = kwargs.get('obj_elem_map', obj_elem_map)
         for event, elem in context:
+            if exit.is_set():
+                logging.info('Exit event caused immediate return.')
+                break
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             stag = etree.QName(elem.tag).localname.upper()
             if stag in local_elem_map:
@@ -799,66 +803,23 @@ parser.')
         return self.parseResponse(source=call, data=params,
                 consumer_prototype=consumer_prototype, **kwargs)
 
-    def iterativeHostDetectionQuery(self, consumer_prototype=None, max_hosts=0,
-            list_type_combine=None, exit=None, **kwargs):
-        """iterativehostDetectionQuery
+    def assetIterativeWrapper(self, consumer_prototype=None, max_results=0,
+            list_type_combine=None, exit=None, internal_call=None, **kwargs):
+        """assetIterativeWrapper
 
-        Feeds iteration off the WARNING element to pull all of the hosts in
-        blocks.  This is, obviously, iterative.
+        A common handler for the asset API to iterative many requests.  This
+        can take significant time.
 
-        :param consumer_prototype:
-        :param max_hosts: The maximum number of hosts to return
-        :param list_type_combine: Combine chunked result lists.
-        :param **kwargs:
+        :param consumer_prototype: Optional.  Result consumer.
+        :param max_results: Optional.  Maximum number of results to return.
+        :param list_type_combine: Optional.  Combine lists objects.
+        :param exit: threading.Event or multiprocessing.Event.  Used to
+        interrupt this function and return.
+        :param internal_call: The internal funciton being iterated over.
+        :param **kwargs: Arguments to internal_call.
         """
-        if not exit:
-            exit = threading.Event()
-        #1000 is the default so no need to pass on
-        truncation_limit = int(kwargs.get('truncation_limit', 1000))
-        # ok so basically if there is a WARNING then check the CODE, parse the
-        # URL and continue the loop.  Logging is preferred.
-        id_min = kwargs.get('id_min', 1)
-        itercount = 0
-        while id_min and not exit.is_set():
-            itercount+=1
-            if max_hosts and truncation_limit * itercount > max_hosts:
-                truncation_limit = max_hosts - (truncation_limit*(itercount-1))
-                if truncation_limit <= 0:
-                    id_min = None
-                    continue
-                else:
-                    kwargs['truncation_limit'] = truncation_limit
-            # update the id_min for this iteration
-            kwargs['id_min'] = id_min
-            #make sure blocking is disabled
-            kwargs['block']=False
-            prev_result = self.hostDetectionQuery(consumer_prototype, **kwargs)
-            prev_id_min = id_min
-            id_min = None
-            for itm in reversed(prev_result):
-                if isinstance(itm, AssetWarning):
-                    id_min_tmp = itm.getQueryDict()['id_min']
-                    try:
-                        id_min_tmp = int(id_min_tmp)
-                        if id_min_tmp > prev_id_min:
-                            id_min = id_min_tmp
-                            break
-                    except:
-                        break
-        return self.finish()
-
-    def iterativeHostListQuery(self, consumer_prototype=None, max_hosts=0,
-            list_type_combine=None, exit=None, **kwargs):
-        """iterativeHostListQuery
-
-        Feeds iteration off the WARNING element to pull all of the hosts in
-        blocks.  This is, obviously, iterative.
-
-        :param consumer_prototype:
-        :param max_hosts: The maximum number of hosts to return
-        :param list_type_combine: Combine chunked result lists.
-        :param **kwargs:
-        """
+        if not internal_call:
+            raise exceptions.QualysFrameworkException('Misuse of iterator.')
         if not exit:
             exit = threading.Event()
         #1000 is the default so no need to pass on
@@ -871,8 +832,8 @@ parser.')
             #reset each iteration
             truncation_limit = orig_truncation_limit
             itercount+=1
-            if max_hosts and orig_truncation_limit * itercount > max_hosts:
-                truncation_limit = max_hosts - (orig_truncation_limit*(itercount-1))
+            if max_results and orig_truncation_limit * itercount > max_results:
+                truncation_limit = max_results - (orig_truncation_limit*(itercount-1))
                 if truncation_limit <= 0:
                     id_min = None
                     continue
@@ -882,7 +843,7 @@ parser.')
             kwargs['id_min'] = id_min
             #make sure blocking is disabled
             kwargs['block']=False
-            prev_result = self.hostListQuery(consumer_prototype, **kwargs)
+            prev_result = internal_call(consumer_prototype, **kwargs)
             prev_id_min = id_min
             id_min = None
             for itm in reversed(prev_result):
@@ -897,64 +858,33 @@ parser.')
                         break
         return self.finish()
 
-    def iterativeAssetGroupQuery(self, consumer_prototype=None, max_ags=0,
-            list_type_combine=None, exit=None, **kwargs):
+
+    def iterativeHostDetectionQuery(self, **kwargs):
+        """iterativehostDetectionQuery
+
+        Feeds iteration off the WARNING element to pull all of the hosts in
+        blocks.  This is, obviously, iterative.
+        """
+        return self.assetIterativeWrapper(
+            internal_call=self.hostDetectionQuery, **kwargs)
+
+    def iterativeHostListQuery(self, **kwargs):
+        """iterativeHostListQuery
+
+        Feeds iteration off the WARNING element to pull all of the hosts in
+        blocks.  This is, obviously, iterative.
+        """
+        return self.assetIterativeWrapper(
+            internal_call=self.hostListQuery, **kwargs)
+
+    def iterativeAssetGroupQuery(self, **kwargs):
         """iterativeHostListQuery
 
         Feeds iteration off the WARNING element to pull all of the asset groups
         in blocks.  This is, obviously, iterative.
-
-        :param consumer_prototype:
-        :param max_ags: The maximum number of asset groups to return
-        :param list_type_combine: Combine chunked result lists.
-        :param exit: can be either multiprocessing.Event or threading.Event.
-        Use .set() to interrupt this method prematurely.
-        :param **kwargs:
         """
-        if not exit:
-            exit = threading.Event()
-        #1000 is the default so no need to pass on
-        truncation_limit = int(kwargs.get('truncation_limit', 1000))
-        # ok so basically if there is a WARNING then check the CODE, parse the
-        # URL and continue the loop.  Logging is preferred.
-        id_min = kwargs.get('id_min', 1)
-        itercount = 0
-        while id_min and not exit.is_set():
-            itercount+=1
-            if max_ags > 0 and truncation_limit * itercount > max_ags:
-                truncation_limit = max_ags - (truncation_limit*(itercount-1))
-                if truncation_limit <= 0:
-                    id_min = None
-                    continue
-                else:
-                    kwargs['truncation_limit'] = truncation_limit
-            # update the id_min for this iteration
-            kwargs['id_min'] = id_min
-            #make sure blocking is disabled
-            kwargs['block']=False
-            prev_result = self.assetGroupQuery(
-                consumer_prototype = consumer_prototype, **kwargs)
-            if list_type_combine is not None:
-                for itm in prev_result:
-                    if isinstance(itm, list_type_combine):
-                        if extlist:
-                            extlist.extend(itm)
-                        else:
-                            extlist = itm
-            prev_id_min = id_min
-            id_min = None
-            for itm in reversed(prev_result):
-                if isinstance(itm, AssetWarning):
-                    id_min_tmp = itm.getQueryDict()['id_min']
-                    try:
-                        id_min_tmp = int(id_min_tmp)
-                        if id_min_tmp > prev_id_min:
-                            id_min = id_min_tmp
-                            break
-                    except:
-                        break
-            logger.debug('Requesting next at %s' % id_min)
-        return self.finish()
+        return self.assetIterativeWrapper(
+            internal_call=self.assetGroupQuery, **kwargs)
 
     def finish(self):
         if self.import_buffer is not None:

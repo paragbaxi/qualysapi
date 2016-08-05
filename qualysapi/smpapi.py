@@ -318,13 +318,13 @@ class MPQueueImportBuffer(QueueImportBuffer):
         # if we need to add additional consumers.
         for csmr in self.running:
             if not csmr.is_alive():
-                debug('Child dead, releasing.')
+                logging.debug('Child dead, releasing.')
                 self.running.remove(csmr)
 
         #see if we should start a consumer...
         # TODO: add min/max processes (default and override)
         if not self.running:
-            debug('Spawning consumer.')
+            logging.debug('Spawning consumer.')
             new_consumer = self.consumer(
                     queue=self.queue,
                     results_queue=self.results_queue,
@@ -373,6 +373,7 @@ class MPQueueImportBuffer(QueueImportBuffer):
             try:
                 while True:
                     self.results_list.append(self.results_queue.get_nowait())
+                    self.results_queue.task_done()
             except queue.Empty:
                 #got everything on the queue so far
                 pass
@@ -801,6 +802,7 @@ class QGSMPActions(QGActions):
         consumer_prototype -- a prototype to use for the buffer consumer.
         '''
 
+        exit = kwargs.pop('exit', threading.Event())
         source = kwargs.pop('source', None)
         if not source:
             raise QualysException('No source file or URL or raw stream found.')
@@ -844,6 +846,9 @@ class QGSMPActions(QGActions):
         local_elem_map = kwargs.get('obj_elem_map', queue_elem_map)
         for event, elem in context:
             # Use QName to avoid specifying or stripping the namespace, which we don't need
+            if exit.is_set():
+                logging.info('Exit event caused immediate return.')
+                break
             stag = etree.QName(elem.tag).localname.upper()
             if stag in local_elem_map:
                 self.import_buffer.queueAdd(local_elem_map[stag](elem=elem,
