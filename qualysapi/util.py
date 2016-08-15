@@ -34,6 +34,9 @@ def date_param_format(date):
     return strict_rfc3339.timestamp_to_rfc3339_utcoffset(date.timestamp())
 
 def qualys_datetime_to_python(qdatestr):
-    return iso8601parser.parse(qdatestr)
+    try:
+        return iso8601parser.parse(str(qdatestr))
+    except:
+        return None
     # return datetime.date(int(qdatestr.split('-')[0]),
     #     int(qdatestr.split('-')[1]), int(qdatestr.split('-')[2]))
