@@ -23,7 +23,6 @@ from qualysapi.exceptions import QualysAuthenticationException
 from qualysapi.api_methods import api_methods
 
 # Setup module level logging.
-logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 try:
@@ -324,7 +323,7 @@ class QGConnector:
                 logger.debug(pprint.pformat(buffblock))
             response = b"".join([buffblock for buffblock in
                 request.iter_content(chunk_size=8192, decode_unicode=False)])
-            #logging.debug(pprint.pformat(response))
+            #logger.debug(pprint.pformat(response))
             # for buffblock in request.iter_content(chunk_size=8192, decode_unicode=True):
             #    response_str += unicode(buffblock)
             # response = str(request.content)

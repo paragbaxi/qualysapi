@@ -7,8 +7,6 @@ import getpass
 import logging
 import pprint
 
-logging.basicConfig()
-
 # Setup module level logging.
 logger = logging.getLogger(__name__)
 
@@ -35,7 +33,7 @@ class QualysConnectConfig:
         #handle kwarg defaults (don't think I can zip because of overwrite)
         settings = qcs.defaults
         settings.update(kwargs)
-        logging.debug(pprint.pformat(kwargs))
+        logger.debug(pprint.pformat(kwargs))
         self._cfgfile = None
 
         #this needs to only be done in ***SOME*** cases.  UGH yuck no no no
@@ -54,7 +52,7 @@ class QualysConnectConfig:
 
         # create ConfigParser to combine defaults and input from config file.
         self._cfgparse = ConfigParser(qcs.defaults)
-        logging.debug(pprint.pformat(self._cfgparse.sections()))
+        logger.debug(pprint.pformat(self._cfgparse.sections()))
 
         if self._cfgfile:
             self._cfgfile = os.path.realpath(self._cfgfile)
@@ -63,7 +61,7 @@ class QualysConnectConfig:
 
             # apply bitmask to current mode to check ONLY user access permissions.
             if (mode & ( stat.S_IRWXG | stat.S_IRWXO )) != 0:
-                logging.warning('%s permissions allows more than user access.'
+                logger.warning('%s permissions allows more than user access.'
                         % (self._cfgfile,))
 
             self._cfgparse.read(self._cfgfile)
@@ -170,12 +168,12 @@ class QualysConnectConfig:
                 self._cfgparse.set('info', key, str(settings[key]))
 
         # ask username (if one doesn't exist)
-        logging.debug('checking config file for username')
+        logger.debug('checking config file for username')
         if not self._cfgparse.has_option('info', 'username'):
             username = input('QualysGuard Username: ')
             self._cfgparse.set('info', 'username', username)
         else:
-            logging.debug('username \'' + \
+            logger.debug('username \'' + \
                     self._cfgparse.get('info', 'username') + \
                     '\' found in config file')
 
@@ -185,7 +183,7 @@ class QualysConnectConfig:
             password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set('info', 'password', password)
 
-        logging.debug(self._cfgparse.items('info'))
+        logger.debug(self._cfgparse.items('info'))
 
         if settings['remember_me'] or settings['remember_me_always']:
             # Let's create that config file for next time...

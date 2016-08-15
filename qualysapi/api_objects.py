@@ -189,7 +189,7 @@ class CacheableQualysObject(object):
                     setattr(self, attrname,
                         attrtype(elem=child, attrname=attrname))
                 except:
-                    logging.error('Unknown element handler type.\r\t'+\
+                    logger.error('Unknown element handler type.\r\t'+\
                     'Type: %s' % attrtype)
 
 
@@ -1424,9 +1424,12 @@ class QKBVuln(CacheableQualysObject):
                 'SEVERITY_LEVEL'                     : ('severity',          str ),
                 'TITLE'                              : ('title',             str ),
                 'CATEGORY'                           : ('vcat',              str ),
-                'LAST_CUSTOMIZATION'                 : ('usermod_date',      str ),
-                'LAST_SERVICE_MODIFICATION_DATETIME' : ('servicemod_date',   str ),
-                'PUBLISHED_DATETIME'                 : ('publ_date',         str ),
+                'LAST_CUSTOMIZATION'                 : ('usermod_date',
+                    qualys_datetime_to_python),
+                'LAST_SERVICE_MODIFICATION_DATETIME' : ('servicemod_date',
+                    qualys_datetime_to_python),
+                'PUBLISHED_DATETIME'                 : ('publ_date',
+                    qualys_datetime_to_python),
                 'PATCHABLE'                          : ('patch_avail',       str ),
                 'DIAGNOSIS'                          : ('diagnosis',         str ),
                 'DIAGNOSIS_COMMENT'                  : ('diagnosis_notes',   str ),

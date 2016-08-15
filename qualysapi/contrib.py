@@ -71,7 +71,7 @@ def qg_html_to_ascii(qg_html_text):
     # Remove anchor tags
     html_element = lxml.html.fromstring(text)
     # Convert anchor tags to "link_text (link: link_url )".
-    logging.debug('Converting anchor tags...')
+    logger.debug('Converting anchor tags...')
     text = html_element.text_content().encode('ascii', 'ignore')
     # Convert each link.
     for l in links:
@@ -85,7 +85,7 @@ def qg_html_to_ascii(qg_html_text):
         else:
             # Link text is the same as the href.  No need to duplicate link.
             text = string.replace(text, link_text, '%s' % (link_url))
-    logging.debug('Done.')
+    logger.debug('Done.')
     return text
 
 
@@ -110,7 +110,7 @@ def qg_parse_informational_qids(xml_report):
     # Parse vulnerabilities in xml string.
     tree = objectify.fromstring(xml_report)
     # Write IP, DNS, & Result into each QID CSV file.
-    logging.debug('Parsing report...')
+    logger.debug('Parsing report...')
     # TODO:  Check against c_args.max to prevent creating CSV content for QIDs that we won't use.
     for host in tree.HOST_LIST.HOST:
         # Extract possible extra hostname information.
@@ -140,7 +140,7 @@ def qg_parse_informational_qids(xml_report):
                                                  'result': '%s' % (result), })
             except KeyError:
                 # New QID.
-                logging.debug('New QID found: %s' % (qid))
+                logger.debug('New QID found: %s' % (qid))
                 info_vulns[qid]['hosts'] = []
                 info_vulns[qid]['hosts'].append({'ip': '%s' % (ip),
                                                  'dns': '%s' % (dns),
@@ -179,14 +179,14 @@ def qg_ticket_list(asset_group, severity, qids=None):
     #
     # Sort the vulnerabilities in order of prevalence -- number of hosts affected.
     vulns = OrderedDict(sorted(list(vulns.items()), key=lambda t: len(t[1]['hosts'])))
-    logging.debug('vulns sorted = %s' % (vulns))
+    logger.debug('vulns sorted = %s' % (vulns))
     #
     # Remove QIDs that have duplicate patches.
     #
     # Read in patch report.
     # TODO:  Allow for lookup of report_template.
     # Report template is Patch report "Sev 5 confirmed patchable".
-    logging.debug('Retrieving patch report from QualysGuard.')
+    logger.debug('Retrieving patch report from QualysGuard.')
     print('Retrieving patch report from QualysGuard.')
     report_template = '1063695'
     # Call QualysGuard for patch report.
@@ -194,20 +194,20 @@ def qg_ticket_list(asset_group, severity, qids=None):
                                           'asset_group_ids': asset_group_details['qg_asset_group_id'],
                                           'template_id': report_template,
                                           'report_title': 'QGIR Patch %s' % (asset_group)})
-    logging.debug('csv_output =')
-    logging.debug(csv_output)
-    logging.debug('Improving remediation efficiency by removing unneeded, redundant patches.')
+    logger.debug('csv_output =')
+    logger.debug(csv_output)
+    logger.debug('Improving remediation efficiency by removing unneeded, redundant patches.')
     print('Improving remediation efficiency by removing unneeded, redundant patches.')
     # Find the line for Patches by Host data.
-    logging.debug('Header found at %s.' % (csv_output.find('Patch QID, IP, DNS, NetBIOS, OS, Vulnerability Count')))
+    logger.debug('Header found at %s.' % (csv_output.find('Patch QID, IP, DNS, NetBIOS, OS, Vulnerability Count')))
 
     starting_pos = csv_output.find('Patch QID, IP, DNS, NetBIOS, OS, Vulnerability Count') + 52
-    logging.debug('starting_pos = %s' % str(starting_pos))
+    logger.debug('starting_pos = %s' % str(starting_pos))
     # Data resides between line ending in 'Vulnerability Count' and a blank line.
     patches_by_host = csv_output[starting_pos:csv_output[starting_pos:].find(
         'Host Vulnerabilities Fixed by Patch') + starting_pos - 3]
-    logging.debug('patches_by_host =')
-    logging.debug(patches_by_host)
+    logger.debug('patches_by_host =')
+    logger.debug(patches_by_host)
     # Read in string patches_by_host csv to a dictionary.
     f = patches_by_host.split(os.linesep)
     reader = csv.DictReader(f, ['Patch QID', 'IP', 'DNS', 'NetBIOS', 'OS', 'Vulnerability Count'], delimiter=',')
@@ -217,12 +217,12 @@ def qg_ticket_list(asset_group, severity, qids=None):
         if int(row['Vulnerability Count']) > 1:
             # Add to list of redundant QIDs.
             redundant_qids[row['Patch QID']].append(row['IP'])
-            logging.debug('%s, %s, %s, %s' % (
+            logger.debug('%s, %s, %s, %s' % (
             row['Patch QID'], row['IP'], int(row['Vulnerability Count']), redundant_qids[row['Patch QID']]))
     # Log for debugging.
-    logging.debug('len(redundant_qids) = %s, redundant_qids =' % (len(redundant_qids)))
+    logger.debug('len(redundant_qids) = %s, redundant_qids =' % (len(redundant_qids)))
     for patch_qid in list(redundant_qids.keys()):
-        logging.debug('%s, %s' % (str(patch_qid), str(redundant_qids[patch_qid])))
+        logger.debug('%s, %s' % (str(patch_qid), str(redundant_qids[patch_qid])))
     # Extract redundant QIDs with associated IP addresses.
     # Find the line for Patches by Host data.
     starting_pos = csv_output.find('Patch QID, IP, QID, Severity, Type, Title, Instance, Last Detected') + 66
@@ -240,9 +240,9 @@ def qg_ticket_list(asset_group, severity, qids=None):
             # Add the QID column to the list of dictionaries {QID: [IP address, IP address, ...], QID2: [IP address], ...}
             qids_to_remove[row['QID']].append(row['IP'])
     # Log for debugging.
-    logging.debug('len(qids_to_remove) = %s, qids_to_remove =' % (len(qids_to_remove)))
+    logger.debug('len(qids_to_remove) = %s, qids_to_remove =' % (len(qids_to_remove)))
     for a_qid in list(qids_to_remove.keys()):
-        logging.debug('%s, %s' % (str(a_qid), str(qids_to_remove[a_qid])))
+        logger.debug('%s, %s' % (str(a_qid), str(qids_to_remove[a_qid])))
     #
     # Diff vulns against qids_to_remove and against open incidents.
     #
@@ -250,26 +250,26 @@ def qg_ticket_list(asset_group, severity, qids=None):
     # Iterate over list of keys rather than original dictionary as some keys may be deleted changing the size of the dictionary.
     for a_qid in list(vulns.keys()):
         # Debug log original qid's hosts.
-        logging.debug('Before diffing vulns[%s] =' % (a_qid))
-        logging.debug(vulns[a_qid]['hosts'])
+        logger.debug('Before diffing vulns[%s] =' % (a_qid))
+        logger.debug(vulns[a_qid]['hosts'])
         # Pop each host.
         # The [:] returns a "slice" of x, which happens to contain all its elements, and is thus effectively a copy of x.
         for host in vulns[a_qid]['hosts'][:]:
             # If the QID for the host is a dupe or if a there is an open Reaction incident.
             if qids_to_remove[a_qid].count(host['ip']) > 0 or reaction_open_issue(host['vuln_id']):
                 # Remove the host from the QID's list of target hosts.
-                logging.debug('Removing remediation ticket %s.' % (host['vuln_id']))
+                logger.debug('Removing remediation ticket %s.' % (host['vuln_id']))
                 vulns[a_qid]['hosts'].remove(host)
             else:
                 # Do not remove this vuln
-                logging.debug('Will report remediation %s.' % (host['vuln_id']))
+                logger.debug('Will report remediation %s.' % (host['vuln_id']))
         # Debug log diff'd qid's hosts.
-        logging.debug('After diffing vulns[%s]=' % (a_qid))
-        logging.debug(vulns[a_qid]['hosts'])
+        logger.debug('After diffing vulns[%s]=' % (a_qid))
+        logger.debug(vulns[a_qid]['hosts'])
         # If there are no more hosts left to patch for the qid.
         if len(vulns[a_qid]['hosts']) == 0:
             # Remove the QID.
-            logging.debug('Deleting vulns[%s].' % (a_qid))
+            logger.debug('Deleting vulns[%s].' % (a_qid))
             del vulns[a_qid]
     # Diff completed
     if not vulns_length == len(vulns):
@@ -277,6 +277,6 @@ def qg_ticket_list(asset_group, severity, qids=None):
         int(vulns_length), int(len(vulns)),
         int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100))))
     # Return vulns to report.
-    logging.debug('vulns =')
-    logging.debug(vulns)
+    logger.debug('vulns =')
+    logger.debug(vulns)
     return vulns

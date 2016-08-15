@@ -4,6 +4,7 @@ from .. import api_methods, connect
 import traceback
 import pprint
 import logging
+logger = logging.getLogger(__name__)
 import json
 from io import BytesIO
 
@@ -429,7 +430,7 @@ class RedisConfig():
             api_methods.api_methods['1 get'] |
             api_methods.api_methods['2'],
             7200)
-    logging.debug(pprint.pformat(__defaults__))
+    logger.debug(pprint.pformat(__defaults__))
     qconfig = None
     qusername = None
     qpassword = None
@@ -471,9 +472,9 @@ class RedisConfig():
         qauth = qconfig.get_auth()
 
         # Debug output of qualys config stuff...
-        logging.debug('***************** Cache Qualys config ***************')
-        logging.debug(pprint.pformat(qauth))
-        logging.debug('*****************************************************')
+        logger.debug('***************** Cache Qualys config ***************')
+        logger.debug(pprint.pformat(qauth))
+        logger.debug('*****************************************************')
 
         self.qusername = qauth[0]
         self.qpassword = qauth[1]
@@ -608,7 +609,7 @@ class APICacheInstance(object):
 
         #not in cache or force refresh then go to qualys
         if not result:
-            logging.debug('Connecting with username \'' + \
+            logger.debug('Connecting with username \'' + \
                     self.__config.qusername + '\'')
             qgs = connect(
                     username = self.__config.qusername,

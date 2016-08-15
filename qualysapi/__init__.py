@@ -8,6 +8,7 @@ __license__ = "BSD-new"
 
 
 import logging
+logger = logging.getLogger(__name__)
 
 import qualysapi.config as qcconf
 import qualysapi.connector as qcconn
@@ -36,5 +37,5 @@ def connect(**kwargs):
             proxies=conf.proxies,
             max_retries=conf.max_retries,
             config=conf)
-    logging.info("Finished building connector.")
+    logger.info("Finished building connector.")
     return connect

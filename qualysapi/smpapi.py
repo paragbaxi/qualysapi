@@ -318,13 +318,13 @@ class MPQueueImportBuffer(QueueImportBuffer):
         # if we need to add additional consumers.
         for csmr in self.running:
             if not csmr.is_alive():
-                logging.debug('Child dead, releasing.')
+                logger.debug('Child dead, releasing.')
                 self.running.remove(csmr)
 
         #see if we should start a consumer...
         # TODO: add min/max processes (default and override)
         if not self.running:
-            logging.debug('Spawning consumer.')
+            logger.debug('Spawning consumer.')
             new_consumer = self.consumer(
                     queue=self.queue,
                     results_queue=self.results_queue,
@@ -847,13 +847,17 @@ class QGSMPActions(QGActions):
         for event, elem in context:
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             if exit.is_set():
-                logging.info('Exit event caused immediate return.')
+                logger.info('Exit event caused immediate return.')
                 break
             stag = etree.QName(elem.tag).localname.upper()
             if stag in local_elem_map:
+                logger.debug('Adding type "%s" to queue.' %
+                        (local_elem_map[stag]))
                 self.import_buffer.queueAdd(local_elem_map[stag](elem=elem,
                     report_stub=rstub))
             elif stag in obj_elem_map:
+                logger.debug('Adding type "%s" to return list.' %
+                        (obj_elem_map[stag]))
                 self.import_buffer.add(obj_elem_map[stag](elem=elem,
                     report_stub=rstub))
                 # elem.clear() #don't fill up a dom we don't need.

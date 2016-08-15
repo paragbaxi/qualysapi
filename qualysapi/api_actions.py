@@ -4,6 +4,7 @@ from qualysapi.exceptions import *
 from qualysapi.api_methods import api_methods
 from qualysapi.util import date_param_format, qualys_datetime_to_python
 import logging
+logger = logging.getLogger(__name__)
 import pprint
 import json
 
@@ -118,7 +119,7 @@ prototype is not an instance.')
         local_elem_map = kwargs.get('obj_elem_map', obj_elem_map)
         for event, elem in context:
             if exit.is_set():
-                logging.info('Exit event caused immediate return.')
+                logger.info('Exit event caused immediate return.')
                 break
             # Use QName to avoid specifying or stripping the namespace, which we don't need
             stag = etree.QName(elem.tag).localname.upper()
@@ -382,7 +383,7 @@ parser.')
                 return result
         #None result
 
-    def queryQKB(self, **kwargs):
+    def queryQKB(self, consumer_prototype=None, **kwargs):
         '''
         Pulls down a set of Qualys Knowledge Base entries in XML and hands them
         off to the parser/consumer framework.
@@ -478,11 +479,12 @@ parser.')
         result = None
         if 'file' in kwargs:
             sourcefile = open(kwargs.pop('file'), 'rb')
-            result = self.parseResponse(source=sourcefile)
+            result = self.parseResponse(source=sourcefile,
+                    consumer_prototype=consumer_prototype)
             sourcefile.close()
         else:
-            result = self.parseResponse(source=call, data=params)
-
+            result = self.parseResponse(source=call, data=params,
+                    consumer_prototype=consumer_prototype)
         return result
 
 
