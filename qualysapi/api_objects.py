@@ -228,6 +228,7 @@ class VulnInfo(CacheableQualysObject):
         <!ELEMENT INSTANCE (#PCDATA)>
     '''
     cvss_final           = None
+
     @property
     def first_seen(self):
         return self.first_found
@@ -235,10 +236,12 @@ class VulnInfo(CacheableQualysObject):
     @first_seen.setter
     def first_seen(self, first_seen):
         self.first_found = first_seen
+
     first_found          = None
     fqdn                 = None
     instance             = None
     last_fixed_datetime  = None
+
     @property
     def last_seen(self):
         return self.last_found
@@ -246,6 +249,7 @@ class VulnInfo(CacheableQualysObject):
     @last_seen.setter
     def last_seen(self, last_seen):
         self.last_found = last_seen
+
     last_found           = None
     last_test_datetime   = None
     last_update_datetime = None
@@ -992,6 +996,182 @@ class Report(CacheableQualysObject):
         return True if self.contents else False
 
 
+class CVSSImpact(CacheableQualysObject):
+    '''
+    CVSS impacted areas.
+    '''
+    confidentiality = None
+    '''
+    CONFIDENTIALITY child element.  A CVSS
+    confidentiality impact metric. This metric measures the impact on
+    confidentiality of a successfully exploited vulnerability. The
+    value is: Undefined, None, Partial, or Complete. See “CVSS V2 Sub
+    Metrics Mapping” below. (This element appears only when the CVSS
+    Scoring feature is turned on in the user’s subscription and the API
+    request includes the parameter details=All.)
+    '''
+    integrity       = None
+    '''
+    INTEGRITY child element.  A CVSS integrity impact
+    metric. This metric measures the impact to integrity of a
+    successfully exploited vulnerability. The value is: Undefined,
+    None, Partial, or Complete. See “CVSS V2 Sub Metrics Mapping”
+    below. (This element appears only when the CVSS Scoring feature is
+    turned on in the user’s subscription and the API request includes
+    the parameter details=All.)
+    '''
+    availability    = None
+    '''
+    AVAILABILITY child element.  A CVSS availability
+    impact metric. This metric measures the impact to availability of a
+    successfully exploited vulnerability. The value is: Undefined,
+    None, Partial, or Complete. See “CVSS V2 Sub Metrics Mapping”
+    below. (This element appears only when the CVSS Scoring feature is
+    turned on in the user’s subscription and the API request includes
+    the parameter details=All.)
+    '''
+
+    def __init__(self, *args, **kwargs):
+        if 'elem' in kwargs or 'xml' in kwargs:
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
+                'CONFIDENTIALITY' : ('confidentiality', str ),
+                'INTEGRITY'       : ('integrity',       str ),
+                'AVAILABILITY'    : ('availability',    str ),
+            })
+        else:
+            confidentiality = kwargs.pop('CONFIDENTIALITY', None)
+            integrity       = kwargs.pop('INTEGRITY', None)
+            availability    = kwargs.pop('AVAILABILITY', None)
+        super(CVSSImpact, self).__init__(*args, **kwargs)
+
+
+class CVSSAccess(CacheableQualysObject):
+    '''
+    A tuple of data, but made an object because of feature and
+    extension desireability.
+
+    .. autoclass:: CVSSAccess
+        :members: vector, complexity
+    '''
+    vector = None
+    '''
+    :property vector:
+        A CVSS access vector metric. This metric reflects how the
+    vulnerability is exploited. The more remote an attacker can be to
+    attack a host, the greater the vulnerability score. The value is
+    one of the following: Network, Adjacent Network, Local Access, or
+    Undefined. See “CVSS V2 Sub Metrics Mapping” below. (This element
+    appears only when the CVSS Scoring feature is turned on in the
+    user’s subscription and the API request includes the parameter
+    details=All.)
+    '''
+    complexity = None
+    '''
+    :property complexity:
+        A CVSS access complexity metric. This metric measures
+    the complexity of the attack required to exploit the vulnerability
+    once an attacker has gained access to the target system. The value
+    is one of the following: Undefined, Low, Medium, or High. See “CVSS
+    V2 Sub Metrics Mapping” below. (This element appears only when the
+    CVSS Scoring feature is turned on in the user’s subscription and
+    the API request includes the parameter details=All.)
+    '''
+
+    def __init__(self, *args, **kwargs):
+        if 'elem' in kwargs or 'xml' in kwargs:
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
+                'VECTOR'     : ('vector',     str ),
+                'COMPLEXITY' : ('complexity', str ),
+            })
+        else:
+            vector     = kwargs.pop('VECTOR', None)
+            complexity = kwargs.pop('COMPLEXITY', None)
+        super(CVSSAccess, self).__init__(*args, **kwargs)
+
+
+class CVSS(CacheableQualysObject):
+    '''
+    CVSS metadata encoding wrapper object and helpers.
+    ##CVSS element DTD:
+    ::
+        <!ELEMENT CVSS (BASE, TEMPORAL?, ACCESS?, IMPACT?,
+            AUTHENTICATION?, EXPLOITABILITY?,
+            REMEDIATION_LEVEL?, REPORT_CONFIDENCE?)>
+            <!ELEMENT BASE (#PCDATA)>
+            <!ATTLIST BASE source CDATA #IMPLIED>
+            <!ELEMENT TEMPORAL (#PCDATA)>
+            <!ELEMENT ACCESS (VECTOR?, COMPLEXITY?)>
+            <!ELEMENT VECTOR (#PCDATA)>
+            <!ELEMENT COMPLEXITY (#PCDATA)>
+            <!ELEMENT IMPACT (CONFIDENTIALITY?, INTEGRITY?, AVAILABILITY?)>
+            <!ELEMENT CONFIDENTIALITY (#PCDATA)>
+            <!ELEMENT INTEGRITY (#PCDATA)>
+            <!ELEMENT AVAILABILITY (#PCDATA)>
+            <!ELEMENT AUTHENTICATION (#PCDATA)>
+            <!ELEMENT EXPLOITABILITY (#PCDATA)>
+            <!ELEMENT REMEDIATION_LEVEL (#PCDATA)>
+            <!ELEMENT REPORT_CONFIDENCE (#PCDATA)>
+    Parameters:
+
+    :property base: BASE element.  CVSS base score.  (A CVSS base score assigned to the vulnerability. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request is for “Basic” details or “All” details.)
+    :property temporal_score: TEMPORAL element.  A CVSS temporal score. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request is for “Basic” details or “All” details.)
+    :property access: :class:`CVSSAccess` instance or None.
+    :property impact: :class:`CVSSImpact` or None.
+    :property authentication: AUTHENTICATION child element.  A CVSS authentication metric. This metric measures the number of times an attacker must authenticate to a target in order to exploit a vulnerability. The value is: Undefined, Non required, Require single instance, or Require multiple instances. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
+    :property exploitability: EXPLOITABILITY child element.  A CVSS exploitability metric. This metric measures the current state of        exploit techniques or code availability. The value is: Undefined, Unproven, Proof-of- concept, Functional, or Widespread. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
+    :property remediation_level: REMEDIATION_LEVEL child element.  A CVSS remediation level metric. The remediation level of a vulnerability is an important factor for prioritization. The value is: Undefined, Official-fix, Temporary-fix, Workaround, or Unavailable. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
+    :property report_confidence: REPORT_CONFIDENCE child element.  A CVSS report confidence metric. This metric measures the degree of confidence in the existence of the vulnerability and the credibility of the known technical details. The value is: Undefined, Not confirmed, Uncorroborated, or Confirmed. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
+    '''
+
+    base              = None
+    temporal          = None
+    access            = None
+    impact            = None
+    authentication    = None
+    exploitability    = None
+    remediation_level = None
+    report_confidence = None
+    product           = None
+    vendor_id         = None
+
+    def __init__(self, *args, **kwargs):
+        if 'elem' in kwargs or 'xml' in kwargs:
+            param_map = {}
+            if 'param_map' in kwargs:
+                param_map = kwargs.pop('param_map', {})
+            kwargs['param_map'] = param_map
+            kwargs['param_map'].update({
+                'BASE'              : ('base',              str ),
+                'TEMPORAL'          : ('temporal',          str ),
+                'ACCESS'            : ('access',            CVSSAccess),
+                'IMPACT'            : ('impact',            CVSSImpact),
+                'AUTHENTICATION'    : ('authentication',    str ),
+                'EXPLOITABILITY'    : ('exploitability',    str ),
+                'REMEDIATION_LEVEL' : ('remediation_level', str ),
+                'REPORT_CONFIDENCE' : ('report_confidence', str ),
+            })
+        else:
+            self.base              = kwargs.pop('BASE', None)
+            self.temporal          = kwargs.pop('TEMPORAL', None)
+            self.access            = \
+                    CVSSAccess(**(kwargs.pop('ACCESS', {})))
+            self.impact            = \
+                    CVSSImpact(**(kwargs.pop('IMPACT', {})))
+            self.authentication    = kwargs.pop('AUTHENTICATION', None)
+            self.exploitability    = kwargs.pop('EXPLOITABILITY', None)
+            self.remediation_level = kwargs.pop('REMEDIATION_LEVEL', None)
+            self.report_confidence = kwargs.pop('REPORT_CONFIDENCE', None)
+        super(CVSS, self).__init__(*args, **kwargs)
+
+
 class QKBVuln(CacheableQualysObject):
     '''
     A class respresentation of a Qualys Knowledge Base entry.
@@ -1080,181 +1260,6 @@ class QKBVuln(CacheableQualysObject):
                 self.cve_id = kwargs.pop('ID', None)
                 self.url    = kwargs.pop('URL', None)
             super(QKBVuln.CVE, self).__init__(*args, **kwargs)
-
-    class CVSS(CacheableQualysObject):
-        '''
-        CVSS metadata encoding wrapper object and helpers.
-        ##CVSS element DTD:
-        ::
-            <!ELEMENT CVSS (BASE, TEMPORAL?, ACCESS?, IMPACT?,
-                AUTHENTICATION?, EXPLOITABILITY?,
-                REMEDIATION_LEVEL?, REPORT_CONFIDENCE?)>
-                <!ELEMENT BASE (#PCDATA)>
-                <!ATTLIST BASE source CDATA #IMPLIED>
-                <!ELEMENT TEMPORAL (#PCDATA)>
-                <!ELEMENT ACCESS (VECTOR?, COMPLEXITY?)>
-                <!ELEMENT VECTOR (#PCDATA)>
-                <!ELEMENT COMPLEXITY (#PCDATA)>
-                <!ELEMENT IMPACT (CONFIDENTIALITY?, INTEGRITY?, AVAILABILITY?)>
-                <!ELEMENT CONFIDENTIALITY (#PCDATA)>
-                <!ELEMENT INTEGRITY (#PCDATA)>
-                <!ELEMENT AVAILABILITY (#PCDATA)>
-                <!ELEMENT AUTHENTICATION (#PCDATA)>
-                <!ELEMENT EXPLOITABILITY (#PCDATA)>
-                <!ELEMENT REMEDIATION_LEVEL (#PCDATA)>
-                <!ELEMENT REPORT_CONFIDENCE (#PCDATA)>
-        Parameters:
-
-        :property base: BASE element.  CVSS base score.  (A CVSS base score assigned to the vulnerability. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request is for “Basic” details or “All” details.)
-        :property temporal_score: TEMPORAL element.  A CVSS temporal score. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request is for “Basic” details or “All” details.)
-        :property access: :class:`CVSSAccess` instance or None.
-        :property impact: :class:`CVSSImpact` or None.
-        :property authentication: AUTHENTICATION child element.  A CVSS authentication metric. This metric measures the number of times an attacker must authenticate to a target in order to exploit a vulnerability. The value is: Undefined, Non required, Require single instance, or Require multiple instances. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
-        :property exploitability: EXPLOITABILITY child element.  A CVSS exploitability metric. This metric measures the current state of        exploit techniques or code availability. The value is: Undefined, Unproven, Proof-of- concept, Functional, or Widespread. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
-        :property remediation_level: REMEDIATION_LEVEL child element.  A CVSS remediation level metric. The remediation level of a vulnerability is an important factor for prioritization. The value is: Undefined, Official-fix, Temporary-fix, Workaround, or Unavailable. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
-        :property report_confidence: REPORT_CONFIDENCE child element.  A CVSS report confidence metric. This metric measures the degree of confidence in the existence of the vulnerability and the credibility of the known technical details. The value is: Undefined, Not confirmed, Uncorroborated, or Confirmed. See “CVSS V2 Sub Metrics Mapping” below. (This element appears only when the CVSS Scoring feature is turned on in the user’s subscription and the API request includes the parameter details=All.)
-        '''
-
-        base = None
-        temporal = None
-        access = None
-        impact = None
-        authentication = None
-        exploitability = None
-        remediation_level = None
-        report_confidence = None
-        product   = None
-        vendor_id = None
-
-        def __init__(self, *args, **kwargs):
-            if 'elem' in kwargs or 'xml' in kwargs:
-                param_map = {}
-                if 'param_map' in kwargs:
-                    param_map = kwargs.pop('param_map', {})
-                kwargs['param_map'] = param_map
-                kwargs['param_map'].update({
-                    'BASE'              : ('base',              str ),
-                    'TEMPORAL'          : ('temporal',          str ),
-                    'ACCESS'            : ('access',            self.CVSSAccess),
-                    'IMPACT'            : ('impact',            self.CVSSImpact),
-                    'AUTHENTICATION'    : ('authentication',    str ),
-                    'EXPLOITABILITY'    : ('exploitability',    str ),
-                    'REMEDIATION_LEVEL' : ('remediation_level', str ),
-                    'REPORT_CONFIDENCE' : ('report_confidence', str ),
-                })
-            else:
-                self.base              = kwargs.pop('BASE', None)
-                self.temporal          = kwargs.pop('TEMPORAL', None)
-                self.access            = \
-                        self.CVSSAccess(**(kwargs.pop('ACCESS', {})))
-                self.impact            = \
-                        self.CVSSImpact(**(kwargs.pop('IMPACT', {})))
-                self.authentication    = kwargs.pop('AUTHENTICATION', None)
-                self.exploitability    = kwargs.pop('EXPLOITABILITY', None)
-                self.remediation_level = kwargs.pop('REMEDIATION_LEVEL', None)
-                self.report_confidence = kwargs.pop('REPORT_CONFIDENCE', None)
-            super(QKBVuln.CVSS, self).__init__(*args, **kwargs)
-
-        class CVSSImpact(CacheableQualysObject):
-            '''
-            CVSS impacted areas.
-            '''
-            confidentiality = None
-            '''
-            CONFIDENTIALITY child element.  A CVSS
-            confidentiality impact metric. This metric measures the impact on
-            confidentiality of a successfully exploited vulnerability. The
-            value is: Undefined, None, Partial, or Complete. See “CVSS V2 Sub
-            Metrics Mapping” below. (This element appears only when the CVSS
-            Scoring feature is turned on in the user’s subscription and the API
-            request includes the parameter details=All.)
-            '''
-            integrity       = None
-            '''
-            INTEGRITY child element.  A CVSS integrity impact
-            metric. This metric measures the impact to integrity of a
-            successfully exploited vulnerability. The value is: Undefined,
-            None, Partial, or Complete. See “CVSS V2 Sub Metrics Mapping”
-            below. (This element appears only when the CVSS Scoring feature is
-            turned on in the user’s subscription and the API request includes
-            the parameter details=All.)
-            '''
-            availability    = None
-            '''
-            AVAILABILITY child element.  A CVSS availability
-            impact metric. This metric measures the impact to availability of a
-            successfully exploited vulnerability. The value is: Undefined,
-            None, Partial, or Complete. See “CVSS V2 Sub Metrics Mapping”
-            below. (This element appears only when the CVSS Scoring feature is
-            turned on in the user’s subscription and the API request includes
-            the parameter details=All.)
-            '''
-
-            def __init__(self, *args, **kwargs):
-                if 'elem' in kwargs or 'xml' in kwargs:
-                    param_map = {}
-                    if 'param_map' in kwargs:
-                        param_map = kwargs.pop('param_map', {})
-                    kwargs['param_map'] = param_map
-                    kwargs['param_map'].update({
-                        'CONFIDENTIALITY' : ('confidentiality', str ),
-                        'INTEGRITY'       : ('integrity',       str ),
-                        'AVAILABILITY'    : ('availability',    str ),
-                    })
-                else:
-                    confidentiality = kwargs.pop('CONFIDENTIALITY', None)
-                    integrity       = kwargs.pop('INTEGRITY', None)
-                    availability    = kwargs.pop('AVAILABILITY', None)
-                super(QKBVuln.CVSSImpact, self).__init__(*args, **kwargs)
-
-
-        class CVSSAccess(CacheableQualysObject):
-            '''
-            A tuple of data, but made an object because of feature and
-            extension desireability.
-
-            .. autoclass:: CVSSAccess
-                :members: vector, complexity
-            '''
-            vector = None
-            '''
-            :property vector:
-                A CVSS access vector metric. This metric reflects how the
-            vulnerability is exploited. The more remote an attacker can be to
-            attack a host, the greater the vulnerability score. The value is
-            one of the following: Network, Adjacent Network, Local Access, or
-            Undefined. See “CVSS V2 Sub Metrics Mapping” below. (This element
-            appears only when the CVSS Scoring feature is turned on in the
-            user’s subscription and the API request includes the parameter
-            details=All.)
-            '''
-            complexity = None
-            '''
-            :property complexity:
-                A CVSS access complexity metric. This metric measures
-            the complexity of the attack required to exploit the vulnerability
-            once an attacker has gained access to the target system. The value
-            is one of the following: Undefined, Low, Medium, or High. See “CVSS
-            V2 Sub Metrics Mapping” below. (This element appears only when the
-            CVSS Scoring feature is turned on in the user’s subscription and
-            the API request includes the parameter details=All.)
-            '''
-
-            def __init__(self, *args, **kwargs):
-                if 'elem' in kwargs or 'xml' in kwargs:
-                    param_map = {}
-                    if 'param_map' in kwargs:
-                        param_map = kwargs.pop('param_map', {})
-                    kwargs['param_map'] = param_map
-                    kwargs['param_map'].update({
-                        'VECTOR'     : ('vector',     str ),
-                        'COMPLEXITY' : ('complexity', str ),
-                    })
-                else:
-                    vector     = kwargs.pop('VECTOR', None)
-                    complexity = kwargs.pop('COMPLEXITY', None)
-                super(QKBVuln.CVSSAccess, self).__init__(*args, **kwargs)
-
 
     class VulnSoftware(CacheableQualysObject):
         '''
@@ -1439,7 +1444,7 @@ class QKBVuln(CacheableQualysObject):
                 'SOLUTION_COMMENT'                   : ('solution_notes',    str ),
                 'PATCHABLE'                          : ('patch_avail',       bool ),
                 'PCI_FLAG'                           : ('pci_mustfix',       bool ),
-                'CVSS'                               : ('cvss',              self.CVSS),
+                'CVSS'                               : ('cvss',              CVSS),
                 'BUGTRAQ_LIST'          : ('bugtraq_listing',
                     ObjTypeList(self.Bugtraq)),
                 'CVE_LIST'              : ('cve_list',
@@ -1478,7 +1483,7 @@ class QKBVuln(CacheableQualysObject):
             self.solution_notes    = kwargs.pop('SOLUTION_COMMENT', None)
             self.pci_mustfix       = \
                 False if int(kwargs.pop('PCI_FLAG', 0)) else True
-            self.cvss              = self.CVSS(elem = kwargs.pop('CVSS', None))
+            self.cvss              = CVSS(elem = kwargs.pop('CVSS', None))
             # lists / subparse objects
             #TODO: make this graceful
             raise exceptions.QualysFrameworkException('Not yet implemented: \

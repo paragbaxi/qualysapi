@@ -14,7 +14,7 @@ from qualysapi import connect, qcache, config, exceptions
 from qualysapi import api_actions, api_objects
 
 #pudb nice debugger
-# import pudb
+import pudb
 # pu.db
 
 class TestAPIMethods(unittest.TestCase):
@@ -230,14 +230,34 @@ class TestAPIMethods(unittest.TestCase):
         actions = api_actions.QGActions(connection =
                 self.instance)
         args = {
-            'details' : 'Basic',
+            'details' : 'All',
+            'id_min'  : 10000,
+            'id_max'  : 10100,
         }
+        #pu.db
         qkbobs = actions.queryQKB(**args)
+        for qkbvuln in qkbobs:
+            logger.debug('Submetrics for "%s"' % qkbvuln.title)
+            try:
+                qkbcvss = qkbvuln.cvss
+                logger.debug('access.vector = %d' % (int(qkbcvss.access.vector)))
+                logger.debug('access.complexity = %d' % (int(qkbcvss.access.complexity)))
+                logger.debug('authentication = %d' % (int(qkbcvss.authentication)))
+                logger.debug('impact.confidentiality = %d' % (int(qkbcvss.impact.confidentiality)))
+                logger.debug('impact.integrity = %d' % (int(qkbcvss.impact.integrity)))
+                logger.debug('impact.availability = %d' % (int(qkbcvss.impact.availability)))
+                logger.debug('exploitability = %d' % (int(qkbcvss.exploitability)))
+                logger.debug('remediation_level = %d' % (int(qkbcvss.remediation_level)))
+                logger.debug('report_confidence = %d' % (int(qkbcvss.report_confidence)))
+            except Exception as e:
+                logger.warn(str(e))
 
 #stand-alone test execution
 if __name__ == '__main__':
     import nose2
     nose2.main(argv=['fake', '--log-capture',
-        'TestAPIMethods.test_itrhost_query'])
+        #'TestAPIMethods.test_itrhost_query',
+        'TestAPIMethods.test_kqb',
+        ])
 
 

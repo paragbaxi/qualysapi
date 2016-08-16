@@ -37,6 +37,7 @@ def qualys_datetime_to_python(qdatestr):
     try:
         return iso8601parser.parse(str(qdatestr))
     except:
+        logger.warn('Invalid date string - "%s"' % (qdatestr))
         return None
     # return datetime.date(int(qdatestr.split('-')[0]),
     #     int(qdatestr.split('-')[1]), int(qdatestr.split('-')[2]))
