@@ -19,7 +19,6 @@ import qualysapi.api_actions
 import qualysapi.api_actions as api_actions
 
 # Setup module level logging.
-logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 try:
