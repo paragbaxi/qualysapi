@@ -485,7 +485,7 @@ parser.')
         else:
             result = self.parseResponse(source=call, data=params,
                     consumer_prototype=consumer_prototype)
-        return result
+        return self.finish()
 
 
     def listReportTemplates(self):
@@ -845,7 +845,7 @@ parser.')
             kwargs['id_min'] = id_min
             #make sure blocking is disabled
             kwargs['block']=False
-            prev_result = internal_call(consumer_prototype, **kwargs)
+            prev_result = internal_call(consumer_prototype, exit=exit, **kwargs)
             prev_id_min = id_min
             id_min = None
             for itm in reversed(prev_result):

@@ -764,8 +764,8 @@ class AssetGroup(CacheableQualysObject):
             'HOST_IDS'             : ('host_ids' ,                 str ),
             'ASSIGNED_USER_IDS'    : ('assigned_user_ids' ,        str ),
             'ASSIGNED_UNIT_IDS'    : ('assigned_unit_ids' ,        str ),
-            'ASSET_GROUP_TITLE' : ('title',  str),
-            'RANGE'             : ('ranges', list),
+            'ASSET_GROUP_TITLE'    : ('title',                     str ),
+            'RANGE'                : ('ranges',                   list ),
         })
         super(AssetGroup, self).__init__(*args, **kwargs)
 
@@ -1592,13 +1592,15 @@ class MapResult(Map):
 
 
 class Scan(CacheableQualysObject):
-    def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title, type, user_login):
+    def __init__(self, assetgroups, duration, launch_datetime, option_profile,
+            processed, ref, status, target, title, type, user_login):
         self.assetgroups = assetgroups
         self.duration = str(duration)
         launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
         date = launch_datetime[0].split('-')
         time = launch_datetime[1].split(':')
-        self.launch_datetime = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
+        self.launch_datetime = datetime.datetime(int(date[0]), int(date[1]),
+                int(date[2]), int(time[0]), int(time[1]), int(time[2]))
         self.option_profile = str(option_profile)
         self.processed = int(processed)
         self.ref = str(ref)
