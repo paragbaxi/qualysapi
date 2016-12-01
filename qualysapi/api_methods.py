@@ -129,9 +129,19 @@ api_methods['am get'] = set([
     'get/am/hostasset/',
     'get/am/tag/',
 ])
+# Asset Management v2 GET methods.
+api_methods['am2 get'] = set([
+    'get/am/asset/',
+    'get/am/hostasset/',
+    'get/am/tag/',
+    'get/am/hostinstancevuln/',
+    'get/am/assetdataconnector/',
+    'get/am/awsassetdataconnector/',
+    'get/am/awsauthrecord/',
+])
 # Keep track of methods with ending slashes to autocorrect user when they forgot slash.
 api_methods_with_trailing_slash = defaultdict(set)
-for method_group in set(['1', '2', 'was', 'am']):
+for method_group in set(['1', '2', 'was', 'am','am2']):
     for method in api_methods[method_group]:
         if method[-1] == '/':
             # Add applicable method with api_version preceding it.
