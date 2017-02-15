@@ -1,5 +1,9 @@
 # File for 3rd party contributions.
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
+from six.moves import range
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __license__ = 'Apache License 2.0'
 
@@ -43,7 +47,7 @@ def generate_vm_report(self, report_details, startup_delay=60, polling_delay=30,
         logger.debug('tag_status: %s' % (tag_status))
         tag_status = etree.XML(xml_output).findtext(".//STATE")
         logger.debug('tag_status: %s' % (tag_status))
-        if not type(tag_status) == types.NoneType:
+        if not type(tag_status) == type(None):
             # Report is showing up in the Report Center.
             if tag_status == 'Finished':
                 # Report creation complete.
@@ -115,21 +119,21 @@ def qg_parse_informational_qids(xml_report):
     for host in tree.HOST_LIST.HOST:
         # Extract possible extra hostname information.
         try:
-            netbios = unicodedata.normalize('NFKD', unicode(host.NETBIOS)).encode('ascii', 'ignore').strip()
+            netbios = unicodedata.normalize('NFKD', six.text_type(host.NETBIOS)).encode('ascii', 'ignore').strip()
         except AttributeError:
             netbios = ''
         try:
-            dns = unicodedata.normalize('NFKD', unicode(host.DNS)).encode('ascii', 'ignore').strip()
+            dns = unicodedata.normalize('NFKD', six.text_type(host.DNS)).encode('ascii', 'ignore').strip()
         except AttributeError:
             dns = ''
-        ip = unicodedata.normalize('NFKD', unicode(host.IP)).encode('ascii', 'ignore').strip()
+        ip = unicodedata.normalize('NFKD', six.text_type(host.IP)).encode('ascii', 'ignore').strip()
         # Extract vulnerabilities host is affected by.
         for vuln in host.VULN_INFO_LIST.VULN_INFO:
             try:
-                result = unicodedata.normalize('NFKD', unicode(vuln.RESULT)).encode('ascii', 'ignore').strip()
+                result = unicodedata.normalize('NFKD', six.text_type(vuln.RESULT)).encode('ascii', 'ignore').strip()
             except AttributeError:
                 result = ''
-            qid = unicodedata.normalize('NFKD', unicode(vuln.QID)).encode('ascii', 'ignore').strip()
+            qid = unicodedata.normalize('NFKD', six.text_type(vuln.QID)).encode('ascii', 'ignore').strip()
             # Attempt to add host to QID's list of affected hosts.
             try:
                 info_vulns[qid]['hosts'].append({'ip': '%s' % (ip),
@@ -151,17 +155,17 @@ def qg_parse_informational_qids(xml_report):
     # All vulnerabilities added.
     # Add all vulnerabilty information.
     for vuln_details in tree.GLOSSARY.VULN_DETAILS_LIST.VULN_DETAILS:
-        qid = unicodedata.normalize('NFKD', unicode(vuln_details.QID)).encode('ascii', 'ignore').strip()
-        info_vulns[qid]['title'] = unicodedata.normalize('NFKD', unicode(vuln_details.TITLE)).encode('ascii',
+        qid = unicodedata.normalize('NFKD', six.text_type(vuln_details.QID)).encode('ascii', 'ignore').strip()
+        info_vulns[qid]['title'] = unicodedata.normalize('NFKD', six.text_type(vuln_details.TITLE)).encode('ascii',
                                                                                                      'ignore').strip()
-        info_vulns[qid]['severity'] = unicodedata.normalize('NFKD', unicode(vuln_details.SEVERITY)).encode('ascii',
+        info_vulns[qid]['severity'] = unicodedata.normalize('NFKD', six.text_type(vuln_details.SEVERITY)).encode('ascii',
                                                                                                            'ignore').strip()
         info_vulns[qid]['solution'] = qg_html_to_ascii(
-            unicodedata.normalize('NFKD', unicode(vuln_details.SOLUTION)).encode('ascii', 'ignore').strip())
+            unicodedata.normalize('NFKD', six.text_type(vuln_details.SOLUTION)).encode('ascii', 'ignore').strip())
         info_vulns[qid]['threat'] = qg_html_to_ascii(
-            unicodedata.normalize('NFKD', unicode(vuln_details.THREAT)).encode('ascii', 'ignore').strip())
+            unicodedata.normalize('NFKD', six.text_type(vuln_details.THREAT)).encode('ascii', 'ignore').strip())
         info_vulns[qid]['impact'] = qg_html_to_ascii(
-            unicodedata.normalize('NFKD', unicode(vuln_details.IMPACT)).encode('ascii', 'ignore').strip())
+            unicodedata.normalize('NFKD', six.text_type(vuln_details.IMPACT)).encode('ascii', 'ignore').strip())
     # Ready to report informational vulnerabilities.
     return info_vulns
 
@@ -178,7 +182,7 @@ def qg_ticket_list(asset_group, severity, qids=None):
         return False
     #
     # Sort the vulnerabilities in order of prevalence -- number of hosts affected.
-    vulns = OrderedDict(sorted(vulns.items(), key=lambda t: len(t[1]['hosts'])))
+    vulns = OrderedDict(sorted(list(vulns.items()), key=lambda t: len(t[1]['hosts'])))
     logging.debug('vulns sorted = %s' % (vulns))
     #
     # Remove QIDs that have duplicate patches.
@@ -273,9 +277,9 @@ def qg_ticket_list(asset_group, severity, qids=None):
             del vulns[a_qid]
     # Diff completed
     if not vulns_length == len(vulns):
-        print('A count of %s vulnerabilities have been consolidated to %s vulnerabilities, a reduction of %s%%.' % (
+        print(('A count of %s vulnerabilities have been consolidated to %s vulnerabilities, a reduction of %s%%.' % (
             int(vulns_length), int(len(vulns)),
-            int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100))))
+            int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100)))))
     # Return vulns to report.
     logging.debug('vulns =')
     logging.debug(vulns)
