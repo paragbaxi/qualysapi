@@ -187,7 +187,7 @@ def qg_ticket_list(asset_group, severity, qids=None):
     # TODO:  Allow for lookup of report_template.
     # Report template is Patch report "Sev 5 confirmed patchable".
     logging.debug('Retrieving patch report from QualysGuard.')
-    print 'Retrieving patch report from QualysGuard.'
+    print('Retrieving patch report from QualysGuard.')
     report_template = '1063695'
     # Call QualysGuard for patch report.
     csv_output = qg_command(2, 'report', {'action': 'launch', 'output_format': 'csv',
@@ -197,7 +197,7 @@ def qg_ticket_list(asset_group, severity, qids=None):
     logging.debug('csv_output =')
     logging.debug(csv_output)
     logging.debug('Improving remediation efficiency by removing unneeded, redundant patches.')
-    print 'Improving remediation efficiency by removing unneeded, redundant patches.'
+    print('Improving remediation efficiency by removing unneeded, redundant patches.')
     # Find the line for Patches by Host data.
     logging.debug('Header found at %s.' % (csv_output.find('Patch QID, IP, DNS, NetBIOS, OS, Vulnerability Count')))
 
@@ -273,9 +273,9 @@ def qg_ticket_list(asset_group, severity, qids=None):
             del vulns[a_qid]
     # Diff completed
     if not vulns_length == len(vulns):
-        print 'A count of %s vulnerabilities have been consolidated to %s vulnerabilities, a reduction of %s%%.' % (
-        int(vulns_length), int(len(vulns)),
-        int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100)))
+        print('A count of %s vulnerabilities have been consolidated to %s vulnerabilities, a reduction of %s%%.' % (
+            int(vulns_length), int(len(vulns)),
+            int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100))))
     # Return vulns to report.
     logging.debug('vulns =')
     logging.debug(vulns)
