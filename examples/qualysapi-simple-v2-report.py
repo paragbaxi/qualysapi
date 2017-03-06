@@ -7,7 +7,7 @@ import qualysapi
 if __name__ == '__main__':
     # Basic command line processing.
     if len(sys.argv) != 3:
-        print 'A report template and scan reference respectively are expected as the only arguments.'
+        print('A report template and scan reference respectively are expected as the only arguments.')
         sys.exit(2)
     
     # Set the MAXIMUM level of log messages displayed @ runtime. 
@@ -34,4 +34,4 @@ if __name__ == '__main__':
     #
     ret = qgs.request('/api/2.0/fo/report',{'action': 'launch', 'report_refs': sys.argv[2], 'output_format': 'xml', 'template_id': sys.argv[1], 'report_type': 'Scan'})
 
-    print ret
+    print(ret)

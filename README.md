@@ -24,7 +24,7 @@ Sample example below.
 >>> a = qualysapi.connect()
 QualysGuard Username: my_username
 QualysGuard Password: 
->>> print a.request('about.php')
+>>> print(a.request('about.php'))
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE ABOUT SYSTEM "https://qualysapi.qualys.com/about.dtd">
 <ABOUT>

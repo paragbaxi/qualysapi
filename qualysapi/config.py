@@ -1,15 +1,18 @@
 """ Module providing a single class (QualysConnectConfig) that parses a config
 file and provides the information required to build QualysGuard sessions.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import stat
 import getpass
 import logging
+from six.moves import input
 
 # Setup module level logging.
 logger = logging.getLogger(__name__)
 
-from ConfigParser import *
+from six.moves.configparser import *
 # try:
 #    from requests_ntlm import HttpNtlmAuth
 #except ImportError, e:
@@ -74,7 +77,7 @@ class QualysConnectConfig:
                 self.max_retries = int(self.max_retries)
             except Exception:
                 logger.error('Value max_retries must be an integer.')
-                print 'Value max_retries must be an integer.'
+                print('Value max_retries must be an integer.')
                 exit(1)
             self._cfgparse.set('info', 'max_retries', str(self.max_retries))
         self.max_retries = int(self.max_retries)
@@ -151,7 +154,7 @@ class QualysConnectConfig:
 
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option('info', 'username'):
-            username = raw_input('QualysGuard Username: ')
+            username = input('QualysGuard Username: ')
             self._cfgparse.set('info', 'username', username)
 
         # ask password (if one doesn't exist)
