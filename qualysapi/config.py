@@ -8,17 +8,17 @@ import stat
 import getpass
 import logging
 from six.moves import input
+from six.moves.configparser import *
 
+import qualysapi.settings as qcs
 # Setup module level logging.
 logger = logging.getLogger(__name__)
 
-from six.moves.configparser import *
 # try:
 #    from requests_ntlm import HttpNtlmAuth
-#except ImportError, e:
+# except ImportError, e:
 #    logger.warning('Warning: Cannot support NTML authentication.')
 
-import qualysapi.settings as qcs
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
@@ -51,7 +51,7 @@ class QualysConnectConfig:
             mode = stat.S_IMODE(os.stat(self._cfgfile)[stat.ST_MODE])
 
             # apply bitmask to current mode to check ONLY user access permissions.
-            if (mode & ( stat.S_IRWXG | stat.S_IRWXO )) != 0:
+            if (mode & (stat.S_IRWXG | stat.S_IRWXO)) != 0:
                 logging.warning('%s permissions allows more than user access.' % (filename,))
 
             self._cfgparse.read(self._cfgfile)
@@ -186,14 +186,11 @@ class QualysConnectConfig:
                 self._cfgparse.write(config_file)
                 config_file.close()
 
-
     def get_config_filename(self):
         return self._cfgfile
 
-
     def get_config(self):
         return self._cfgparse
-
 
     def get_auth(self):
         ''' Returns username from the configfile. '''

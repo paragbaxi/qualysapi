@@ -3,6 +3,7 @@ from lxml import objectify
 import qualysapi.api_objects
 from qualysapi.api_objects import *
 
+
 class QGActions(object):
     def getHost(host):
         call = '/api/2.0/fo/asset/host/'
@@ -16,7 +17,7 @@ class QGActions(object):
 
     def getHostRange(self, start, end):
         call = '/api/2.0/fo/asset/host/'
-        parameters = {'action': 'list', 'ips': start+'-'+end}
+        parameters = {'action': 'list', 'ips': start + '-' + end}
         hostData = objectify.fromstring(self.request(call, parameters))
         hostArray = []
         for host in hostData.RESPONSE.HOST_LIST.HOST:
@@ -29,7 +30,7 @@ class QGActions(object):
         if groupName == '':
             agData = objectify.fromstring(self.request(call))
         else:
-            agData = objectify.fromstring(self.request(call, 'title='+groupName)).RESPONSE
+            agData = objectify.fromstring(self.request(call, 'title=' + groupName)).RESPONSE
 
         groupsArray = []
         scanipsArray = []
@@ -40,24 +41,23 @@ class QGActions(object):
                 for scanip in group.SCANIPS:
                     scanipsArray.append(scanip.IP)
             except AttributeError:
-                scanipsArray = [] # No IPs defined to scan.
+                scanipsArray = []  # No IPs defined to scan.
 
             try:
                 for scanner in group.SCANNER_APPLIANCES.SCANNER_APPLIANCE:
                     scannersArray.append(scanner.SCANNER_APPLIANCE_NAME)
             except AttributeError:
-                scannersArray = [] # No scanner appliances defined for this group.
+                scannersArray = []  # No scanner appliances defined for this group.
 
             try:
                 for dnsName in group.SCANDNS:
                     scandnsArray.append(dnsName.DNS)
             except AttributeError:
-                scandnsArray = [] # No DNS names assigned to group.
+                scandnsArray = []  # No DNS names assigned to group.
 
             groupsArray.append(AssetGroup(group.BUSINESS_IMPACT, group.ID, group.LAST_UPDATE, scanipsArray, scandnsArray, scannersArray, group.TITLE))
 
         return groupsArray
-
 
     def listReportTemplates(self):
         call = 'report_template_list.php'
@@ -88,7 +88,6 @@ class QGActions(object):
             repData = objectify.fromstring(self.request(call, parameters)).RESPONSE.REPORT_LIST.REPORT
             return Report(repData.EXPIRATION_DATETIME, repData.ID, repData.LAUNCH_DATETIME, repData.OUTPUT_FORMAT, repData.SIZE, repData.STATUS, repData.TYPE, repData.USER_LOGIN)
 
-
     def notScannedSince(self, days):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'details': 'All'}
@@ -104,8 +103,8 @@ class QGActions(object):
         return hostArray
 
     def addIP(self, ips, vmpc):
-        #'ips' parameter accepts comma-separated list of IP addresses.
-        #'vmpc' parameter accepts 'vm', 'pc', or 'both'. (Vulnerability Managment, Policy Compliance, or both)
+        # 'ips' parameter accepts comma-separated list of IP addresses.
+        # 'vmpc' parameter accepts 'vm', 'pc', or 'both'. (Vulnerability Managment, Policy Compliance, or both)
         call = '/api/2.0/fo/asset/ip/'
         enablevm = 1
         enablepc = 0
@@ -120,11 +119,11 @@ class QGActions(object):
         self.request(call, parameters)
 
     def listScans(self, launched_after="", state="", target="", type="", user_login=""):
-        #'launched_after' parameter accepts a date in the format: YYYY-MM-DD
-        #'state' parameter accepts "Running", "Paused", "Canceled", "Finished", "Error", "Queued", and "Loading".
-        #'title' parameter accepts a string
-        #'type' parameter accepts "On-Demand", and "Scheduled".
-        #'user_login' parameter accepts a user name (string)
+        # 'launched_after' parameter accepts a date in the format: YYYY-MM-DD
+        # 'state' parameter accepts "Running", "Paused", "Canceled", "Finished", "Error", "Queued", and "Loading".
+        # 'title' parameter accepts a string
+        # 'type' parameter accepts "On-Demand", and "Scheduled".
+        # 'user_login' parameter accepts a user name (string)
         call = '/api/2.0/fo/scan/'
         parameters = {'action': 'list', 'show_ags': 1, 'show_op': 1, 'show_status': 1}
         if launched_after != "":

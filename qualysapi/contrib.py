@@ -17,7 +17,6 @@ from collections import defaultdict
 from lxml import etree, objectify
 
 
-
 # Set module level logger.
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ def generate_vm_report(self, report_details, startup_delay=60, polling_delay=30,
         logger.debug('tag_status: %s' % (tag_status))
         tag_status = etree.XML(xml_output).findtext(".//STATE")
         logger.debug('tag_status: %s' % (tag_status))
-        if not type(tag_status) == type(None):
+        if tag_status is not None:
             # Report is showing up in the Report Center.
             if tag_status == 'Finished':
                 # Report creation complete.
@@ -158,9 +157,9 @@ def qg_parse_informational_qids(xml_report):
     for vuln_details in tree.GLOSSARY.VULN_DETAILS_LIST.VULN_DETAILS:
         qid = unicodedata.normalize('NFKD', six.text_type(vuln_details.QID)).encode('ascii', 'ignore').strip()
         info_vulns[qid]['title'] = unicodedata.normalize('NFKD', six.text_type(vuln_details.TITLE)).encode('ascii',
-                                                                                                     'ignore').strip()
-        info_vulns[qid]['severity'] = unicodedata.normalize('NFKD', six.text_type(vuln_details.SEVERITY)).encode('ascii',
                                                                                                            'ignore').strip()
+        info_vulns[qid]['severity'] = unicodedata.normalize('NFKD', six.text_type(vuln_details.SEVERITY)).encode('ascii',
+                                                                                                                 'ignore').strip()
         info_vulns[qid]['solution'] = qg_html_to_ascii(
             unicodedata.normalize('NFKD', six.text_type(vuln_details.SOLUTION)).encode('ascii', 'ignore').strip())
         info_vulns[qid]['threat'] = qg_html_to_ascii(
@@ -172,7 +171,7 @@ def qg_parse_informational_qids(xml_report):
 
 
 # TODO: Implement required function qg_remediation_tickets(asset_group, status, qids)
-#TODO: Remove static 'report_template' value.  Parameterize and document required report template.
+# TODO: Remove static 'report_template' value.  Parameterize and document required report template.
 def qg_ticket_list(asset_group, severity, qids=None):
     """Return dictionary of each vulnerability reported against asset_group of severity."""
     global asset_group_details
@@ -223,7 +222,10 @@ def qg_ticket_list(asset_group, severity, qids=None):
             # Add to list of redundant QIDs.
             redundant_qids[row['Patch QID']].append(row['IP'])
             logging.debug('%s, %s, %s, %s' % (
-            row['Patch QID'], row['IP'], int(row['Vulnerability Count']), redundant_qids[row['Patch QID']]))
+                row['Patch QID'],
+                row['IP'],
+                int(row['Vulnerability Count']),
+                redundant_qids[row['Patch QID']]))
     # Log for debugging.
     logging.debug('len(redundant_qids) = %s, redundant_qids =' % (len(redundant_qids)))
     for patch_qid in list(redundant_qids.keys()):
@@ -279,8 +281,9 @@ def qg_ticket_list(asset_group, severity, qids=None):
     # Diff completed
     if not vulns_length == len(vulns):
         print('A count of %s vulnerabilities have been consolidated to %s vulnerabilities, a reduction of %s%%.' % (
-        int(vulns_length), int(len(vulns)),
-        int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100))))
+            int(vulns_length),
+            int(len(vulns)),
+            int(round((int(vulns_length) - int(len(vulns))) / float(vulns_length) * 100))))
     # Return vulns to report.
     logging.debug('vulns =')
     logging.debug(vulns)

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import datetime
 from lxml import objectify
 
+
 class Host(object):
     def __init__(self, dns, id, ip, last_scan, netbios, os, tracking_method):
         self.dns = str(dns)
@@ -14,6 +15,7 @@ class Host(object):
         self.netbios = str(netbios)
         self.os = str(os)
         self.tracking_method = str(tracking_method)
+
 
 class AssetGroup(object):
     def __init__(self, business_impact, id, last_update, scanips, scandns, scanner_appliances, title):
@@ -36,6 +38,7 @@ class AssetGroup(object):
         parameters = {'action': 'edit', 'id': self.id, 'set_ips': ips}
         conn.request(call, parameters)
 
+
 class ReportTemplate(object):
     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
         self.isGlobal = int(isGlobal)
@@ -45,6 +48,7 @@ class ReportTemplate(object):
         self.title = title
         self.type = type
         self.user = user.LOGIN
+
 
 class Report(object):
     def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login):
@@ -62,6 +66,7 @@ class Report(object):
         parameters = {'action': 'fetch', 'id': self.id}
         if self.status == 'Finished':
             return conn.request(call, parameters)
+
 
 class Scan(object):
     def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title, type, user_login):
@@ -83,7 +88,7 @@ class Scan(object):
     def cancel(self, conn):
         cancelled_statuses = ['Cancelled', 'Finished', 'Error']
         if any(self.status in s for s in cancelled_statuses):
-            raise ValueError("Scan cannot be cancelled because its status is "+self.status)
+            raise ValueError("Scan cannot be cancelled because its status is " + self.status)
         else:
             call = '/api/2.0/fo/scan/'
             parameters = {'action': 'cancel', 'scan_ref': self.ref}
@@ -94,7 +99,7 @@ class Scan(object):
 
     def pause(self, conn):
         if self.status != "Running":
-            raise ValueError("Scan cannot be paused because its status is "+self.status)
+            raise ValueError("Scan cannot be paused because its status is " + self.status)
         else:
             call = '/api/2.0/fo/scan/'
             parameters = {'action': 'pause', 'scan_ref': self.ref}
@@ -105,7 +110,7 @@ class Scan(object):
 
     def resume(self, conn):
         if self.status != "Paused":
-            raise ValueError("Scan cannot be resumed because its status is "+self.status)
+            raise ValueError("Scan cannot be resumed because its status is " + self.status)
         else:
             call = '/api/2.0/fo/scan/'
             parameters = {'action': 'resume', 'scan_ref': self.ref}
