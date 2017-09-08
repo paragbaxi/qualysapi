@@ -10,7 +10,7 @@ import qualysapi
 if __name__ == '__main__':
     # Basic command line processing.
     if len(sys.argv) != 2:
-        print 'A single IPv4 address is expected as the only argument.'
+        print('A single IPv4 address is expected as the only argument.')
         sys.exit(2)
     
     # Set the MAXIMUM level of log messages displayed @ runtime. 
@@ -40,4 +40,4 @@ if __name__ == '__main__':
     # New way is cleaner:
     ret = qgs.request('/api/2.0/fo/asset/host',{'action': 'list', 'ips': sys.argv[1]})
 
-    print ret
+    print(ret)

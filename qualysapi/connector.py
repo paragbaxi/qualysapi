@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2013, Parag Baxi'
 __license__ = 'Apache License 2.0'
@@ -7,7 +9,7 @@ and requesting data from it.
 """
 import logging
 import time
-import urlparse
+import urllib.parse
 from collections import defaultdict
 
 import requests
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from lxml import etree
-except ImportError, e:
+except ImportError as e:
     logger.warning(
         'Warning: Cannot consume lxml.builder E objects without lxml. Send XML strings for AM & WAS API calls.')
 
@@ -222,7 +224,7 @@ class QGConnector(api_actions.QGActions):
                 data = data.lstrip('?')
                 data = data.rstrip('&')
                 # Convert to dictionary.
-                data = urlparse.parse_qs(data)
+                data = urllib.parse.parse_qs(data)
                 logger.debug('Converted:\n%s' % str(data))
         elif api_version in ('am', 'was','am2'):
             if type(data) == etree._Element:
@@ -311,11 +313,11 @@ class QGConnector(api_actions.QGActions):
                     logger.warning('Rate limit is about to being reached (remaining api calls = %s)' % self.rate_limit_remaining[api_call])
                 elif self.rate_limit_remaining[api_call] <= 0:
                     logger.critical('ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!' % self.rate_limit_remaining[api_call])
-            except KeyError, e:
+            except KeyError as e:
                 # Likely a bad api_call.
                 logger.debug(e)
                 pass
-            except TypeError, e:
+            except TypeError as e:
                 # Likely an asset search api_call.
                 logger.debug(e)
                 pass
@@ -341,7 +343,7 @@ class QGConnector(api_actions.QGActions):
                     logger.critical('Retry #%d' % retries)
                 else:
                     # Ran out of retries. Let user know.
-                    print 'Alert! Ran out of concurrent_scans_retries!'
+                    print('Alert! Ran out of concurrent_scans_retries!')
                     logger.critical('Alert! Ran out of concurrent_scans_retries!')
                     return False
         # Check to see if there was an error.
@@ -349,17 +351,17 @@ class QGConnector(api_actions.QGActions):
             request.raise_for_status()
         except requests.HTTPError as e:
             # Error
-            print 'Error! Received a 4XX client error or 5XX server error response.'
-            print 'Content = \n', response
+            print('Error! Received a 4XX client error or 5XX server error response.')
+            print('Content = \n', response)
             logger.error('Content = \n%s' % response)
-            print 'Headers = \n', request.headers
+            print('Headers = \n', request.headers)
             logger.error('Headers = \n%s' % str(request.headers))
             request.raise_for_status()
         if '<RETURN status="FAILED" number="2007">' in response:
-            print 'Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).'
-            print 'Content = \n', response
+            print('Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security).')
+            print('Content = \n', response)
             logger.error('Content = \n%s' % response)
-            print 'Headers = \n', request.headers
+            print('Headers = \n', request.headers)
             logger.error('Headers = \n%s' % str(request.headers))
             return False
         return response

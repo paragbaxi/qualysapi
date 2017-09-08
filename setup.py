@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
 import os
 import sys
 try:
@@ -13,7 +14,7 @@ __license__ = 'BSD-new'
 # Make pyflakes happy.
 __pkgname__ = None
 __version__ = None
-execfile('qualysapi/version.py')
+exec(compile(open('qualysapi/version.py').read(), 'qualysapi/version.py', 'exec'))
 
 # A utility function to read the README file into the long_description field.
 def read(fname):
