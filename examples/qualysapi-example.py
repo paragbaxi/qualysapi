@@ -27,7 +27,7 @@ xml_output = qgc.request(call, parameters, concurrent_scans_retries=2, concurren
 #         <errorResolution>Please wait until your previous scans have completed</errorResolution>
 #       </responseErrorDetails>
 #
-print xml_output
+print(xml_output)
 #
 # API v1 call: Print out all IPs associated with asset group "Looneyville Texas".
 # Note that the question mark at the end is optional.
@@ -39,7 +39,7 @@ xml_output = qgc.request(call, parameters)
 # Let's objectify the xml_output string.
 root = objectify.fromstring(xml_output)
 # Print out the IPs.
-print root.ASSET_GROUP.SCANIPS.IP.text
+print(root.ASSET_GROUP.SCANIPS.IP.text)
 # Prints out:
 # 10.0.0.102
 #
@@ -50,7 +50,7 @@ xml_output = qgc.request(call, parameters)
 root = objectify.fromstring(xml_output)
 # Iterate hosts and print out DNS name.
 for host in root.RESPONSE.HOST_LIST.HOST:
-    print host.IP.text, host.DNS.text
+    print(host.IP.text, host.DNS.text)
 # Prints out:
 # 10.0.0.10 mydns1.qualys.com
 # 10.0.0.11 mydns2.qualys.com
@@ -61,7 +61,7 @@ call = '/count/was/webapp'
 xml_output = qgc.request(call)
 root = objectify.fromstring(xml_output)
 # Print out count of webapps.
-print root.count.text
+print(root.count.text)
 # Prints out:
 # 89
 #
@@ -72,7 +72,7 @@ parameters = '<ServiceRequest><filters><Criteria operator="CONTAINS" field="name
 xml_output = qgc.request(call, parameters)
 root = objectify.fromstring(xml_output)
 # Print out count of webapps.
-print root.count.text
+print(root.count.text)
 # Prints out:
 # 3
 #
@@ -86,7 +86,7 @@ parameters = (
 xml_output = qgc.request(call, parameters)
 root = objectify.fromstring(xml_output)
 # Print out count of webapps.
-print root.count.text
+print(root.count.text)
 # Prints out:
 # 0
 # Too bad, because that is an awesome webapp name!
@@ -96,7 +96,7 @@ call = '/count/am/tag'
 xml_output = qgc.request(call)
 root = objectify.fromstring(xml_output)
 # We can use XPATH to find the count.
-print root.xpath('count')[0].text
+print(root.xpath('count')[0].text)
 # Prints out:
 # 840
 #

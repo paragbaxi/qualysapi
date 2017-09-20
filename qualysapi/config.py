@@ -1,21 +1,24 @@
 """ Module providing a single class (QualysConnectConfig) that parses a config
 file and provides the information required to build QualysGuard sessions.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import stat
 import getpass
 import logging
+from six.moves import input
+from six.moves.configparser import *
 
+import qualysapi.settings as qcs
 # Setup module level logging.
 logger = logging.getLogger(__name__)
 
-from ConfigParser import *
 # try:
 #    from requests_ntlm import HttpNtlmAuth
-#except ImportError, e:
+# except ImportError, e:
 #    logger.warning('Warning: Cannot support NTML authentication.')
 
-import qualysapi.settings as qcs
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
@@ -48,7 +51,7 @@ class QualysConnectConfig:
             mode = stat.S_IMODE(os.stat(self._cfgfile)[stat.ST_MODE])
 
             # apply bitmask to current mode to check ONLY user access permissions.
-            if (mode & ( stat.S_IRWXG | stat.S_IRWXO )) != 0:
+            if (mode & (stat.S_IRWXG | stat.S_IRWXO)) != 0:
                 logging.warning('%s permissions allows more than user access.' % (filename,))
 
             self._cfgparse.read(self._cfgfile)
@@ -74,7 +77,7 @@ class QualysConnectConfig:
                 self.max_retries = int(self.max_retries)
             except Exception:
                 logger.error('Value max_retries must be an integer.')
-                print 'Value max_retries must be an integer.'
+                print('Value max_retries must be an integer.')
                 exit(1)
             self._cfgparse.set('info', 'max_retries', str(self.max_retries))
         self.max_retries = int(self.max_retries)
@@ -151,7 +154,7 @@ class QualysConnectConfig:
 
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option('info', 'username'):
-            username = raw_input('QualysGuard Username: ')
+            username = input('QualysGuard Username: ')
             self._cfgparse.set('info', 'username', username)
 
         # ask password (if one doesn't exist)
@@ -183,14 +186,11 @@ class QualysConnectConfig:
                 self._cfgparse.write(config_file)
                 config_file.close()
 
-
     def get_config_filename(self):
         return self._cfgfile
 
-
     def get_config(self):
         return self._cfgparse
-
 
     def get_auth(self):
         ''' Returns username from the configfile. '''
