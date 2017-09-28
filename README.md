@@ -19,7 +19,7 @@ Detailed example found at [qualysapi-example.py](https://github.com/paragbaxi/qu
 
 Sample example below.
 
-```python
+```
 >>> import qualysapi
 >>> a = qualysapi.connect()
 QualysGuard Username: my_username
