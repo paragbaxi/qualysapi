@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
+__updated_by__ = "Austin Taylor <vulnWhisperer@austintaylor.io>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
@@ -80,6 +81,20 @@ class QualysConnectConfig:
                 print('Value max_retries must be an integer.')
                 exit(1)
             self._cfgparse.set('info', 'max_retries', str(self.max_retries))
+        self.max_retries = int(self.max_retries)
+
+        #Get template ID... user will need to set this to pull back CSV reports
+        if not self._cfgparse.has_option('report', 'template_id'):
+            self.report_template_id = qcs.defaults['template_id']
+        else:
+            self.report_template_id = self._cfgparse.get('report', 'template_id')
+            try:
+                self.report_template_id = int(self.report_template_id)
+            except Exception:
+                logger.error('Report Template ID Must be set and be an integer')
+                print('Value template ID must be an integer.')
+                exit(1)
+            self._cfgparse.set('report', 'template_id', str(self.max_retries))
         self.max_retries = int(self.max_retries)
 
         # Proxy support
@@ -161,6 +176,8 @@ class QualysConnectConfig:
         if not self._cfgparse.has_option('info', 'password'):
             password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set('info', 'password', password)
+
+
 
         logging.debug(self._cfgparse.items('info'))
 
