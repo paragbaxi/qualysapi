@@ -9,7 +9,7 @@ except ImportError:
     from distutils.core import setup
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
-__copyright__ = 'Copyright 2011-2013, Parag Baxi'
+__copyright__ = 'Copyright 2011-2018, Parag Baxi'
 __license__ = 'BSD-new'
 # Make pyflakes happy.
 __pkgname__ = None
