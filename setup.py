@@ -43,6 +43,7 @@ setup(name=__pkgname__,
           'Topic :: Utilities',
           'License :: OSI Approved :: Apache Software License',
           'Intended Audience :: Developers',
+          'Programming Language :: Python :: 2.7',
       ],
       install_requires=[
           'requests',
