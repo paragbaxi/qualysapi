@@ -1,21 +1,24 @@
 # File for 3rd party contributions.
 
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
+
+import csv
+import logging
+import os
+import re
+import string
+import time
+import unicodedata
+from collections import OrderedDict, defaultdict
+
 import six
+
+import lxml
+from lxml import etree, objectify
 from six.moves import range
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __license__ = 'Apache License 2.0'
-
-import logging
-import time
-import types
-import unicodedata
-from collections import defaultdict
-
-from lxml import etree, objectify
-
 
 # Set module level logger.
 logger = logging.getLogger(__name__)
@@ -37,7 +40,7 @@ def generate_vm_report(self, report_details, startup_delay=60, polling_delay=30,
     logger.debug('report_id: %s' % (report_id))
     # Wait for report to finish spooling.
     # Maximum number of times to check for report.  About 10 minutes.
-    MAX_CHECKS = 10
+    # MAX_CHECKS = 10
     logger.info('Report sent to spooler. Checking for report in %s seconds.' % (startup_delay))
     time.sleep(startup_delay)
     for n in range(0, max_checks):
