@@ -51,7 +51,7 @@ Requirements
 ------------
 
 * requests (http://docs.python-requests.org)
-* lxml (http://lxml.de/)
+* lxml (http://lxml.de)
 
 Tested successfully on Python 2.7.
 

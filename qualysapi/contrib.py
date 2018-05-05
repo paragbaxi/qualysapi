@@ -1,4 +1,6 @@
 # File for 3rd party contributions.
+# flake8: noqa  # tell flake8 to ignore this file
+# https://github.com/paragbaxi/qualysapi/issues/32
 
 from __future__ import absolute_import, print_function
 
