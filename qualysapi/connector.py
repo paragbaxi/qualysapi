@@ -9,7 +9,12 @@ and requesting data from it.
 """
 import logging
 import time
-import urllib.parse
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
+
 from collections import defaultdict
 
 import requests
