@@ -220,7 +220,7 @@ class QGConnector(api_actions.QGActions):
                 data = data.lstrip('?')
                 data = data.rstrip('&')
                 # Convert to dictionary.
-                data = urllib.parse.parse_qs(data)
+                data = urlparse.parse_qs(data)
                 logger.debug('Converted:\n%s' % str(data))
         elif api_version in ('am', 'was', 'am2'):
             if type(data) == etree._Element:
