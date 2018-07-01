@@ -52,7 +52,7 @@ class QualysConnectConfig:
 
             # apply bitmask to current mode to check ONLY user access permissions.
             if (mode & (stat.S_IRWXG | stat.S_IRWXO)) != 0:
-                logging.warning('%s permissions allows more than user access.' % (filename,))
+                logger.warning('%s permissions allows more than user access.' % (filename,))
 
             self._cfgparse.read(self._cfgfile)
 
@@ -162,7 +162,7 @@ class QualysConnectConfig:
             password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set('info', 'password', password)
 
-        logging.debug(self._cfgparse.items('info'))
+        logger.debug(self._cfgparse.items('info'))
 
         if remember_me or remember_me_always:
             # Let's create that config file for next time...
