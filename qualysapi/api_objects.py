@@ -8,13 +8,19 @@ class Host(object):
         self.dns = str(dns)
         self.id = int(id)
         self.ip = str(ip)
-        last_scan = str(last_scan).replace('T', ' ').replace('Z', '').split(' ')
-        date = last_scan[0].split('-')
-        time = last_scan[1].split(':')
-        self.last_scan = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
+        try:
+            last_scan = str(last_scan).replace('T', ' ').replace('Z', '').split(' ')
+            date = last_scan[0].split('-')
+            time = last_scan[1].split(':')
+            self.last_scan = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
+        except IndexError:
+            self.last_scan = 'never'
         self.netbios = str(netbios)
         self.os = str(os)
         self.tracking_method = str(tracking_method)
+
+    def __str__(self):
+        return f"ip: {self.ip}, qualys_id: {self.id}, dns: {self.dns}"
 
 
 class AssetGroup(object):
