@@ -139,14 +139,23 @@ class QGActions(object):
     def notScannedSince(self, days):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'details': 'All'}
-        hostData = objectify.fromstring(self.request(call, parameters))
+        hostData = objectify.fromstring(self.request(call, parameters).encode('utf-8'))
         hostArray = []
         today = datetime.date.today()
         for host in hostData.RESPONSE.HOST_LIST.HOST:
-            last_scan = str(host.LAST_VULN_SCAN_DATETIME).split('T')[0]
-            last_scan = datetime.date(int(last_scan.split('-')[0]), int(last_scan.split('-')[1]), int(last_scan.split('-')[2]))
-            if (today - last_scan).days >= days:
-                hostArray.append(Host(host.DNS, host.ID, host.IP, host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS, host.TRACKING_METHOD))
+            if host.find('LAST_VULN_SCAN_DATETIME'):
+                last_scan = str(host.LAST_VULN_SCAN_DATETIME).split('T')[0]
+                last_scan = datetime.date(int(last_scan.split('-')[0]), int(last_scan.split('-')[1]), int(last_scan.split('-')[2]))
+                if (today - last_scan).days >= days:
+                    hostArray.append(Host(host.find('DNS'),
+                                          host.find('ID'),
+                                          host.find('IP'),
+                                          host.find('LAST_VULN_SCAN_DATETIME'),
+                                          host.find('NETBIOS'),
+                                          host.find('OS'),
+                                          host.find('TRACKING_METHOD')
+                                          )
+                                     )
 
         return hostArray
 
