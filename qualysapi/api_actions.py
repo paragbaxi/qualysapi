@@ -9,18 +9,15 @@ class QGActions(object):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'ips': host, 'details': 'All'}
         hostData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
-        try:
-            hostData = hostData.HOST_LIST.HOST
-            return Host(hostData.find('DNS'),
-                        hostData.find('ID'),
-                        hostData.find('IP'),
-                        hostData.find('LAST_VULN_SCAN_DATETIME'),
-                        hostData.find('NETBIOS'),
-                        hostData.find('OS'),
-                        hostData.find('TRACKING_METHOD')
-                        )
-        except AttributeError:
-            return Host("", "", host, "never", "", "", "")
+        hostData = hostData.HOST_LIST.HOST
+        return Host(hostData.find('DNS'),
+                    hostData.find('ID'),
+                    hostData.find('IP'),
+                    hostData.find('LAST_VULN_SCAN_DATETIME'),
+                    hostData.find('NETBIOS'),
+                    hostData.find('OS'),
+                    hostData.find('TRACKING_METHOD')
+                    )
 
     def getHostRange(self, start, end):
         call = '/api/2.0/fo/asset/host/'
