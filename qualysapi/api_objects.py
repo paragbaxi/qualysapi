@@ -57,9 +57,11 @@ class ReportTemplate(object):
         self.type = type
         self.user = user.LOGIN
 
+    def __repr__(self):
+        return f"qualys_id: {self.id}, title: {self.title}"
 
 class Report(object):
-    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login):
+    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login, title):
         self.expiration_datetime = str(expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
         self.id = int(id)
         self.launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
@@ -68,6 +70,10 @@ class Report(object):
         self.status = status.STATE
         self.type = type
         self.user_login = user_login
+        self.title = title
+
+    def __repr__(self):
+        return f"qualys_id: {self.id}, title: {self.title}"
 
     def download(self, conn):
         call = '/api/2.0/fo/report'

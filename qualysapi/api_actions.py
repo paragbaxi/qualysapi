@@ -67,17 +67,33 @@ class QGActions(object):
             except AttributeError:
                 scandnsArray = []  # No DNS names assigned to group.
 
-            groupsArray.append(AssetGroup(group.BUSINESS_IMPACT, group.ID, group.LAST_UPDATE, scanipsArray, scandnsArray, scannersArray, group.TITLE))
+            groupsArray.append(AssetGroup(group.find('BUSINESS_IMPACT'),
+                                          group.find('ID'),
+                                          group.find('LAST_UPDATE'),
+                                          scanipsArray,
+                                          scandnsArray,
+                                          scannersArray,
+                                          group.find('TITLE')
+                                          )
+                               )
 
         return groupsArray
 
     def listReportTemplates(self):
         call = 'report_template_list.php'
-        rtData = objectify.fromstring(self.request(call))
+        rtData = objectify.fromstring(self.request(call).encode('utf-8'))
         templatesArray = []
 
         for template in rtData.REPORT_TEMPLATE:
-            templatesArray.append(ReportTemplate(template.GLOBAL, template.ID, template.LAST_UPDATE, template.TEMPLATE_TYPE, template.TITLE, template.TYPE, template.USER))
+            templatesArray.append(ReportTemplate(template.find('GLOBAL'),
+                                                 template.find('ID'),
+                                                 template.find('LAST_UPDATE'),
+                                                 template.find('TEMPLATE_TYPE'),
+                                                 template.find('TITLE'),
+                                                 template.find('TYPE'),
+                                                 template.find('USER')
+                                                 )
+                                  )
 
         return templatesArray
 
@@ -87,18 +103,38 @@ class QGActions(object):
         if id == 0:
             parameters = {'action': 'list'}
 
-            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE
+            repData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
             reportsArray = []
 
             for report in repData.REPORT_LIST.REPORT:
-                reportsArray.append(Report(report.EXPIRATION_DATETIME, report.ID, report.LAUNCH_DATETIME, report.OUTPUT_FORMAT, report.SIZE, report.STATUS, report.TYPE, report.USER_LOGIN))
+                reportsArray.append(Report(report.find('EXPIRATION_DATETIME'),
+                                           report.find('ID'),
+                                           report.find('LAUNCH_DATETIME'),
+                                           report.find('OUTPUT_FORMAT'),
+                                           report.find('SIZE'),
+                                           report.find('STATUS'),
+                                           report.find('TYPE'),
+                                           report.find('USER_LOGIN'),
+                                           report.find('TITLE')
+                                           )
+                                    )
 
             return reportsArray
 
         else:
             parameters = {'action': 'list', 'id': id}
-            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE.REPORT_LIST.REPORT
-            return Report(repData.EXPIRATION_DATETIME, repData.ID, repData.LAUNCH_DATETIME, repData.OUTPUT_FORMAT, repData.SIZE, repData.STATUS, repData.TYPE, repData.USER_LOGIN)
+            repData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE.REPORT_LIST.REPORT
+
+            return Report(repData.find('EXPIRATION_DATETIME'),
+                          repData.find('ID'),
+                          repData.find('LAUNCH_DATETIME'),
+                          repData.find('OUTPUT_FORMAT'),
+                          repData.find('SIZE'),
+                          repData.find('STATUS'),
+                          repData.find('TYPE'),
+                          repData.find('USER_LOGIN'),
+                          repData.find('TITLE')
+                          )
 
     def notScannedSince(self, days):
         call = '/api/2.0/fo/asset/host/'
