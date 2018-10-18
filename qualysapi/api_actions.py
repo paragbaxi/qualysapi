@@ -5,13 +5,20 @@ from qualysapi.api_objects import *
 
 
 class QGActions(object):
-    def getHost(host):
+    def getHost(self, host):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'ips': host, 'details': 'All'}
-        hostData = objectify.fromstring(self.request(call, parameters)).RESPONSE
+        hostData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
         try:
             hostData = hostData.HOST_LIST.HOST
-            return Host(hostData.DNS, hostData.ID, hostData.IP, hostData.LAST_VULN_SCAN_DATETIME, hostData.NETBIOS, hostData.OS, hostData.TRACKING_METHOD)
+            return Host(hostData.find('DNS'),
+                        hostData.find('ID'),
+                        hostData.find('IP'),
+                        hostData.find('LAST_VULN_SCAN_DATETIME'),
+                        hostData.find('NETBIOS'),
+                        hostData.find('OS'),
+                        hostData.find('TRACKING_METHOD')
+                        )
         except AttributeError:
             return Host("", "", host, "never", "", "", "")
 
