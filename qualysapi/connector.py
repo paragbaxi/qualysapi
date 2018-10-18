@@ -12,6 +12,7 @@ import time
 
 try:
     from urllib.parse import urlparse
+    from urllib.parse import parse_qs
 except ImportError:
     from urlparse import urlparse
 
@@ -220,7 +221,7 @@ class QGConnector(api_actions.QGActions):
                 data = data.lstrip('?')
                 data = data.rstrip('&')
                 # Convert to dictionary.
-                data = urlparse.parse_qs(data)
+                data = parse_qs(data)
                 logger.debug('Converted:\n%s' % str(data))
         elif api_version in ('am', 'was', 'am2'):
             if type(data) == etree._Element:
@@ -317,7 +318,7 @@ class QGConnector(api_actions.QGActions):
                 logger.debug(e)
                 pass
             # Response received.
-            response = str(request.content)
+            response = request.text
             logger.debug('response text =\n%s' % (response))
             # Keep track of how many retries.
             retries += 1
