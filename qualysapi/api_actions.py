@@ -42,7 +42,7 @@ class QGActions(object):
         if groupName == '':
             agData = objectify.fromstring(self.request(call).encode('utf-8'))
         else:
-            agData = objectify.fromstring(self.request(call, 'title=' + groupName).encode('utf-8')).RESPONSE
+            agData = objectify.fromstring(self.request(call, 'title=' + groupName).encode('utf-8'))
 
         groupsArray = []
         scanipsArray = []
