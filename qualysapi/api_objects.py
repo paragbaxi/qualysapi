@@ -44,6 +44,8 @@ class AssetGroup(object):
         parameters = {'action': 'edit', 'id': self.id, 'set_ips': ips}
         conn.request(call, parameters)
 
+    def __repr__(self):
+        return f"qualys_id: {self.id}, title: {self.title}"
 
 class ReportTemplate(object):
     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):

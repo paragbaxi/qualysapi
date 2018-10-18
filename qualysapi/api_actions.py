@@ -40,9 +40,9 @@ class QGActions(object):
     def listAssetGroups(self, groupName=''):
         call = 'asset_group_list.php'
         if groupName == '':
-            agData = objectify.fromstring(self.request(call))
+            agData = objectify.fromstring(self.request(call).encode('utf-8'))
         else:
-            agData = objectify.fromstring(self.request(call, 'title=' + groupName)).RESPONSE
+            agData = objectify.fromstring(self.request(call, 'title=' + groupName).encode('utf-8')).RESPONSE
 
         groupsArray = []
         scanipsArray = []
