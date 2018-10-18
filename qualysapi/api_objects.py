@@ -19,7 +19,7 @@ class Host(object):
         self.os = str(os)
         self.tracking_method = str(tracking_method)
 
-    def __str__(self):
+    def __repr__(self):
         return f"ip: {self.ip}, qualys_id: {self.id}, dns: {self.dns}"
 
 
