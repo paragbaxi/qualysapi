@@ -25,10 +25,18 @@ class QGActions(object):
     def getHostRange(self, start, end):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'ips': start + '-' + end}
-        hostData = objectify.fromstring(self.request(call, parameters))
+        hostData = objectify.fromstring(self.request(call, parameters).encode('utf-8'))
         hostArray = []
         for host in hostData.RESPONSE.HOST_LIST.HOST:
-            hostArray.append(Host(host.DNS, host.ID, host.IP, host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS, host.TRACKING_METHOD))
+            hostArray.append(Host(host.find('DNS'),
+                                  host.find('ID'),
+                                  host.find('IP'),
+                                  host.find('LAST_VULN_SCAN_DATETIME'),
+                                  host.find('NETBIOS'),
+                                  host.find('OS'),
+                                  host.find('TRACKING_METHOD')
+                                  )
+                             )
 
         return hostArray
 
