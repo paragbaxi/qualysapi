@@ -99,6 +99,9 @@ class Scan(object):
         self.type = str(type)
         self.user_login = str(user_login)
 
+    def __repr__(self):
+        return f"qualys_ref: {self.ref}, title: {self.title}, option_profile: {self.option_profile}"
+
     def cancel(self, conn):
         cancelled_statuses = ['Cancelled', 'Finished', 'Error']
         if any(self.status in s for s in cancelled_statuses):

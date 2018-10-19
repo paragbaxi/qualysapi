@@ -198,7 +198,7 @@ class QGActions(object):
         if user_login != "":
             parameters['user_login'] = user_login
 
-        scanlist = objectify.fromstring(self.request(call, parameters))
+        scanlist = objectify.fromstring(self.request(call, parameters).encode('utf-8'))
         scanArray = []
         for scan in scanlist.RESPONSE.SCAN_LIST.SCAN:
             try:
@@ -208,7 +208,19 @@ class QGActions(object):
             except AttributeError:
                 agList = []
 
-            scanArray.append(Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN))
+            scanArray.append(Scan(agList,
+                                  scan.find('DURATION'),
+                                  scan.find('LAUNCH_DATETIME'),
+                                  scan.find('OPTION_PROFILE.TITLE'),
+                                  scan.find('PROCESSED'),
+                                  scan.find('REF'),
+                                  scan.find('STATUS'),
+                                  scan.find('TARGET'),
+                                  scan.find('TITLE'),
+                                  scan.find('TYPE'),
+                                  scan.find('USER_LOGIN')
+                                  )
+                             )
 
         return scanArray
 
