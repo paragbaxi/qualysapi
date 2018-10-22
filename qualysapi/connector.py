@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
+
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2013, Parag Baxi'
 __license__ = 'Apache License 2.0'
@@ -305,10 +306,14 @@ class QGConnector(api_actions.QGActions):
                 logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
                 if (self.rate_limit_remaining[api_call] > rate_warn_threshold):
                     logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
-                elif (self.rate_limit_remaining[api_call] <= rate_warn_threshold) and (self.rate_limit_remaining[api_call] > 0):
-                    logger.warning('Rate limit is about to being reached (remaining api calls = %s)' % self.rate_limit_remaining[api_call])
+                elif (self.rate_limit_remaining[api_call] <= rate_warn_threshold) and (
+                        self.rate_limit_remaining[api_call] > 0):
+                    logger.warning(
+                        'Rate limit is about to being reached (remaining api calls = %s)' % self.rate_limit_remaining[
+                            api_call])
                 elif self.rate_limit_remaining[api_call] <= 0:
-                    logger.critical('ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!' % self.rate_limit_remaining[api_call])
+                    logger.critical('ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!' %
+                                    self.rate_limit_remaining[api_call])
             except KeyError as e:
                 # Likely a bad api_call.
                 logger.debug(e)

@@ -145,7 +145,8 @@ class QGActions(object):
         for host in hostData.RESPONSE.HOST_LIST.HOST:
             if host.find('LAST_VULN_SCAN_DATETIME'):
                 last_scan = str(host.LAST_VULN_SCAN_DATETIME).split('T')[0]
-                last_scan = datetime.date(int(last_scan.split('-')[0]), int(last_scan.split('-')[1]), int(last_scan.split('-')[2]))
+                last_scan = datetime.date(int(last_scan.split('-')[0]), int(last_scan.split('-')[1]),
+                                          int(last_scan.split('-')[2]))
                 if (today - last_scan).days >= days:
                     hostArray.append(Host(host.find('DNS'),
                                           host.find('ID'),

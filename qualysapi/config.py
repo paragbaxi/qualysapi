@@ -11,6 +11,7 @@ from six.moves import input
 from six.moves.configparser import *
 
 import qualysapi.settings as qcs
+
 # Setup module level logging.
 logger = logging.getLogger(__name__)
 

@@ -12,7 +12,8 @@ class Host(object):
             last_scan = str(last_scan).replace('T', ' ').replace('Z', '').split(' ')
             date = last_scan[0].split('-')
             time = last_scan[1].split(':')
-            self.last_scan = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
+            self.last_scan = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]),
+                                               int(time[2]))
         except IndexError:
             self.last_scan = 'never'
         self.netbios = str(netbios)
@@ -47,6 +48,7 @@ class AssetGroup(object):
     def __repr__(self):
         return f"qualys_id: {self.id}, title: {self.title}"
 
+
 class ReportTemplate(object):
     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
         self.isGlobal = int(isGlobal)
@@ -60,8 +62,10 @@ class ReportTemplate(object):
     def __repr__(self):
         return f"qualys_id: {self.id}, title: {self.title}"
 
+
 class Report(object):
-    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login, title=''):
+    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login,
+                 title=''):
         self.expiration_datetime = str(expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
         self.id = int(id)
         self.launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
@@ -83,13 +87,19 @@ class Report(object):
 
 
 class Scan(object):
-    def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title, type, user_login):
+    def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title,
+                 type, user_login):
         self.assetgroups = assetgroups
         self.duration = str(duration)
         launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
         date = launch_datetime[0].split('-')
         time = launch_datetime[1].split(':')
-        self.launch_datetime = datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1]), int(time[2]))
+        self.launch_datetime = datetime.datetime(int(date[0]),
+                                                 int(date[1]),
+                                                 int(date[2]),
+                                                 int(time[0]),
+                                                 int(time[1]),
+                                                 int(time[2]))
         self.option_profile = str(option_profile)
         self.processed = int(processed)
         self.ref = str(ref)
@@ -112,7 +122,8 @@ class Scan(object):
             conn.request(call, parameters)
 
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
-            self.status = objectify.fromstring(conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
+            self.status = objectify.fromstring(
+                conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
 
     def pause(self, conn):
         if self.status != "Running":
@@ -123,7 +134,8 @@ class Scan(object):
             conn.request(call, parameters)
 
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
-            self.status = objectify.fromstring(conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
+            self.status = objectify.fromstring(
+                conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
 
     def resume(self, conn):
         if self.status != "Paused":
@@ -134,4 +146,5 @@ class Scan(object):
             conn.request(call, parameters)
 
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
-            self.status = objectify.fromstring(conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
+            self.status = objectify.fromstring(
+                conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
