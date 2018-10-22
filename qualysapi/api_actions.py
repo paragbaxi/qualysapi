@@ -227,19 +227,24 @@ class QGActions(object):
     def launchScan(self, title, option_title, iscanner_name, asset_groups="", ip=""):
         # TODO: Add ability to scan by tag.
         call = '/api/2.0/fo/scan/'
-        parameters = {'action': 'launch', 'scan_title': title, 'option_title': option_title, 'iscanner_name': iscanner_name, 'ip': ip, 'asset_groups': asset_groups}
+        parameters = {'action': 'launch',
+                      'scan_title': title,
+                      'option_title': option_title,
+                      'iscanner_name': iscanner_name,
+                      'ip': ip,
+                      'asset_groups': asset_groups}
         if ip == "":
             parameters.pop("ip")
 
         if asset_groups == "":
             parameters.pop("asset_groups")
 
-        scan_ref = objectify.fromstring(self.request(call, parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
+        scan_ref = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE.ITEM_LIST.ITEM[1].VALUE
 
         call = '/api/2.0/fo/scan/'
         parameters = {'action': 'list', 'scan_ref': scan_ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1}
 
-        scan = objectify.fromstring(self.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN
+        scan = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN
         try:
             agList = []
             for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
@@ -247,4 +252,15 @@ class QGActions(object):
         except AttributeError:
             agList = []
 
-        return Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN)
+        return Scan(agList,
+                    scan.find('DURATION'),
+                    scan.find('LAUNCH_DATETIME'),
+                    scan.find('OPTION_PROFILE.TITLE'),
+                    scan.find('PROCESSED'),
+                    scan.find('REF'),
+                    scan.find('STATUS'),
+                    scan.find('TARGET'),
+                    scan.find('TITLE'),
+                    scan.find('TYPE'),
+                    scan.find('USER_LOGIN')
+                    )

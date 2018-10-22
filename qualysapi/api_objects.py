@@ -112,7 +112,7 @@ class Scan(object):
             conn.request(call, parameters)
 
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
-            self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
+            self.status = objectify.fromstring(conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
 
     def pause(self, conn):
         if self.status != "Running":
@@ -123,7 +123,7 @@ class Scan(object):
             conn.request(call, parameters)
 
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
-            self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
+            self.status = objectify.fromstring(conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
 
     def resume(self, conn):
         if self.status != "Paused":
@@ -134,4 +134,4 @@ class Scan(object):
             conn.request(call, parameters)
 
             parameters = {'action': 'list', 'scan_ref': self.ref, 'show_status': 1}
-            self.status = objectify.fromstring(conn.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
+            self.status = objectify.fromstring(conn.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
