@@ -61,7 +61,7 @@ class ReportTemplate(object):
         return f"qualys_id: {self.id}, title: {self.title}"
 
 class Report(object):
-    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login, title):
+    def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login, title=''):
         self.expiration_datetime = str(expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
         self.id = int(id)
         self.launch_datetime = str(launch_datetime).replace('T', ' ').replace('Z', '').split(' ')
