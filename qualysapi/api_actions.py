@@ -33,13 +33,13 @@ class QGActions(object):
             agData = objectify.fromstring(self.request(call, 'title=' + groupName)).RESPONSE
 
         groupsArray = []
-        scanipsArray = []
-        scandnsArray = []
-        scannersArray = []
         for group in agData.ASSET_GROUP:
+            scanipsArray = []
+            scandnsArray = []
+            scannersArray = []
             try:
-                for scanip in group.SCANIPS:
-                    scanipsArray.append(scanip.IP)
+                for scanip in group.SCANIPS.IP:
+                    scanipsArray.append(scanip)
             except AttributeError:
                 scanipsArray = []  # No IPs defined to scan.
 
@@ -50,8 +50,8 @@ class QGActions(object):
                 scannersArray = []  # No scanner appliances defined for this group.
 
             try:
-                for dnsName in group.SCANDNS:
-                    scandnsArray.append(dnsName.DNS)
+                for dnsName in group.SCANDNS.DNS:
+                    scandnsArray.append(dnsName)
             except AttributeError:
                 scandnsArray = []  # No DNS names assigned to group.
 
