@@ -45,3 +45,9 @@ config.ini
 # PyCharm
 .idea
 .qcrc.swp
+
+\.vscode/
+
+Pipfile
+
+Pipfile\.lock
