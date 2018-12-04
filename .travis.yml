@@ -4,16 +4,26 @@ cache: pip
 python:
     - 2.7
     - 3.6
-install:
-    # - pip install -r requirements.txt
-    - pip install flake8  # pytest  # add another testing frameworks later
+# Enable newer 3.7 without globally enabling sudo and dist: xenial for other build jobs
+matrix:
+  allow_failures:
+    - python: 3.8-dev
+  include:
+    - python: 3.7
+      dist: xenial
+      sudo: true
+    - python: 3.8-dev
+      dist: xenial
+      sudo: true
+install: "make"
 before_script:
-    # stop the build if there are Python syntax errors or undefined names
-    - flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics
-    # exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide
-    - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - make lint
 script:
-    - true  # pytest --capture=sys  # add other tests here
+    - true  
+    # - make test
+after_success:
+    # send report to https://coveralls.io/github/paragbaxi/qualysapi
+    - coveralls
 notifications:
     on_success: change
     on_failure: change  # `always` will be the setting once code changes slow down
