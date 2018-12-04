@@ -1,5 +1,7 @@
 qualysapi
 =========
+[![Build Status](https://travis-ci.com/paragbaxi/qualysapi.svg?branch=master)](https://travis-ci.com/paragbaxi/qualysapi)
+
 
 Python package, qualysapi, that makes calling any Qualys API very simple. Qualys API versions v1, v2, & WAS & AM (asset management) are all supported.
  
