@@ -17,6 +17,8 @@ develop-eggs
 .installed.cfg
 lib
 lib64
+Pipfile
+Pipfile\.lock
 
 # Installer logs
 pip-log.txt
@@ -42,12 +44,7 @@ nosetests.xml
 config.qcrc
 config.ini
 
-# PyCharm
+# IDE stuff
 .idea
 .qcrc.swp
-
 \.vscode/
-
-Pipfile
-
-Pipfile\.lock
