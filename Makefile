@@ -1,8 +1,8 @@
 init:
+	pip install -r reqs/dev-requirements.txt
 ifeq ($(TRAVIS), true)
 		pip install .
 endif
-	pip install -r reqs/dev-requirements.txt
 
 lint:
 	# exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide
