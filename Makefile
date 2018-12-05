@@ -1,4 +1,7 @@
 init:
+ifeq ($(TRAVIS), true)
+		pip install .
+endif
 	pip install -r reqs/dev-requirements.txt
 
 lint:

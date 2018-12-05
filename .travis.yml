@@ -19,8 +19,7 @@ install: "make"
 before_script:
     - make lint
 script:
-    - true  
-    # - make test
+    - make test
 after_success:
     # send report to https://coveralls.io/github/paragbaxi/qualysapi
     - coveralls

@@ -15,7 +15,7 @@ __license__ = 'BSD-new'
 __pkgname__ = None
 __version__ = None
 exec(compile(open('qualysapi/version.py').read(), 'qualysapi/version.py', 'exec'))
-REQUIREMENTS = ["requests", "lxml"]
+REQUIREMENTS = ["requests", "lxml", "future-fstrings ; python_version<'3.6'"]
 
 
 # A utility function to read the README file into the long_description field.

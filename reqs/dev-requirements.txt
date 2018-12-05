@@ -1,4 +1,5 @@
 -r requirements.txt
+pathlib2;python_version == '2.7'
 flake8
 pytest
 coverage
