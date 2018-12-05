@@ -17,7 +17,6 @@ PKG_ROOT = pathlib.Path(TEST_ROOT.parent).resolve()
 ROOT = pathlib.Path(PKG_ROOT.parent).resolve()
 
 
-@pytest.mark.xfail()
 def test_qualysapi_context_import():
     from context import qualysapi
 
@@ -26,9 +25,11 @@ def test_qualysapi_regular_import():
     import qualysapi
 
 
-# @pytest.mark.parametrize("pkg", ["lxml", "requests"])
-# def test_pkgs_not_required(pkg):
-#     pass
+def test_for_fire():
+    from context import qualysapi
+
+    conf_file = TEST_ROOT.joinpath("test_config.ini")
+    qualysapi.connect(config_file=conf_file)
 
 
 if __name__ == "__main__":
