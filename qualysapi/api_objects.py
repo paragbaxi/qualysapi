@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 from __future__ import absolute_import
 import datetime
 from lxml import objectify

@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 from __future__ import absolute_import
 from lxml import objectify
 import qualysapi.api_objects
