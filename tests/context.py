@@ -14,7 +14,7 @@ sys.path.insert(
 print("USING context.py")
 try:
     import qualysapi
-except ModuleNotFoundError as E:
+except ImportError as E:
     print(E)
 
 
