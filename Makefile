@@ -3,7 +3,7 @@ init:
 ifeq ($(TRAVIS), true)
 		pip install .
 else
-	pip install -r reqs/requirements.txt
+		pip install -r reqs/requirements.txt
 endif
 
 lint:
