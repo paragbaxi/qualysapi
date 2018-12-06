@@ -2,6 +2,8 @@ init:
 	pip install -r reqs/dev-requirements.txt
 ifeq ($(TRAVIS), true)
 		pip install .
+else
+	pip install -r reqs/requirements.txt
 endif
 
 lint:
