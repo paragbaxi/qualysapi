@@ -28,7 +28,7 @@ def test_qualysapi_regular_import():
 def test_for_fire():
     from context import qualysapi
 
-    conf_file = TEST_ROOT.joinpath("test_config.ini")
+    conf_file = str(TEST_ROOT.joinpath("test_config.ini"))
     qualysapi.connect(config_file=conf_file)
 
 
