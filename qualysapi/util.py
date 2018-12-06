@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 """ A set of utility functions for QualysConnect module. """
 from __future__ import absolute_import
 import logging

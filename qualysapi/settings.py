@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 ''' Module to hold global settings reused throughout qualysapi. '''
 
 from __future__ import absolute_import

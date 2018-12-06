@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 #!/usr/bin/env python
 
 from __future__ import absolute_import
@@ -15,6 +16,12 @@ __license__ = 'BSD-new'
 __pkgname__ = None
 __version__ = None
 exec(compile(open('qualysapi/version.py').read(), 'qualysapi/version.py', 'exec'))
+REQUIREMENTS = [
+    "requests",
+    "lxml",
+    "future-fstrings",
+    "pathlib2 ; python_version == '2.7'",
+]
 
 
 # A utility function to read the README file into the long_description field.
@@ -47,8 +54,6 @@ setup(name=__pkgname__,
           'Programming Language :: Python :: 3.4',
           'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
-      ],
-      install_requires=[
-          'requests',
-      ],
-     )
+    ],
+    install_requires=REQUIREMENTS,
+)
