@@ -1,0 +1,6 @@
+future-fstrings
+flake8;python_version < '3.8'
+pytest
+coverage
+pytest-cov
+coveralls
