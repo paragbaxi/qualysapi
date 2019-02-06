@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 # This is the version string assigned to the entire egg post
 # setup.py install
 

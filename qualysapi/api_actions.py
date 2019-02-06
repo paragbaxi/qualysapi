@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 from __future__ import absolute_import
 from lxml import objectify
 import qualysapi.api_objects
@@ -5,41 +6,53 @@ from qualysapi.api_objects import *
 
 
 class QGActions(object):
-    def getHost(host):
+    def getHost(self, host):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'ips': host, 'details': 'All'}
-        hostData = objectify.fromstring(self.request(call, parameters)).RESPONSE
-        try:
-            hostData = hostData.HOST_LIST.HOST
-            return Host(hostData.DNS, hostData.ID, hostData.IP, hostData.LAST_VULN_SCAN_DATETIME, hostData.NETBIOS, hostData.OS, hostData.TRACKING_METHOD)
-        except AttributeError:
-            return Host("", "", host, "never", "", "", "")
+        hostData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
+        hostData = hostData.HOST_LIST.HOST
+        return Host(hostData.find('DNS'),
+                    hostData.find('ID'),
+                    hostData.find('IP'),
+                    hostData.find('LAST_VULN_SCAN_DATETIME'),
+                    hostData.find('NETBIOS'),
+                    hostData.find('OS'),
+                    hostData.find('TRACKING_METHOD')
+                    )
 
     def getHostRange(self, start, end):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'ips': start + '-' + end}
-        hostData = objectify.fromstring(self.request(call, parameters))
+        hostData = objectify.fromstring(self.request(call, parameters).encode('utf-8'))
         hostArray = []
         for host in hostData.RESPONSE.HOST_LIST.HOST:
-            hostArray.append(Host(host.DNS, host.ID, host.IP, host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS, host.TRACKING_METHOD))
+            hostArray.append(Host(host.find('DNS'),
+                                  host.find('ID'),
+                                  host.find('IP'),
+                                  host.find('LAST_VULN_SCAN_DATETIME'),
+                                  host.find('NETBIOS'),
+                                  host.find('OS'),
+                                  host.find('TRACKING_METHOD')
+                                  )
+                             )
 
         return hostArray
 
     def listAssetGroups(self, groupName=''):
         call = 'asset_group_list.php'
         if groupName == '':
-            agData = objectify.fromstring(self.request(call))
+            agData = objectify.fromstring(self.request(call).encode('utf-8'))
         else:
-            agData = objectify.fromstring(self.request(call, 'title=' + groupName)).RESPONSE
+            agData = objectify.fromstring(self.request(call, 'title=' + groupName).encode('utf-8'))
 
         groupsArray = []
-        scanipsArray = []
-        scandnsArray = []
-        scannersArray = []
         for group in agData.ASSET_GROUP:
+            scanipsArray = []
+            scandnsArray = []
+            scannersArray = []
             try:
-                for scanip in group.SCANIPS:
-                    scanipsArray.append(scanip.IP)
+                for scanip in group.SCANIPS.IP:
+                    scanipsArray.append(scanip)
             except AttributeError:
                 scanipsArray = []  # No IPs defined to scan.
 
@@ -50,22 +63,38 @@ class QGActions(object):
                 scannersArray = []  # No scanner appliances defined for this group.
 
             try:
-                for dnsName in group.SCANDNS:
-                    scandnsArray.append(dnsName.DNS)
+                for dnsName in group.SCANDNS.DNS:
+                    scandnsArray.append(dnsName)
             except AttributeError:
                 scandnsArray = []  # No DNS names assigned to group.
 
-            groupsArray.append(AssetGroup(group.BUSINESS_IMPACT, group.ID, group.LAST_UPDATE, scanipsArray, scandnsArray, scannersArray, group.TITLE))
+            groupsArray.append(AssetGroup(group.find('BUSINESS_IMPACT'),
+                                          group.find('ID'),
+                                          group.find('LAST_UPDATE'),
+                                          scanipsArray,
+                                          scandnsArray,
+                                          scannersArray,
+                                          group.find('TITLE')
+                                          )
+                               )
 
         return groupsArray
 
     def listReportTemplates(self):
         call = 'report_template_list.php'
-        rtData = objectify.fromstring(self.request(call))
+        rtData = objectify.fromstring(self.request(call).encode('utf-8'))
         templatesArray = []
 
         for template in rtData.REPORT_TEMPLATE:
-            templatesArray.append(ReportTemplate(template.GLOBAL, template.ID, template.LAST_UPDATE, template.TEMPLATE_TYPE, template.TITLE, template.TYPE, template.USER))
+            templatesArray.append(ReportTemplate(template.find('GLOBAL'),
+                                                 template.find('ID'),
+                                                 template.find('LAST_UPDATE'),
+                                                 template.find('TEMPLATE_TYPE'),
+                                                 template.find('TITLE'),
+                                                 template.find('TYPE'),
+                                                 template.find('USER')
+                                                 )
+                                  )
 
         return templatesArray
 
@@ -75,30 +104,60 @@ class QGActions(object):
         if id == 0:
             parameters = {'action': 'list'}
 
-            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE
+            repData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
             reportsArray = []
 
             for report in repData.REPORT_LIST.REPORT:
-                reportsArray.append(Report(report.EXPIRATION_DATETIME, report.ID, report.LAUNCH_DATETIME, report.OUTPUT_FORMAT, report.SIZE, report.STATUS, report.TYPE, report.USER_LOGIN))
+                reportsArray.append(Report(report.find('EXPIRATION_DATETIME'),
+                                           report.find('ID'),
+                                           report.find('LAUNCH_DATETIME'),
+                                           report.find('OUTPUT_FORMAT'),
+                                           report.find('SIZE'),
+                                           report.find('STATUS'),
+                                           report.find('TYPE'),
+                                           report.find('USER_LOGIN'),
+                                           report.find('TITLE')
+                                           )
+                                    )
 
             return reportsArray
 
         else:
             parameters = {'action': 'list', 'id': id}
-            repData = objectify.fromstring(self.request(call, parameters)).RESPONSE.REPORT_LIST.REPORT
-            return Report(repData.EXPIRATION_DATETIME, repData.ID, repData.LAUNCH_DATETIME, repData.OUTPUT_FORMAT, repData.SIZE, repData.STATUS, repData.TYPE, repData.USER_LOGIN)
+            repData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE.REPORT_LIST.REPORT
+
+            return Report(repData.find('EXPIRATION_DATETIME'),
+                          repData.find('ID'),
+                          repData.find('LAUNCH_DATETIME'),
+                          repData.find('OUTPUT_FORMAT'),
+                          repData.find('SIZE'),
+                          repData.find('STATUS'),
+                          repData.find('TYPE'),
+                          repData.find('USER_LOGIN'),
+                          repData.find('TITLE')
+                          )
 
     def notScannedSince(self, days):
         call = '/api/2.0/fo/asset/host/'
         parameters = {'action': 'list', 'details': 'All'}
-        hostData = objectify.fromstring(self.request(call, parameters))
+        hostData = objectify.fromstring(self.request(call, parameters).encode('utf-8'))
         hostArray = []
         today = datetime.date.today()
         for host in hostData.RESPONSE.HOST_LIST.HOST:
-            last_scan = str(host.LAST_VULN_SCAN_DATETIME).split('T')[0]
-            last_scan = datetime.date(int(last_scan.split('-')[0]), int(last_scan.split('-')[1]), int(last_scan.split('-')[2]))
-            if (today - last_scan).days >= days:
-                hostArray.append(Host(host.DNS, host.ID, host.IP, host.LAST_VULN_SCAN_DATETIME, host.NETBIOS, host.OS, host.TRACKING_METHOD))
+            if host.find('LAST_VULN_SCAN_DATETIME'):
+                last_scan = str(host.LAST_VULN_SCAN_DATETIME).split('T')[0]
+                last_scan = datetime.date(int(last_scan.split('-')[0]), int(last_scan.split('-')[1]),
+                                          int(last_scan.split('-')[2]))
+                if (today - last_scan).days >= days:
+                    hostArray.append(Host(host.find('DNS'),
+                                          host.find('ID'),
+                                          host.find('IP'),
+                                          host.find('LAST_VULN_SCAN_DATETIME'),
+                                          host.find('NETBIOS'),
+                                          host.find('OS'),
+                                          host.find('TRACKING_METHOD')
+                                          )
+                                     )
 
         return hostArray
 
@@ -141,7 +200,7 @@ class QGActions(object):
         if user_login != "":
             parameters['user_login'] = user_login
 
-        scanlist = objectify.fromstring(self.request(call, parameters))
+        scanlist = objectify.fromstring(self.request(call, parameters).encode('utf-8'))
         scanArray = []
         for scan in scanlist.RESPONSE.SCAN_LIST.SCAN:
             try:
@@ -151,26 +210,43 @@ class QGActions(object):
             except AttributeError:
                 agList = []
 
-            scanArray.append(Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN))
+            scanArray.append(Scan(agList,
+                                  scan.find('DURATION'),
+                                  scan.find('LAUNCH_DATETIME'),
+                                  scan.find('OPTION_PROFILE.TITLE'),
+                                  scan.find('PROCESSED'),
+                                  scan.find('REF'),
+                                  scan.find('STATUS'),
+                                  scan.find('TARGET'),
+                                  scan.find('TITLE'),
+                                  scan.find('TYPE'),
+                                  scan.find('USER_LOGIN')
+                                  )
+                             )
 
         return scanArray
 
     def launchScan(self, title, option_title, iscanner_name, asset_groups="", ip=""):
         # TODO: Add ability to scan by tag.
         call = '/api/2.0/fo/scan/'
-        parameters = {'action': 'launch', 'scan_title': title, 'option_title': option_title, 'iscanner_name': iscanner_name, 'ip': ip, 'asset_groups': asset_groups}
+        parameters = {'action': 'launch',
+                      'scan_title': title,
+                      'option_title': option_title,
+                      'iscanner_name': iscanner_name,
+                      'ip': ip,
+                      'asset_groups': asset_groups}
         if ip == "":
             parameters.pop("ip")
 
         if asset_groups == "":
             parameters.pop("asset_groups")
 
-        scan_ref = objectify.fromstring(self.request(call, parameters)).RESPONSE.ITEM_LIST.ITEM[1].VALUE
+        scan_ref = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE.ITEM_LIST.ITEM[1].VALUE
 
         call = '/api/2.0/fo/scan/'
         parameters = {'action': 'list', 'scan_ref': scan_ref, 'show_status': 1, 'show_ags': 1, 'show_op': 1}
 
-        scan = objectify.fromstring(self.request(call, parameters)).RESPONSE.SCAN_LIST.SCAN
+        scan = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE.SCAN_LIST.SCAN
         try:
             agList = []
             for ag in scan.ASSET_GROUP_TITLE_LIST.ASSET_GROUP_TITLE:
@@ -178,4 +254,15 @@ class QGActions(object):
         except AttributeError:
             agList = []
 
-        return Scan(agList, scan.DURATION, scan.LAUNCH_DATETIME, scan.OPTION_PROFILE.TITLE, scan.PROCESSED, scan.REF, scan.STATUS, scan.TARGET, scan.TITLE, scan.TYPE, scan.USER_LOGIN)
+        return Scan(agList,
+                    scan.find('DURATION'),
+                    scan.find('LAUNCH_DATETIME'),
+                    scan.find('OPTION_PROFILE.TITLE'),
+                    scan.find('PROCESSED'),
+                    scan.find('REF'),
+                    scan.find('STATUS'),
+                    scan.find('TARGET'),
+                    scan.find('TITLE'),
+                    scan.find('TYPE'),
+                    scan.find('USER_LOGIN')
+                    )

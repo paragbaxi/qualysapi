@@ -6,7 +6,7 @@ from lxml import objectify
 from lxml.builder import E
 
 # Setup connection to QualysGuard API.
-qgc = qualysapi.connect('config.txt')
+qgc = qualysapi.connect('config.txt', 'qualys_vuln')
 #
 # API v1 call: Scan the New York & Las Vegas asset groups
 # The call is our request's first parameter.
@@ -37,7 +37,7 @@ parameters = 'title=Looneyville Texas'
 # Let's call the API and store the result in xml_output.
 xml_output = qgc.request(call, parameters)
 # Let's objectify the xml_output string.
-root = objectify.fromstring(xml_output.encode('utf-8'))
+root = objectify.fromstring(xml_output)
 # Print out the IPs.
 print(root.ASSET_GROUP.SCANIPS.IP.text)
 # Prints out:
@@ -47,7 +47,7 @@ print(root.ASSET_GROUP.SCANIPS.IP.text)
 call = '/api/2.0/fo/asset/host/'
 parameters = {'action': 'list', 'ips': '10.0.0.10-10.0.0.11'}
 xml_output = qgc.request(call, parameters)
-root = objectify.fromstring(xml_output.encode('utf-8'))
+root = objectify.fromstring(xml_output)
 # Iterate hosts and print out DNS name.
 for host in root.RESPONSE.HOST_LIST.HOST:
     print(host.IP.text, host.DNS.text)
@@ -59,7 +59,7 @@ for host in root.RESPONSE.HOST_LIST.HOST:
 call = '/count/was/webapp'
 # Note that this call does not have a payload so we don't send any data parameters.
 xml_output = qgc.request(call)
-root = objectify.fromstring(xml_output.encode('utf-8'))
+root = objectify.fromstring(xml_output)
 # Print out count of webapps.
 print(root.count.text)
 # Prints out:
@@ -70,7 +70,7 @@ call = '/count/was/webapp'
 # We can send a string XML for the data.
 parameters = '<ServiceRequest><filters><Criteria operator="CONTAINS" field="name">Supafly</Criteria></filters></ServiceRequest>'
 xml_output = qgc.request(call, parameters)
-root = objectify.fromstring(xml_output.encode('utf-8'))
+root = objectify.fromstring(xml_output)
 # Print out count of webapps.
 print(root.count.text)
 # Prints out:
@@ -84,7 +84,7 @@ parameters = (
         E.filters(
             E.Criteria('Lightsabertooth Tiger', field='name',operator='CONTAINS'))))
 xml_output = qgc.request(call, parameters)
-root = objectify.fromstring(xml_output.encode('utf-8'))
+root = objectify.fromstring(xml_output)
 # Print out count of webapps.
 print(root.count.text)
 # Prints out:
@@ -94,7 +94,7 @@ print(root.count.text)
 # API v3 Asset Management call: Count tags.
 call = '/count/am/tag'
 xml_output = qgc.request(call)
-root = objectify.fromstring(xml_output.encode('utf-8'))
+root = objectify.fromstring(xml_output)
 # We can use XPATH to find the count.
 print(root.xpath('count')[0].text)
 # Prints out:
