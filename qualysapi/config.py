@@ -86,17 +86,17 @@ class QualysConnectConfig:
         self.max_retries = int(self.max_retries)
 
         #Get template ID... user will need to set this to pull back CSV reports
-        if not self._cfgparse.has_option('qualys', 'template_id'):
+        if not self._cfgparse.has_option(self._section, 'template_id'):
             self.report_template_id = qcs.defaults['template_id']
         else:
-            self.report_template_id = self._cfgparse.get('qualys', 'template_id')
+            self.report_template_id = self._cfgparse.get(self._section, 'template_id')
             try:
                 self.report_template_id = int(self.report_template_id)
             except Exception:
                 logger.error('Report Template ID Must be set and be an integer')
                 print('Value template ID must be an integer.')
                 exit(1)
-            self._cfgparse.set('qualys', 'template_id', str(self.report_template_id))
+            self._cfgparse.set(self._section, 'template_id', str(self.report_template_id))
         self.report_template_id = int(self.report_template_id)
 
         # Proxy support
