@@ -1,9 +1,9 @@
 # -*- coding: future_fstrings -*-
 #!/usr/bin/env python
-
 from __future__ import absolute_import
 import os
-import sys
+import setuptools
+
 try:
     from setuptools import setup
 except ImportError:
@@ -34,14 +34,15 @@ def read(fname):
 
 setup(name=__pkgname__,
       version=__version__,
-      author='Parag Baxi',
-      author_email='parag.baxi@gmail.com',
-      description='QualysGuard(R) Qualys API Package',
+      author='Austin Taylor',
+      author_email='vulnWhisperer@austintaylor.io',
+      description='QualysGuard(R) Qualys API Package modified for VulnWhisperer',
       license='BSD-new',
       keywords='Qualys QualysGuard API helper network security',
-      url='https://github.com/paragbaxi/qualysapi',
+      url='https://github.com/austin-taylor/qualysapi',
       package_dir={'': '.'},
-      packages=['qualysapi', ],
+      #packages=setuptools.find_packages(),
+      packages=['qualysapi',],
       # package_data={'qualysapi':['LICENSE']},
       # scripts=['src/scripts/qhostinfo.py', 'src/scripts/qscanhist.py', 'src/scripts/qreports.py'],
       long_description=read('README.md'),

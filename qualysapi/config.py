@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
+__updated_by__ = "Austin Taylor <vulnWhisperer@austintaylor.io>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
@@ -83,6 +84,20 @@ class QualysConnectConfig:
                 exit(1)
             self._cfgparse.set(self._section, 'max_retries', str(self.max_retries))
         self.max_retries = int(self.max_retries)
+
+        #Get template ID... user will need to set this to pull back CSV reports
+        if not self._cfgparse.has_option(self._section, 'template_id'):
+            self.report_template_id = qcs.defaults['template_id']
+        else:
+            self.report_template_id = self._cfgparse.get(self._section, 'template_id')
+            try:
+                self.report_template_id = int(self.report_template_id)
+            except Exception:
+                logger.error('Report Template ID Must be set and be an integer')
+                print('Value template ID must be an integer.')
+                exit(1)
+            self._cfgparse.set(self._section, 'template_id', str(self.report_template_id))
+        self.report_template_id = int(self.report_template_id)
 
         # Proxy support
         proxy_config = proxy_url = proxy_protocol = proxy_port = proxy_username = proxy_password = None
@@ -201,3 +216,6 @@ class QualysConnectConfig:
     def get_hostname(self):
         ''' Returns hostname. '''
         return self._cfgparse.get(self._section, 'hostname')
+    
+    def get_template_id(self):
+        return self._cfgparse.get(self._section,'template_id')
