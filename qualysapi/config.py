@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
-__updated_by__ = "Austin Taylor <vulnWhisperer@austintaylor.io>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = "BSD-new"
 
