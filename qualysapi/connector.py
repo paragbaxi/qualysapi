@@ -162,7 +162,7 @@ class QGConnector(api_actions.QGActions):
             if api_call_endpoint in self.api_methods['was get']:
                 return 'get'
             # Post calls with no payload will result in HTTPError: 415 Client Error: Unsupported Media Type.
-            if not data:
+            if data is None:
                 # No post data. Some calls change to GET with no post data.
                 if api_call_endpoint in self.api_methods['was no data get']:
                     return 'get'

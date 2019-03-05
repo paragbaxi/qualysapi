@@ -1,9 +1,9 @@
 # -*- coding: future_fstrings -*-
 #!/usr/bin/env python
-
 from __future__ import absolute_import
 import os
-import sys
+import setuptools
+
 try:
     from setuptools import setup
 except ImportError:
