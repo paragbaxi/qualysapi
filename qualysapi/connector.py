@@ -300,6 +300,10 @@ class QGConnector(api_actions.QGActions):
                 # Make POST request.
                 request = self.session.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies)
             logger.debug('response headers =\n%s' % (str(request.headers)))
+            # Force request encoding value, the automatic detection is very long for large files (report for example)
+            # And sometimes with MemoryError
+            if request.encoding is None:
+                request.encoding = 'utf-8'
             #
             # Remember how many times left user can make against api_call.
             try:
