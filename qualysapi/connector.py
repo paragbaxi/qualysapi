@@ -232,19 +232,12 @@ class QGConnector(api_actions.QGActions):
                 logger.debug('Converted:\n%s' % data)
         return data
 
-    def request(self, api_call, data=None, api_version=None, http_method=None, concurrent_scans_retries=0,
-                concurrent_scans_retry_delay=0):
-        """ Return QualysGuard API response.
-
-        """
+    def build_request(self, api_call, data=None, api_version=None, http_method=None):
         logger.debug('api_call =\n%s' % api_call)
         logger.debug('api_version =\n%s' % api_version)
         logger.debug('data %s =\n %s' % (type(data), str(data)))
         logger.debug('http_method =\n%s' % http_method)
-        logger.debug('concurrent_scans_retries =\n%s' % str(concurrent_scans_retries))
-        logger.debug('concurrent_scans_retry_delay =\n%s' % str(concurrent_scans_retry_delay))
-        concurrent_scans_retries = int(concurrent_scans_retries)
-        concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
+
         #
         # Determine API version.
         # Preformat call.
@@ -280,6 +273,64 @@ class QGConnector(api_actions.QGActions):
         # Format data, if applicable.
         if data is not None:
             data = self.format_payload(api_version, data)
+
+        logger.debug('url =\n%s' % (str(url)))
+        logger.debug('data =\n%s' % (str(data)))
+        logger.debug('headers =\n%s' % (str(headers)))
+
+        return url, data, headers
+
+
+    def request_streaming(self, api_call, data=None, api_version=None, http_method=None):
+        """ Return QualysGuard streaming response """
+
+        url, data, headers = self.build_request(api_call, data, api_version, http_method)
+        # Make request.
+        if http_method == 'get':
+            # GET
+            logger.debug('GET request.')
+            request = self.session.get(url, params=data, auth=self.auth, headers=headers, proxies=self.proxies, stream=True)
+        else:
+            # POST
+            logger.debug('POST request.')
+            # Make POST request.
+            request = self.session.post(url, data=data, auth=self.auth, headers=headers, proxies=self.proxies, stream=True)
+        logger.debug('response headers =\n%s' % (str(request.headers)))
+        #
+        # Remember how many times left user can make against api_call.
+        try:
+            self.rate_limit_remaining[api_call] = int(request.headers['x-ratelimit-remaining'])
+            logger.debug('rate limit for api_call, %s = %s' % (api_call, self.rate_limit_remaining[api_call]))
+            if self.rate_limit_remaining[api_call] <= 0:
+                logger.critical('ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!' %
+                                self.rate_limit_remaining[api_call])
+        except KeyError as e:
+            # Likely a bad api_call.
+            logger.debug(e)
+            pass
+        except TypeError as e:
+            # Likely an asset search api_call.
+            logger.debug(e)
+            pass
+        # Response received.
+
+        return request
+
+
+    def request(self, api_call, data=None, api_version=None, http_method=None, concurrent_scans_retries=0,
+                concurrent_scans_retry_delay=0):
+        """ Return QualysGuard API response.
+
+        """
+
+        logger.debug('concurrent_scans_retries =\n%s' % str(concurrent_scans_retries))
+        logger.debug('concurrent_scans_retry_delay =\n%s' % str(concurrent_scans_retry_delay))
+        concurrent_scans_retries = int(concurrent_scans_retries)
+        concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
+
+        url, data, headers = self.build_request(api_call, data, api_version, http_method)
+
+
         # Make request at least once (more if concurrent_retry is enabled).
         retries = 0
         #
