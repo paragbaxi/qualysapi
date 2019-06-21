@@ -15,6 +15,15 @@ Usage
 
 Check out the example scripts in the [/examples directory](https://github.com/paragbaxi/qualysapi/blob/master/examples/).
 
+Connect
+-------
+There are currenty three methods of connecting to Qualys APIs
+
+* `qualysapi.connect()` will prompt the user for credentials at runtime.
+* `qualysapi.connect('/path/to/config.ini')` will parse the config file for credentials (see below).
+* `qualysapi.connect(username='username', password='password')` will use the provided credentials. 
+
+
 Example
 -------
 Detailed example found at [qualysapi-example.py](https://github.com/paragbaxi/qualysapi/blob/master/examples/qualysapi-example.py).
