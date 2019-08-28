@@ -32,7 +32,7 @@ class QualysConnectConfig:
     from an ini file.
     """
 
-    def __init__(self, filename=qcs.default_filename, section='info', remember_me=False, remember_me_always=False):
+    def __init__(self, filename=qcs.default_filename, section='info', remember_me=False, remember_me_always=False, username=None, password=None, hostname=None):
 
         self._cfgfile = None
         self._section = section
@@ -63,7 +63,7 @@ class QualysConnectConfig:
             self._cfgparse.add_section(self._section)
 
         # Use default hostname (if one isn't provided).
-        if not self._cfgparse.has_option(self._section, 'hostname'):
+        if not self._cfgparse.has_option(self._section, 'hostname') and not hostname:
             if self._cfgparse.has_option('DEFAULT', 'hostname'):
                 hostname = self._cfgparse.get('DEFAULT', 'hostname')
                 self._cfgparse.set(self._section, 'hostname', hostname)
@@ -169,12 +169,12 @@ class QualysConnectConfig:
             self.proxies = None
 
         # ask username (if one doesn't exist)
-        if not self._cfgparse.has_option(self._section, 'username'):
+        if not self._cfgparse.has_option(self._section, 'username') and not username:
             username = input('QualysGuard Username: ')
             self._cfgparse.set(self._section, 'username', username)
 
         # ask password (if one doesn't exist)
-        if not self._cfgparse.has_option(self._section, 'password'):
+        if not self._cfgparse.has_option(self._section, 'password') and not password:
             password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set(self._section, 'password', password)
 
