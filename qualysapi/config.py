@@ -32,7 +32,7 @@ class QualysConnectConfig:
     from an ini file.
     """
 
-    def __init__(self, filename=qcs.default_filename, section='info', remember_me=False, remember_me_always=False):
+    def __init__(self, filename=qcs.default_filename, section='info', remember_me=False, remember_me_always=False, username=None, password=None, hostname=None):
 
         self._cfgfile = None
         self._section = section
@@ -64,11 +64,12 @@ class QualysConnectConfig:
 
         # Use default hostname (if one isn't provided).
         if not self._cfgparse.has_option(self._section, 'hostname'):
-            if self._cfgparse.has_option('DEFAULT', 'hostname'):
-                hostname = self._cfgparse.get('DEFAULT', 'hostname')
-                self._cfgparse.set(self._section, 'hostname', hostname)
-            else:
-                raise Exception("No 'hostname' set. QualysConnect does not know who to connect to.")
+            if not hostname:
+                if self._cfgparse.has_option('DEFAULT', 'hostname'):
+                    hostname = self._cfgparse.get('DEFAULT', 'hostname')
+                else:
+                    raise Exception("No 'hostname' set. QualysConnect does not know who to connect to.")
+            self._cfgparse.set(self._section, 'hostname', hostname)
 
         # Use default max_retries (if one isn't provided).
         if not self._cfgparse.has_option(self._section, 'max_retries'):
@@ -170,12 +171,14 @@ class QualysConnectConfig:
 
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option(self._section, 'username'):
-            username = input('QualysGuard Username: ')
+            if not username:
+                username = input('QualysGuard Username: ')
             self._cfgparse.set(self._section, 'username', username)
 
         # ask password (if one doesn't exist)
         if not self._cfgparse.has_option(self._section, 'password'):
-            password = getpass.getpass('QualysGuard Password: ')
+            if not password:
+                password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set(self._section, 'password', password)
 
         logger.debug(self._cfgparse.items(self._section))
