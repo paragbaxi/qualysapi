@@ -63,12 +63,13 @@ class QualysConnectConfig:
             self._cfgparse.add_section(self._section)
 
         # Use default hostname (if one isn't provided).
-        if not self._cfgparse.has_option(self._section, 'hostname') and not hostname:
-            if self._cfgparse.has_option('DEFAULT', 'hostname'):
-                hostname = self._cfgparse.get('DEFAULT', 'hostname')
-                self._cfgparse.set(self._section, 'hostname', hostname)
-            else:
-                raise Exception("No 'hostname' set. QualysConnect does not know who to connect to.")
+        if not self._cfgparse.has_option(self._section, 'hostname'):
+            if not hostname:
+                if self._cfgparse.has_option('DEFAULT', 'hostname'):
+                    hostname = self._cfgparse.get('DEFAULT', 'hostname')
+                else:
+                    raise Exception("No 'hostname' set. QualysConnect does not know who to connect to.")
+            self._cfgparse.set(self._section, 'hostname', hostname)
 
         # Use default max_retries (if one isn't provided).
         if not self._cfgparse.has_option(self._section, 'max_retries'):
@@ -169,13 +170,15 @@ class QualysConnectConfig:
             self.proxies = None
 
         # ask username (if one doesn't exist)
-        if not self._cfgparse.has_option(self._section, 'username') and not username:
-            username = input('QualysGuard Username: ')
+        if not self._cfgparse.has_option(self._section, 'username'):
+            if not username:
+                username = input('QualysGuard Username: ')
             self._cfgparse.set(self._section, 'username', username)
 
         # ask password (if one doesn't exist)
-        if not self._cfgparse.has_option(self._section, 'password') and not password:
-            password = getpass.getpass('QualysGuard Password: ')
+        if not self._cfgparse.has_option(self._section, 'password'):
+            if not password:
+                password = getpass.getpass('QualysGuard Password: ')
             self._cfgparse.set(self._section, 'password', password)
 
         logger.debug(self._cfgparse.items(self._section))
