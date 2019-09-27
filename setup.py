@@ -9,6 +9,14 @@ try:
 except ImportError:
     from distutils.core import setup
 
+from setuptools import setup
+
+# read the contents of your README file
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2011-2018, Parag Baxi'
 __license__ = 'BSD-new'
@@ -36,15 +44,16 @@ setup(name=__pkgname__,
       version=__version__,
       author='Parag Baxi',
       author_email='parag.baxi@gmail.com',
-      description='QualysGuard(R) Qualys API Package',
+      description='Qualys API Package',
       license='BSD-new',
-      keywords='Qualys QualysGuard API helper network security',
+      keywords='Qualys API helper network security',
       url='https://github.com/paragbaxi/qualysapi',
       package_dir={'': '.'},
       packages=['qualysapi', ],
       # package_data={'qualysapi':['LICENSE']},
       # scripts=['src/scripts/qhostinfo.py', 'src/scripts/qscanhist.py', 'src/scripts/qreports.py'],
-      long_description=read('README.md'),
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'Topic :: Utilities',
