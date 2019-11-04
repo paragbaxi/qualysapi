@@ -25,6 +25,17 @@ class Host(object):
         return f"ip: {self.ip}, qualys_id: {self.id}, dns: {self.dns}"
 
 
+class VirtualHost(object):
+    def __init__(self, fqdn, ip, network_id, port):
+        self.fqdn = fqdn
+        self.ip = ip
+        self.network_id = network_id
+        self.port = port
+
+    def __repr__(self):
+        return f"vhost: {self.fqdn}, ip: {self.ip}, network_id: {self.network_id}, port: {self.port}"
+
+
 class AssetGroup(object):
     def __init__(self, business_impact, id, last_update, scanips, scandns, scanner_appliances, title):
         self.business_impact = str(business_impact)
