@@ -1,8 +1,9 @@
 # -*- coding: future_fstrings -*-
 from __future__ import absolute_import
-from lxml import objectify
-import qualysapi.api_objects
 from qualysapi.api_objects import *
+from lxml import objectify
+
+import logging
 
 
 class QGActions(object):
@@ -37,6 +38,33 @@ class QGActions(object):
                              )
 
         return hostArray
+
+    def listVirtualHosts(self, ip=None, port=None):
+        call = '/api/2.0/fo/asset/vhost/'
+        parameters = {'action': 'list', 'ip': ip, 'port': port}
+        hostsData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
+        hosts = [VirtualHost(hostData.find('FQDN'),
+                             hostData.find('IP'),
+                             hostData.find('NETWORK_ID'),
+                             hostData.find('PORT'),
+                             ) for hostData in list(hostsData.VIRTUAL_HOST_LIST.VIRTUAL_HOST)]
+        return hosts
+
+    def createVirtualHost(self, fqdn, ip, port):
+        call = '/api/2.0/fo/asset/vhost/'
+        parameters = {'action': 'create', 'fqdn': fqdn, 'ip': ip, 'port': port}
+        res = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
+        code = getattr(res, 'CODE', '')
+        logging.debug("%s %s %s", res.DATETIME, code, res.TEXT)
+        return code, res
+
+    def deleteVirtualHost(self, ip, port):
+        call = '/api/2.0/fo/asset/vhost/'
+        parameters = {'action': 'delete', 'ip': ip, 'port': port}
+        res = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
+        code = getattr(res, 'CODE', '')
+        logging.debug("%s %s %s", res.DATETIME, code, res.TEXT)
+        return code, res
 
     def listAssetGroups(self, groupName=''):
         call = 'asset_group_list.php'
