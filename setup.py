@@ -1,6 +1,5 @@
 # -*- coding: future_fstrings -*-
 #!/usr/bin/env python
-from __future__ import absolute_import
 import os
 import setuptools
 
@@ -28,7 +27,6 @@ REQUIREMENTS = [
     "requests",
     "lxml",
     "future-fstrings",
-    "pathlib2 ; python_version == '2.7'",
 ]
 
 
@@ -59,10 +57,10 @@ setup(name=__pkgname__,
           'Topic :: Utilities',
           'License :: OSI Approved :: Apache Software License',
           'Intended Audience :: Developers',
-          'Programming Language :: Python :: 2.7',
-          'Programming Language :: Python :: 3.4',
           'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
     ],
     install_requires=REQUIREMENTS,
 )

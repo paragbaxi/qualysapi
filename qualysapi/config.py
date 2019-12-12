@@ -2,14 +2,11 @@
 """ Module providing a single class (QualysConnectConfig) that parses a config
 file and provides the information required to build QualysGuard sessions.
 """
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 import stat
 import getpass
 import logging
-from six.moves import input
-from six.moves.configparser import *
+from configparser import ConfigParser
 
 import qualysapi.settings as qcs
 

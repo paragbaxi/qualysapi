@@ -1,6 +1,4 @@
 # -*- coding: future_fstrings -*-
-from __future__ import absolute_import
-from __future__ import print_function
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2013, Parag Baxi'

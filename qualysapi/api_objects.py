@@ -1,10 +1,9 @@
 # -*- coding: future_fstrings -*-
-from __future__ import absolute_import
 import datetime
 from lxml import objectify
 
 
-class Host(object):
+class Host:
     def __init__(self, dns, id, ip, last_scan, netbios, os, tracking_method):
         self.dns = str(dns)
         self.id = int(id)
@@ -25,7 +24,7 @@ class Host(object):
         return f"ip: {self.ip}, qualys_id: {self.id}, dns: {self.dns}"
 
 
-class VirtualHost(object):
+class VirtualHost:
     def __init__(self, fqdn, ip, network_id, port):
         self.fqdn = fqdn
         self.ip = ip
@@ -36,7 +35,7 @@ class VirtualHost(object):
         return f"vhost: {self.fqdn}, ip: {self.ip}, network_id: {self.network_id}, port: {self.port}"
 
 
-class AssetGroup(object):
+class AssetGroup:
     def __init__(self, business_impact, id, last_update, scanips, scandns, scanner_appliances, title):
         self.business_impact = str(business_impact)
         self.id = int(id)
@@ -61,7 +60,7 @@ class AssetGroup(object):
         return f"qualys_id: {self.id}, title: {self.title}"
 
 
-class ReportTemplate(object):
+class ReportTemplate:
     def __init__(self, isGlobal, id, last_update, template_type, title, type, user):
         self.isGlobal = int(isGlobal)
         self.id = int(id)
@@ -75,7 +74,7 @@ class ReportTemplate(object):
         return f"qualys_id: {self.id}, title: {self.title}"
 
 
-class Report(object):
+class Report:
     def __init__(self, expiration_datetime, id, launch_datetime, output_format, size, status, type, user_login,
                  title=''):
         self.expiration_datetime = str(expiration_datetime).replace('T', ' ').replace('Z', '').split(' ')
@@ -98,7 +97,7 @@ class Report(object):
             return conn.request(call, parameters)
 
 
-class Scan(object):
+class Scan:
     def __init__(self, assetgroups, duration, launch_datetime, option_profile, processed, ref, status, target, title,
                  type, user_login):
         self.assetgroups = assetgroups
