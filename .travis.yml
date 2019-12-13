@@ -1,23 +1,48 @@
-group: travis_latest
+---
 language: python
+group: travis_latest
 cache: pip
 python:
-    - 3.5
-    - 3.6
-    - 3.7
-    - 3.8
-#    - 3.9-dev  # need to find out if Travis CI supports Py3.9
-matrix:
+  - 3.8
+env:
+  global:
+    - TOX_TESTENV_PASSENV='TRAVIS TRAVIS_*'
+    - TOX_SKIP_MISSING_INTERPRETERS=False
+    - COVERALLS_SERVICE_NAME=travis-ci
+  jobs:
+    - TOXENV=lint
+    - TOXENV=security
+    - TOXENV=pkg
+    - TOXENV=style
+jobs:
+  include:
+    - python: 3.5
+#      env: TOXENV=py35-coveralls
+      env: TOXENV=py35
+    - python: 3.6
+      # env: TOXENV=py36-coveralls
+      env: TOXENV=py36
+    - python: 3.7
+      # env: TOXENV=py37-coveralls
+      env: TOXENV=py37
+    - python: 3.8
+      # env: TOXENV=py38-coveralls
+      env: TOXENV=py38
+    - python: pypy3.5
+      env: TOXENV=pypy35
+    - python: pypy3.6-7.1.1
+      env: TOXENV=pypy36
+    - python: "nightly"
+      env: TOXENV=py3
   allow_failures:
-    - python: 3.9-dev
-install: "make"
-before_script:
-    - make lint
+    - python: "nightly"
+    - env: TOXENV=security
+    - env: TOXENV=style
+  fast_finish: true
+install: pip3 install 'tox < 3.15'
 script:
-    - make test
-after_success:
-    # send report to https://coveralls.io/github/paragbaxi/qualysapi
-    - coveralls
+  - tox
 notifications:
+  email:
     on_success: change
     on_failure: change  # `always` will be the setting once code changes slow down
