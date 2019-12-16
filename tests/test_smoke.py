@@ -1,13 +1,5 @@
 # -*- coding: future_fstrings -*-
-from sys import version_info
-import importlib
-
-PYTHON_VER = (version_info.major, version_info.minor)
-
-if PYTHON_VER == (2, 7):
-    import pathlib2 as pathlib
-else:
-    import pathlib
+import pathlib
 
 import pytest
 
