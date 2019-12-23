@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 import setuptools
 
 try:
@@ -9,11 +8,6 @@ except ImportError:
 
 from setuptools import setup
 
-# read the contents of your README file
-from os import path
-this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
 
 __author__ = 'Parag Baxi <parag.baxi@gmail.com>'
 __copyright__ = 'Copyright 2011-2018, Parag Baxi'
@@ -29,14 +23,6 @@ REQUIREMENTS = [
 ]
 
 
-# A utility function to read the README file into the long_description field.
-def read(fname):
-    """ Takes a filename and returns the contents of said file relative to
-    the current directory.
-    """
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
-
-
 setup(name=__pkgname__,
       version=__version__,
       author='Parag Baxi',
@@ -49,8 +35,6 @@ setup(name=__pkgname__,
       packages=['qualysapi', ],
       # package_data={'qualysapi':['LICENSE']},
       # scripts=['src/scripts/qhostinfo.py', 'src/scripts/qscanhist.py', 'src/scripts/qreports.py'],
-      long_description=long_description,
-      long_description_content_type='text/markdown',
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'Topic :: Utilities',
