@@ -22,12 +22,6 @@ __version__ = None
 
 exec(Path("qualysapi/version.py").read_text())
 
-REQUIREMENTS = [
-    "requests",
-    "lxml",
-    "future-fstrings",
-]
-
 setup(name=__pkgname__,
       version=__version__,
       author='Parag Baxi',
@@ -50,5 +44,4 @@ setup(name=__pkgname__,
           'Programming Language :: Python :: 3.7',
           'Programming Language :: Python :: 3.8',
     ],
-    install_requires=REQUIREMENTS,
 )
