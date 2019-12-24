@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 import sys
 
+from pathlib import Path
 from pkg_resources import VersionConflict, require
 from setuptools import setup
+
 
 SETUPTOOLS_VER = "30.5.0"  # Minimum version that supports pyproject.toml
 
@@ -18,7 +20,7 @@ __license__ = 'BSD-new'
 __pkgname__ = None
 __version__ = None
 
-exec(compile(open('qualysapi/version.py').read(), 'qualysapi/version.py', 'exec'))
+exec(Path("qualysapi/version.py").read_text())
 
 REQUIREMENTS = [
     "requests",
