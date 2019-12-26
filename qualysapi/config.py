@@ -2,13 +2,14 @@
 """ Module providing a single class (QualysConnectConfig) that parses a config
 file and provides the information required to build QualysGuard sessions.
 """
-import os
-import stat
 import getpass
 import logging
+import os
+import stat
 from configparser import ConfigParser
 
 import qualysapi.settings as qcs
+
 
 # Setup module level logging.
 logger = logging.getLogger(__name__)

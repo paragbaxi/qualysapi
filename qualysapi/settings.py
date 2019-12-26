@@ -7,6 +7,7 @@ __license__ = "BSD-new"
 
 import os
 
+
 global defaults
 global default_filename
 

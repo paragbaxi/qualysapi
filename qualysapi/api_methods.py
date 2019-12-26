@@ -4,6 +4,7 @@ __author__ = 'pbaxi'
 
 from collections import defaultdict
 
+
 api_methods = defaultdict(set)
 api_methods['1'] = set([
     'about.php',

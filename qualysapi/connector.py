@@ -9,6 +9,14 @@ and requesting data from it.
 """
 import logging
 import time
+from collections import defaultdict
+
+import requests
+
+import qualysapi.api_actions as api_actions
+import qualysapi.api_methods
+import qualysapi.version
+
 
 try:
     from urllib.parse import urlparse
@@ -16,15 +24,9 @@ try:
 except ImportError:
     from urlparse import urlparse
 
-from collections import defaultdict
 
-import requests
 
-import qualysapi.version
-import qualysapi.api_methods
 
-import qualysapi.api_actions
-import qualysapi.api_actions as api_actions
 
 # Setup module level logging.
 logger = logging.getLogger(__name__)

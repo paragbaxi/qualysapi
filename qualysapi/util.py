@@ -6,6 +6,7 @@ import qualysapi.config as qcconf
 import qualysapi.connector as qcconn
 import qualysapi.settings as qcs
 
+
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
 __license__ = 'Apache License 2.0'

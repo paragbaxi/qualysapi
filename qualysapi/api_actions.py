@@ -1,8 +1,9 @@
 # -*- coding: future_fstrings -*-
-from qualysapi.api_objects import *
+import logging
+
 from lxml import objectify
 
-import logging
+from qualysapi.api_objects import *
 
 
 class QGActions(object):
