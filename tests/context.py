@@ -7,9 +7,8 @@ Access main module from tests folder
 import os
 import sys
 
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../qualysapi"))
-)
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../qualysapi")))
 
 print("USING context.py")
 try:

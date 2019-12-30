@@ -3,6 +3,7 @@ import pathlib
 
 import pytest
 
+
 HERE = pathlib.Path(__file__)
 TEST_ROOT = pathlib.Path(HERE.parent).resolve()
 PKG_ROOT = pathlib.Path(TEST_ROOT.parent).resolve()
@@ -26,13 +27,5 @@ def test_for_fire():
 
 if __name__ == "__main__":
     pytest.main(
-        args=[
-            "-vv",
-            "--cov-report",
-            "term",
-            "--cov-report",
-            "xml",
-            "--cov=qualysapi",
-            "tests/",
-        ]
+        args=["-vv", "--cov-report", "term", "--cov-report", "xml", "--cov=qualysapi", "tests/",]
     )

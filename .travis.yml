@@ -37,7 +37,6 @@ jobs:
   allow_failures:
     - python: "nightly"
     - env: TOXENV=security
-    - env: TOXENV=style
   fast_finish: true
 install: pip3 install 'tox < 3.15'
 script:
