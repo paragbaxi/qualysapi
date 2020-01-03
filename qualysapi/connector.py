@@ -346,7 +346,7 @@ class QGConnector(api_actions.QGActions):
 
         """
 
-        logger.debug("can_verify = \n%s" % str(verify))
+        logger.debug("verify = \n%s" % str(verify))
         logger.debug("concurrent_scans_retries =\n%s" % str(concurrent_scans_retries))
         logger.debug("concurrent_scans_retry_delay =\n%s" % str(concurrent_scans_retry_delay))
         concurrent_scans_retries = int(concurrent_scans_retries)
