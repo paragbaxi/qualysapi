@@ -340,11 +340,13 @@ class QGConnector(api_actions.QGActions):
         http_method=None,
         concurrent_scans_retries=0,
         concurrent_scans_retry_delay=0,
+        verify=True
     ):
         """ Return QualysGuard API response.
 
         """
 
+        logger.debug("can_verify = \n%s" % str(verify))
         logger.debug("concurrent_scans_retries =\n%s" % str(concurrent_scans_retries))
         logger.debug("concurrent_scans_retry_delay =\n%s" % str(concurrent_scans_retry_delay))
         concurrent_scans_retries = int(concurrent_scans_retries)
@@ -366,14 +368,14 @@ class QGConnector(api_actions.QGActions):
                 # GET
                 logger.debug("GET request.")
                 request = self.session.get(
-                    url, params=data, auth=self.auth, headers=headers, proxies=self.proxies
+                    url, params=data, auth=self.auth, headers=headers, proxies=self.proxies, verify=verify
                 )
             else:
                 # POST
                 logger.debug("POST request.")
                 # Make POST request.
                 request = self.session.post(
-                    url, data=data, auth=self.auth, headers=headers, proxies=self.proxies
+                    url, data=data, auth=self.auth, headers=headers, proxies=self.proxies, verify=verify
                 )
             logger.debug("response headers =\n%s" % (str(request.headers)))
             # Force request encoding value, the automatic detection is very long for large files (report for example)
