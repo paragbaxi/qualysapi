@@ -1,4 +1,3 @@
-# -*- coding: future_fstrings -*-
 """ Module to hold global settings reused throughout qualysapi. """
 
 __author__ = "Colin Bell <colin.bell@uwaterloo.ca>"

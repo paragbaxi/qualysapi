@@ -1,4 +1,3 @@
-# -*- coding: future_fstrings -*-
 """ Module providing a single class (QualysConnectConfig) that parses a config
 file and provides the information required to build QualysGuard sessions.
 """
