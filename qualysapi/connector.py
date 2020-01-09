@@ -1,5 +1,3 @@
-# -*- coding: future_fstrings -*-
-
 __author__ = "Parag Baxi <parag.baxi@gmail.com>"
 __copyright__ = "Copyright 2013, Parag Baxi"
 __license__ = "Apache License 2.0"

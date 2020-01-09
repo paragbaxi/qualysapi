@@ -1,5 +1,3 @@
-# -*- coding: future_fstrings -*-
-
 __author__ = "pbaxi"
 
 from collections import defaultdict
