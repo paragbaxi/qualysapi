@@ -41,7 +41,9 @@ class QGConnector(api_actions.QGActions):
 
     """
 
-    def __init__(self, auth, server="qualysapi.qualys.com", proxies=None, max_retries=3):
+    def __init__(
+        self, auth, server="qualysapi.qualys.com", proxies=None, max_retries=3, verify=True
+    ):
         # Read username & password from file, if possible.
         self.auth = auth
         # Remember QualysGuard API server.
@@ -65,6 +67,7 @@ class QGConnector(api_actions.QGActions):
         https_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
         self.session.mount("http://", http_max_retries)
         self.session.mount("https://", https_max_retries)
+        self.verify = verify
 
     def __call__(self):
         return self
@@ -283,7 +286,9 @@ class QGConnector(api_actions.QGActions):
 
         return url, data, headers
 
-    def request_streaming(self, api_call, data=None, api_version=None, http_method=None):
+    def request_streaming(
+        self, api_call, data=None, api_version=None, http_method=None, verify=self.verify
+    ):
         """ Return QualysGuard streaming response """
 
         url, data, headers = self.build_request(api_call, data, api_version, http_method)
@@ -298,13 +303,20 @@ class QGConnector(api_actions.QGActions):
                 headers=headers,
                 proxies=self.proxies,
                 stream=True,
+                verify=verify,
             )
         else:
             # POST
             logger.debug("POST request.")
             # Make POST request.
             request = self.session.post(
-                url, data=data, auth=self.auth, headers=headers, proxies=self.proxies, stream=True
+                url,
+                data=data,
+                auth=self.auth,
+                headers=headers,
+                proxies=self.proxies,
+                stream=True,
+                verify=verify,
             )
         logger.debug("response headers =\n%s" % (str(request.headers)))
         #
@@ -340,13 +352,12 @@ class QGConnector(api_actions.QGActions):
         http_method=None,
         concurrent_scans_retries=0,
         concurrent_scans_retry_delay=0,
-        verify=True
+        verify=self.verify,
     ):
         """ Return QualysGuard API response.
 
         """
 
-        logger.debug("verify = \n%s" % str(verify))
         logger.debug("concurrent_scans_retries =\n%s" % str(concurrent_scans_retries))
         logger.debug("concurrent_scans_retry_delay =\n%s" % str(concurrent_scans_retry_delay))
         concurrent_scans_retries = int(concurrent_scans_retries)
@@ -368,14 +379,24 @@ class QGConnector(api_actions.QGActions):
                 # GET
                 logger.debug("GET request.")
                 request = self.session.get(
-                    url, params=data, auth=self.auth, headers=headers, proxies=self.proxies, verify=verify
+                    url,
+                    params=data,
+                    auth=self.auth,
+                    headers=headers,
+                    proxies=self.proxies,
+                    verify=verify,
                 )
             else:
                 # POST
                 logger.debug("POST request.")
                 # Make POST request.
                 request = self.session.post(
-                    url, data=data, auth=self.auth, headers=headers, proxies=self.proxies, verify=verify
+                    url,
+                    data=data,
+                    auth=self.auth,
+                    headers=headers,
+                    proxies=self.proxies,
+                    verify=verify,
                 )
             logger.debug("response headers =\n%s" % (str(request.headers)))
             # Force request encoding value, the automatic detection is very long for large files (report for example)
