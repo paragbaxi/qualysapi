@@ -41,9 +41,7 @@ class QGConnector(api_actions.QGActions):
 
     """
 
-    def __init__(
-        self, auth, server="qualysapi.qualys.com", proxies=None, max_retries=3, verify=True
-    ):
+    def __init__(self, auth, server="qualysapi.qualys.com", proxies=None, max_retries=3):
         # Read username & password from file, if possible.
         self.auth = auth
         # Remember QualysGuard API server.
@@ -67,7 +65,6 @@ class QGConnector(api_actions.QGActions):
         https_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
         self.session.mount("http://", http_max_retries)
         self.session.mount("https://", https_max_retries)
-        self.verify = verify
 
     def __call__(self):
         return self
@@ -287,7 +284,7 @@ class QGConnector(api_actions.QGActions):
         return url, data, headers
 
     def request_streaming(
-        self, api_call, data=None, api_version=None, http_method=None, verify=self.verify
+        self, api_call, data=None, api_version=None, http_method=None, verify=True
     ):
         """ Return QualysGuard streaming response """
 
@@ -352,7 +349,7 @@ class QGConnector(api_actions.QGActions):
         http_method=None,
         concurrent_scans_retries=0,
         concurrent_scans_retry_delay=0,
-        verify=self.verify,
+        verify=True,
     ):
         """ Return QualysGuard API response.
 
