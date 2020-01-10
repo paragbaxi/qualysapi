@@ -5,7 +5,7 @@ from lxml import objectify
 from qualysapi.api_objects import *
 
 
-class QGActions(object):
+class QGActions:
     def getHost(self, host):
         call = "/api/2.0/fo/asset/host/"
         parameters = {"action": "list", "ips": host, "details": "All"}
