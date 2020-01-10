@@ -55,9 +55,9 @@ class QGConnector(api_actions.QGActions):
             qualysapi.api_methods.api_methods_with_trailing_slash
         )
         self.proxies = proxies
-        logger.debug("proxies = \n%s" % proxies)
+        logger.debug("proxies = \n%s", proxies)
         # Set up requests max_retries.
-        logger.debug("max_retries = \n%s" % max_retries)
+        logger.debug("max_retries = \n%s", max_retries)
         self.session = requests.Session()
         http_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
         https_max_retries = requests.adapters.HTTPAdapter(max_retries=max_retries)
@@ -120,22 +120,22 @@ class QGConnector(api_actions.QGActions):
         # Set base url depending on API version.
         if api_version == 1:
             # QualysGuard API v1 url.
-            url = "https://%s/msp/" % (self.server,)
+            url = f"https://{self.server}/msp/"
         elif api_version == 2:
             # QualysGuard API v2 url.
-            url = "https://%s/" % (self.server,)
+            url = f"https://{self.server}/"
         elif api_version == "was":
             # QualysGuard REST v3 API url (Portal API).
-            url = "https://%s/qps/rest/3.0/" % (self.server,)
+            url = f"https://{self.server}/qps/rest/3.0/"
         elif api_version == "am":
             # QualysGuard REST v1 API url (Portal API).
-            url = "https://%s/qps/rest/1.0/" % (self.server,)
+            url = f"https://{self.server}/qps/rest/1.0/"
         elif api_version == "am2":
             # QualysGuard REST v1 API url (Portal API).
-            url = "https://%s/qps/rest/2.0/" % (self.server,)
+            url = f"https://{self.server}/qps/rest/2.0/"
         else:
-            raise Exception("Unknown QualysGuard API Version Number (%s)" % (api_version,))
-        logger.debug("Base url =\n%s" % (url))
+            raise Exception(f"Unknown QualysGuard API Version Number {api_version}")
+        logger.debug("Base url =\n%s", url)
         return url
 
     def format_http_method(self, api_version, api_call, data):
@@ -185,7 +185,7 @@ class QGConnector(api_actions.QGActions):
         api_call_formatted = api_call_formatted.rstrip("?")
         if api_call != api_call_formatted:
             # Show difference
-            logger.debug("api_call post strip =\n%s" % api_call_formatted)
+            logger.debug("api_call post strip =\n%s", api_call_formatted)
         return api_call_formatted
 
     def format_call(self, api_version, api_call):
@@ -195,7 +195,7 @@ class QGConnector(api_actions.QGActions):
         # Remove possible starting slashes or trailing question marks in call.
         api_call = api_call.lstrip("/")
         api_call = api_call.rstrip("?")
-        logger.debug("api_call post strip =\n%s" % api_call)
+        logger.debug("api_call post strip =\n%s", api_call)
         # Make sure call always ends in slash for API v2 calls.
         if api_version == 2 and api_call[-1] != "/":
             # Add slash.
@@ -216,25 +216,25 @@ class QGConnector(api_actions.QGActions):
             # Check if string type.
             if type(data) == str:
                 # Convert to dictionary.
-                logger.debug("Converting string to dict:\n%s" % data)
+                logger.debug("Converting string to dict:\n%s", data)
                 # Remove possible starting question mark & ending ampersands.
                 data = data.lstrip("?")
                 data = data.rstrip("&")
                 # Convert to dictionary.
                 data = parse_qs(data)
-                logger.debug("Converted:\n%s" % str(data))
+                logger.debug("Converted:\n%s", str(data))
         elif api_version in ("am", "was", "am2"):
             if type(data) == etree._Element:
                 logger.debug("Converting lxml.builder.E to string")
                 data = etree.tostring(data)
-                logger.debug("Converted:\n%s" % data)
+                logger.debug("Converted:\n%s", data)
         return data
 
     def build_request(self, api_call, data=None, api_version=None, http_method=None):
-        logger.debug("api_call =\n%s" % api_call)
-        logger.debug("api_version =\n%s" % api_version)
-        logger.debug("data %s =\n %s" % (type(data), str(data)))
-        logger.debug("http_method =\n%s" % http_method)
+        logger.debug("api_call =\n%s", api_call)
+        logger.debug("api_version =\n%s", api_version)
+        logger.debug("data %s =\n %s", type(data), str(data))
+        logger.debug("http_method =\n%s", http_method)
 
         #
         # Determine API version.
@@ -252,10 +252,9 @@ class QGConnector(api_actions.QGActions):
         #
         # Set up headers.
         headers = {
-            "X-Requested-With": "Parag Baxi QualysAPI (python) v%s"
-            % (qualysapi.version.__version__,)
+            "X-Requested-With": f"Parag Baxi QualysAPI (python) v{qualysapi.version.__version__}"
         }
-        logger.debug("headers =\n%s" % (str(headers)))
+        logger.debug("headers =\n%s", str(headers))
         # Portal API takes in XML text, requiring custom header.
         if api_version in ("am", "was", "am2"):
             headers["Content-type"] = "text/xml"
@@ -263,11 +262,11 @@ class QGConnector(api_actions.QGActions):
         # Set up http request method, if not specified.
         if not http_method:
             http_method = self.format_http_method(api_version, api_call, data)
-        logger.debug("http_method =\n%s" % http_method)
+        logger.debug("http_method =\n%s", http_method)
         #
         # Format API call.
         api_call = self.format_call(api_version, api_call)
-        logger.debug("api_call =\n%s" % (api_call))
+        logger.debug("api_call =\n%s", api_call)
         # Append api_call to url.
         url += api_call
         #
@@ -275,9 +274,9 @@ class QGConnector(api_actions.QGActions):
         if data is not None:
             data = self.format_payload(api_version, data)
 
-        logger.debug("url =\n%s" % (str(url)))
-        logger.debug("data =\n%s" % (str(data)))
-        logger.debug("headers =\n%s" % (str(headers)))
+        logger.debug("url =\n%s", str(url))
+        logger.debug("data =\n%s", str(data))
+        logger.debug("headers =\n%s", str(headers))
 
         return url, data, headers
 
@@ -313,19 +312,18 @@ class QGConnector(api_actions.QGActions):
                 stream=True,
                 verify=verify,
             )
-        logger.debug("response headers =\n%s" % (str(request.headers)))
+        logger.debug("response headers =\n%s", str(request.headers))
         #
         # Remember how many times left user can make against api_call.
         try:
             self.rate_limit_remaining[api_call] = int(request.headers["x-ratelimit-remaining"])
             logger.debug(
-                "rate limit for api_call, %s = %s"
-                % (api_call, self.rate_limit_remaining[api_call])
+                "rate limit for api_call, %s = %s", api_call, self.rate_limit_remaining[api_call]
             )
             if self.rate_limit_remaining[api_call] <= 0:
                 logger.critical(
-                    "ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!"
-                    % self.rate_limit_remaining[api_call]
+                    "ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!",
+                    self.rate_limit_remaining[api_call],
                 )
         except KeyError as e:
             # Likely a bad api_call.
@@ -353,8 +351,8 @@ class QGConnector(api_actions.QGActions):
 
         """
 
-        logger.debug("concurrent_scans_retries =\n%s" % str(concurrent_scans_retries))
-        logger.debug("concurrent_scans_retry_delay =\n%s" % str(concurrent_scans_retry_delay))
+        logger.debug("concurrent_scans_retries =\n%s", str(concurrent_scans_retries))
+        logger.debug("concurrent_scans_retry_delay =\n%s", str(concurrent_scans_retry_delay))
         concurrent_scans_retries = int(concurrent_scans_retries)
         concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
 
@@ -367,9 +365,9 @@ class QGConnector(api_actions.QGActions):
         rate_warn_threshold = 10
         while retries <= concurrent_scans_retries:
             # Make request.
-            logger.debug("url =\n%s" % (str(url)))
-            logger.debug("data =\n%s" % (str(data)))
-            logger.debug("headers =\n%s" % (str(headers)))
+            logger.debug("url =\n%s", str(url))
+            logger.debug("data =\n%s", str(data))
+            logger.debug("headers =\n%s", str(headers))
             if http_method == "get":
                 # GET
                 logger.debug("GET request.")
@@ -393,7 +391,7 @@ class QGConnector(api_actions.QGActions):
                     proxies=self.proxies,
                     verify=verify,
                 )
-            logger.debug("response headers =\n%s" % (str(request.headers)))
+            logger.debug("response headers =\n%s", str(request.headers))
             # Force request encoding value, the automatic detection is very long for large files (report for example)
             # And sometimes with MemoryError
             if request.encoding is None:
@@ -405,25 +403,27 @@ class QGConnector(api_actions.QGActions):
                     request.headers["x-ratelimit-remaining"]
                 )
                 logger.debug(
-                    "rate limit for api_call, %s = %s"
-                    % (api_call, self.rate_limit_remaining[api_call])
+                    "rate limit for api_call, %s = %s",
+                    api_call,
+                    self.rate_limit_remaining[api_call],
                 )
                 if self.rate_limit_remaining[api_call] > rate_warn_threshold:
                     logger.debug(
-                        "rate limit for api_call, %s = %s"
-                        % (api_call, self.rate_limit_remaining[api_call])
+                        "rate limit for api_call, %s = %s",
+                        api_call,
+                        self.rate_limit_remaining[api_call],
                     )
                 elif (self.rate_limit_remaining[api_call] <= rate_warn_threshold) and (
                     self.rate_limit_remaining[api_call] > 0
                 ):
                     logger.warning(
-                        "Rate limit is about to being reached (remaining api calls = %s)"
-                        % self.rate_limit_remaining[api_call]
+                        "Rate limit is about to being reached (remaining api calls = %s)",
+                        self.rate_limit_remaining[api_call],
                     )
                 elif self.rate_limit_remaining[api_call] <= 0:
                     logger.critical(
-                        "ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!"
-                        % self.rate_limit_remaining[api_call]
+                        "ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!",
+                        self.rate_limit_remaining[api_call],
                     )
             except KeyError as e:
                 # Likely a bad api_call.
@@ -435,7 +435,7 @@ class QGConnector(api_actions.QGActions):
                 pass
             # Response received.
             response = request.text
-            logger.debug("response text =\n%s" % (response))
+            logger.debug("response text =\n%s", response)
             # Keep track of how many retries.
             retries += 1
             # Check for concurrent scans limit.
@@ -454,11 +454,11 @@ class QGConnector(api_actions.QGActions):
                 # If trying again, delay next try by concurrent_scans_retry_delay.
                 if retries <= concurrent_scans_retries:
                     logger.warning(
-                        "Waiting %d seconds until next try." % concurrent_scans_retry_delay
+                        "Waiting %d seconds until next try.", concurrent_scans_retry_delay
                     )
                     time.sleep(concurrent_scans_retry_delay)
                     # Inform user of how many retries.
-                    logger.critical("Retry #%d" % retries)
+                    logger.critical("Retry #%d", retries)
                 else:
                     # Ran out of retries. Let user know.
                     print("Alert! Ran out of concurrent_scans_retries!")
@@ -471,17 +471,17 @@ class QGConnector(api_actions.QGActions):
             # Error
             print("Error! Received a 4XX client error or 5XX server error response.")
             print("Content = \n", response)
-            logger.error("Content = \n%s" % response)
+            logger.error("Content = \n%s", response)
             print("Headers = \n", request.headers)
-            logger.error("Headers = \n%s" % str(request.headers))
+            logger.error("Headers = \n%s", str(request.headers))
             request.raise_for_status()
         if '<RETURN status="FAILED" number="2007">' in response:
             print(
                 "Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security)."
             )
             print("Content = \n", response)
-            logger.error("Content = \n%s" % response)
+            logger.error("Content = \n%s", response)
             print("Headers = \n", request.headers)
-            logger.error("Headers = \n%s" % str(request.headers))
+            logger.error("Headers = \n%s", str(request.headers))
             return False
         return response

@@ -100,7 +100,7 @@ api_methods["2"] = set(
 for auth_type in set(
     ["ibm_db2", "ms_sql", "oracle", "oracle_listener", "snmp", "unix", "windows",]
 ):
-    api_methods["2"].add("api/2.0/fo/auth/%s/" % auth_type)
+    api_methods["2"].add(f"api/2.0/fo/auth/{auth_type}/")
 # WAS GET methods when no POST data.
 api_methods["was no data get"] = set(
     [
