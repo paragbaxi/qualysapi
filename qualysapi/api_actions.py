@@ -5,7 +5,7 @@ from lxml import objectify
 from qualysapi.api_objects import *
 
 
-class QGActions(object):
+class QGActions:
     def getHost(self, host):
         call = "/api/2.0/fo/asset/host/"
         parameters = {"action": "list", "ips": host, "details": "All"}
@@ -23,7 +23,7 @@ class QGActions(object):
 
     def getHostRange(self, start, end):
         call = "/api/2.0/fo/asset/host/"
-        parameters = {"action": "list", "ips": start + "-" + end}
+        parameters = {"action": "list", "ips": f"{start}-{end}"}
         hostData = objectify.fromstring(self.request(call, parameters).encode("utf-8"))
         hostArray = []
         for host in hostData.RESPONSE.HOST_LIST.HOST:
@@ -78,7 +78,7 @@ class QGActions(object):
             agData = objectify.fromstring(self.request(call).encode("utf-8"))
         else:
             agData = objectify.fromstring(
-                self.request(call, "title=" + groupName).encode("utf-8")
+                self.request(call, f"title={groupName}").encode("utf-8")
             )
 
         groupsArray = []
