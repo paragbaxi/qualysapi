@@ -1,10 +1,9 @@
 import logging
+from urllib import parse as urlparse
 
 from lxml import objectify
 
 from qualysapi.api_objects import *
-
-from urllib import parse as urlparse
 
 
 class QGActions:
