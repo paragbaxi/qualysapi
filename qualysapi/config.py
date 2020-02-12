@@ -1,4 +1,3 @@
-# -*- coding: future_fstrings -*-
 """ Module providing a single class (QualysConnectConfig) that parses a config
 file and provides the information required to build QualysGuard sessions.
 """
@@ -61,7 +60,7 @@ class QualysConnectConfig:
 
             # apply bitmask to current mode to check ONLY user access permissions.
             if (mode & (stat.S_IRWXG | stat.S_IRWXO)) != 0:
-                logger.warning("%s permissions allows more than user access." % (filename,))
+                logger.warning("%s permissions allows more than user access.", filename)
 
             self._cfgparse.read(self._cfgfile)
 
@@ -137,9 +136,10 @@ class QualysConnectConfig:
                     proxy_port_url = proxy_port
                     proxy_port = self._cfgparse.get("proxy", "proxy_port")
                     logger.warning(
-                        "Proxy port from url overwritten by specified proxy_port from config:"
+                        "Proxy port from url overwritten by specified proxy_port from config: %s --> %s",
+                        proxy_port_url,
+                        proxy_port,
                     )
-                    logger.warning("%s --> %s" % (proxy_port_url, proxy_port))
                 else:
                     proxy_port = self._cfgparse.get("proxy", "proxy_port")
             if not proxy_port:
@@ -170,10 +170,10 @@ class QualysConnectConfig:
             proxy_config = proxy_url
             if proxy_port:
                 # Proxy port requested.
-                proxy_config += ":" + proxy_port
+                proxy_config += f":{proxy_port}"
             if proxy_username:
                 # Proxy authentication requested.
-                proxy_config = proxy_username + ":" + proxy_password + "@" + proxy_config
+                proxy_config = f"{proxy_username}:{proxy_password}@{proxy_config}"
             # Prefix by proxy protocol.
             proxy_config = proxy_protocol + proxy_config
         # Set up proxy if applicable.

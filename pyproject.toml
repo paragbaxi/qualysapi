@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 98
-target-version = ['py35','py36','py37','py38']
+target-version = ['py36','py37','py38']
 
 [tool.isort]
 atomic = true

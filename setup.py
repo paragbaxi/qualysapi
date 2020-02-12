@@ -9,9 +9,9 @@ from setuptools import setup
 SETUPTOOLS_VER = "30.5.0"  # Minimum version that supports pyproject.toml
 
 try:
-    require("setuptools>=" + SETUPTOOLS_VER)
+    require(f"setuptools>={SETUPTOOLS_VER}")
 except VersionConflict:
-    sys.exit("Error: version of setuptools is too old (<{})!".format(SETUPTOOLS_VER))
+    sys.exit(f"Error: version of setuptools is too old (<{SETUPTOOLS_VER})!")
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com>"
 __copyright__ = "Copyright 2011-2018, Parag Baxi"
