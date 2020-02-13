@@ -185,7 +185,8 @@ class QualysConnectConfig:
         # ask username (if one doesn't exist)
         if not self._cfgparse.has_option(self._section, "username"):
             if not username:
-                username = input("QualysGuard Username: ")
+                # The next line will pass Bandit, which is required for issue B322:blacklist. QualysAPI no longer works with Python2, so this doesn't apply.
+                username = input("QualysGuard Username: ")  # nosec
             self._cfgparse.set(self._section, "username", username)
 
         # ask password (if one doesn't exist)
