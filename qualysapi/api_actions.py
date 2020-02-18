@@ -1,5 +1,4 @@
 import logging
-from urllib import parse as urlparse
 
 from lxml import objectify
 
@@ -188,40 +187,29 @@ class QGActions:
     def notScannedSince(self, days):
         call = "/api/2.0/fo/asset/host/"
         parameters = {"action": "list", "details": "All"}
+        hostData = objectify.fromstring(self.request(call, parameters).encode("utf-8"))
         hostArray = []
         today = datetime.date.today()
-        hasNextPage = True
-        while hasNextPage:
-            hostData = objectify.fromstring(self.request(call, parameters).encode("utf-8"))
-            for host in hostData.RESPONSE.HOST_LIST.HOST:
-                if host.find("LAST_VULN_SCAN_DATETIME"):
-                    last_scan = str(host.LAST_VULN_SCAN_DATETIME).split("T")[0]
-                    last_scan = datetime.date(
-                        int(last_scan.split("-")[0]),
-                        int(last_scan.split("-")[1]),
-                        int(last_scan.split("-")[2]),
-                    )
-                    if (today - last_scan).days >= days:
-                        hostArray.append(
-                            Host(
-                                host.find("DNS"),
-                                host.find("ID"),
-                                host.find("IP"),
-                                host.find("LAST_VULN_SCAN_DATETIME"),
-                                host.find("NETBIOS"),
-                                host.find("OS"),
-                                host.find("TRACKING_METHOD"),
-                            )
+        for host in hostData.RESPONSE.HOST_LIST.HOST:
+            if host.find("LAST_VULN_SCAN_DATETIME"):
+                last_scan = str(host.LAST_VULN_SCAN_DATETIME).split("T")[0]
+                last_scan = datetime.date(
+                    int(last_scan.split("-")[0]),
+                    int(last_scan.split("-")[1]),
+                    int(last_scan.split("-")[2]),
+                )
+                if (today - last_scan).days >= days:
+                    hostArray.append(
+                        Host(
+                            host.find("DNS"),
+                            host.find("ID"),
+                            host.find("IP"),
+                            host.find("LAST_VULN_SCAN_DATETIME"),
+                            host.find("NETBIOS"),
+                            host.find("OS"),
+                            host.find("TRACKING_METHOD"),
                         )
-            try:
-                id_min = dict(
-                    urlparse.parse_qsl(
-                        urlparse.urlparse(str(hostData.RESPONSE.WARNING.URL)).query
                     )
-                )["id_min"]
-                parameters["id_min"] = id_min
-            except:
-                hasNextPage = False
 
         return hostArray
 
