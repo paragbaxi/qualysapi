@@ -1,4 +1,5 @@
 import logging
+import time
 from urllib import parse as urlparse
 
 from lxml import objectify
