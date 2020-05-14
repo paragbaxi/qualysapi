@@ -186,56 +186,76 @@ class QGActions:
                 repData.find("TITLE"),
             )
 
-    def launchReport(self, template_id, output_format, report_title=None, echo_request=0, report_type=None, use_tags=None, tag_set_include=None, tag_set_by=None, tag_set_exclude=None, max_retries=3):
+    def launchReport(
+        self,
+        template_id,
+        output_format,
+        report_title=None,
+        echo_request=0,
+        report_type=None,
+        use_tags=None,
+        tag_set_include=None,
+        tag_set_by=None,
+        tag_set_exclude=None,
+        max_retries=3,
+    ):
         call = "/api/2.0/fo/report"
         parameters = {
-            'action': 'launch',
-            'template_id': template_id,
-            'output_format': output_format,
+            "action": "launch",
+            "template_id": template_id,
+            "output_format": output_format,
         }
         if report_title:
-            parameters['report_title'] = report_title
+            parameters["report_title"] = report_title
         if echo_request:
-            parameters['echo_request'] = echo_request
+            parameters["echo_request"] = echo_request
         if report_type:
-            parameters['report_type'] = report_type
+            parameters["report_type"] = report_type
         if use_tags:
             if use_tags == 0 or use_tags == 1:
-                parameters['use_tags'] = use_tags
+                parameters["use_tags"] = use_tags
             else:
-                raise ValueError('use_tags must be 0 or 1')
+                raise ValueError("use_tags must be 0 or 1")
         if tag_set_include:
-            parameters['tag_set_include'] = tag_set_include
+            parameters["tag_set_include"] = tag_set_include
         if tag_set_exclude:
-            parameters['tag_set_exclude'] = tag_set_exclude
+            parameters["tag_set_exclude"] = tag_set_exclude
         if tag_set_by:
             if tag_set_by == "id" or tag_set_by == "name":
-                parameters['tag_set_by'] = tag_set_by
+                parameters["tag_set_by"] = tag_set_by
             else:
-                raise ValueError('tag_set_by must be id or name')
+                raise ValueError("tag_set_by must be id or name")
 
-        repData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
-        while repData.find('TEXT') == 'Max number of allowed reports already running. Please try again later.' and max_retries > 0:
+        repData = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
+        while (
+            repData.find("TEXT")
+            == "Max number of allowed reports already running. Please try again later."
+            and max_retries > 0
+        ):
             max_retries = max_retries - 1
             time.sleep(30)
-            repData = objectify.fromstring(self.request(call, parameters).encode('utf-8')).RESPONSE
-            logging.info('Max number of allowed reports already running. %s attempts left.', max_retries)
+            repData = objectify.fromstring(
+                self.request(call, parameters).encode("utf-8")
+            ).RESPONSE
+            logging.info(
+                "Max number of allowed reports already running. %s attempts left.", max_retries
+            )
 
-        if repData.find('TEXT') =='New report launched':
-            report_id = repData.find('ITEM_LIST').find("ITEM").find("VALUE")
+        if repData.find("TEXT") == "New report launched":
+            report_id = repData.find("ITEM_LIST").find("ITEM").find("VALUE")
             return report_id.pyval
-        
+
         logging.warn("Report ID is empty.")
         return None
 
     def downloadReport(self, report_id, echo_request=0):
         call = "/api/2.0/fo/report"
         parameters = {
-            'action': 'fetch',
-            'id': report_id,
+            "action": "fetch",
+            "id": report_id,
         }
         if echo_request:
-            parameters['echo_request'] = echo_request
+            parameters["echo_request"] = echo_request
 
         return self.request(call, parameters)
 
