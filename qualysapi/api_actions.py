@@ -23,6 +23,55 @@ class QGActions:
             hostData.find("TRACKING_METHOD"),
         )
 
+    def listHosts(
+        self,
+        ips=None,
+        tags=None,
+        os_pattern=None,
+        tag_set_exclude=None,
+        id_min=None,
+        detailed=False,
+        echo_request=None,
+        limit=100,
+    ):
+
+        call = "/api/2.0/fo/asset/host/"
+        parameters = {"action": "list", "truncation_limit": str(limit)}
+        if detailed:
+            parameters["details"] = "All/AGs"
+        if tag_set_exclude:
+            parameters["tag_set_exclude"] = tags
+        if id_min:
+            parameters["id_min"] = str(id_min)
+        if ips:
+            parameters["ips"] = str(ips)
+        if tags:
+            parameters["use_tags"] = "1"
+            parameters["tag_set_by"] = "name"
+            parameters["tag_set_include"] = tags
+            parameters["show_tags"] = "1"
+        if os_pattern:
+            parameters["os_pattern"] = os_pattern
+        if echo_request:
+            parameters["echo_request"] = echo_request
+
+        hostData = objectify.fromstring(self.request(call, parameters).encode("utf-8"))
+        hostArray = []
+        for host in hostData.RESPONSE.HOST_LIST.HOST:
+            hostArray.append(
+                Host(
+                    host.find("DNS"),
+                    host.find("ID"),
+                    host.find("IP"),
+                    host.find("LAST_VULN_SCAN_DATETIME"),
+                    host.find("NETBIOS"),
+                    host.find("OS"),
+                    host.find("TRACKING_METHOD"),
+                )
+            )
+
+        return hostArray
+
     def getHostRange(self, start, end):
         call = "/api/2.0/fo/asset/host/"
         parameters = {"action": "list", "ips": f"{start}-{end}"}
@@ -142,7 +191,7 @@ class QGActions:
 
     def listReports(self, id=0):
         call = "/api/2.0/fo/report"
-
+        max_retries = 10
         if id == 0:
             parameters = {"action": "list"}
 
@@ -150,6 +199,16 @@ class QGActions:
                 self.request(call, parameters).encode("utf-8")
             ).RESPONSE
             reportsArray = []
+            while repData.find("REPORT_LIST") is None and max_retries > 0:
+                max_retries = max_retries - 1
+                time.sleep(30)
+                qualys_resp = self.request(call, parameters).encode("utf-8")
+                logging.info("QUALYS_REPONSE " + str(qualys_resp))
+                repData = objectify.fromstring(qualys_resp).RESPONSE
+
+            if max_retries <= 0:
+                logging.info("Report Listing not successful")
+                return None
 
             for report in repData.REPORT_LIST.REPORT:
                 reportsArray.append(
@@ -170,6 +229,19 @@ class QGActions:
 
         else:
             parameters = {"action": "list", "id": id}
+            qualys_resp = self.request(call, parameters).encode("utf-8")
+
+            repData_debug = objectify.fromstring(qualys_resp).RESPONSE
+            while repData_debug.find("REPORT_LIST") is None and max_retries > 0:
+                max_retries = max_retries - 1
+                time.sleep(30)
+                qualys_resp = self.request(call, parameters).encode("utf-8")
+                logging.info("QUALYS_REPONSE " + str(qualys_resp))
+                repData_debug = objectify.fromstring(qualys_resp).RESPONSE
+
+            if max_retries <= 0:
+                logging.info("Report Listing not successful")
+                return None
             repData = objectify.fromstring(
                 self.request(call, parameters).encode("utf-8")
             ).RESPONSE.REPORT_LIST.REPORT
@@ -365,6 +437,41 @@ class QGActions:
             )
 
         return scanArray
+
+    def listChildTags(self, tag_name=None, tag_id=None, filename=None):
+        if tag_id:
+            files = (
+                """<ServiceRequest>
+<filters>
+<Criteria field="id" operator="EQUALS">"""
+                + tag_id
+                + """</Criteria>
+</filters>
+</ServiceRequest>"""
+            )
+        elif filename:
+            files = open(filename, "rb").read()
+        elif tag_name:
+            files = (
+                """<ServiceRequest>
+<filters>
+<Criteria field="name" operator="EQUALS">"""
+                + tag_name
+                + """</Criteria>
+</filters>
+</ServiceRequest>"""
+            ).encode("ascii", "ignore")
+
+        call = "/qps/rest/2.0/search/am/tag"
+        parameters = files
+        response = objectify.fromstring(
+            self.request(call, parameters, api_version=2, http_method="post").encode("utf-8")
+        )
+        childs = list()
+        for child in response.getchildren()[3][0].Tag.children.list.getchildren():
+            childs.append(child.getchildren())
+
+        return childs
 
     def launchScan(self, title, option_title, iscanner_name, asset_groups="", ip=""):
         # TODO: Add ability to scan by tag.
