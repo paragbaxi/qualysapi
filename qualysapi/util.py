@@ -24,7 +24,7 @@ def connect(
     password=None,
     hostname="qualysapi.qualys.com",
     max_retries="3",
-    proxies=None
+    proxies=None,
 ):
     """ Return a QGAPIConnect object for v1 API pulling settings from config
     file.
