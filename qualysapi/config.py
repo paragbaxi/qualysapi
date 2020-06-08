@@ -5,7 +5,7 @@ import getpass
 import logging
 import os
 import stat
-from configparser import ConfigParser
+from configparser import RawConfigParser
 
 import qualysapi.settings as qcs
 
@@ -25,7 +25,7 @@ __license__ = "BSD-new"
 
 
 class QualysConnectConfig:
-    """ Class to create a ConfigParser and read user/password details
+    """ Class to create a RawConfigParser and read user/password details
     from an ini file.
     """
 
@@ -50,8 +50,8 @@ class QualysConnectConfig:
             # Set home path for file.
             self._cfgfile = os.path.join(os.path.expanduser("~"), filename)
 
-        # create ConfigParser to combine defaults and input from config file.
-        self._cfgparse = ConfigParser(qcs.defaults)
+        # create RawConfigParser to combine defaults and input from config file.
+        self._cfgparse = RawConfigParser(qcs.defaults)
 
         if self._cfgfile:
             self._cfgfile = os.path.realpath(self._cfgfile)
