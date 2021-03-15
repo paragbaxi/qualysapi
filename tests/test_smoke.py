@@ -29,13 +29,5 @@ def test_for_fire():
 
 if __name__ == "__main__":
     pytest.main(
-        args=[
-            "-vv",
-            "--cov-report",
-            "term",
-            "--cov-report",
-            "xml",
-            "--cov=qualysapi",
-            "tests/",
-        ]
+        args=["-vv", "--cov-report", "term", "--cov-report", "xml", "--cov=qualysapi", "tests/",]
     )

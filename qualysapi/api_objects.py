@@ -154,7 +154,7 @@ class Scan:
     def cancel(self, conn):
         cancelled_statuses = ["Cancelled", "Finished", "Error"]
         if any(self.status in s for s in cancelled_statuses):
-            raise ValueError("Scan cannot be cancelled because its status is " + self.status)
+            raise ValueError(f"Scan cannot be cancelled because its status is {self.status}")
         else:
             call = "/api/2.0/fo/scan/"
             parameters = {"action": "cancel", "scan_ref": self.ref}
@@ -167,7 +167,7 @@ class Scan:
 
     def pause(self, conn):
         if self.status != "Running":
-            raise ValueError("Scan cannot be paused because its status is " + self.status)
+            raise ValueError(f"Scan cannot be paused because its status is {self.status}")
         else:
             call = "/api/2.0/fo/scan/"
             parameters = {"action": "pause", "scan_ref": self.ref}
@@ -180,7 +180,7 @@ class Scan:
 
     def resume(self, conn):
         if self.status != "Paused":
-            raise ValueError("Scan cannot be resumed because its status is " + self.status)
+            raise ValueError(f"Scan cannot be resumed because its status is {self.status}")
         else:
             call = "/api/2.0/fo/scan/"
             parameters = {"action": "resume", "scan_ref": self.ref}

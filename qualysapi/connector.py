@@ -43,7 +43,7 @@ class Gitai_Auth(requests.auth.AuthBase):
             url = conn.url_api_version("gitai")
 
             url += "auth"
-            logger.debug("Gitai - url %s" % url)
+            logger.debug(f"Gitai - url {url}")
             req = conn.session.post(
                 url,
                 proxies=proxies,
@@ -52,7 +52,7 @@ class Gitai_Auth(requests.auth.AuthBase):
             self.token = req.text
 
     def __call__(self, r):
-        r.headers["authorization"] = "Bearer " + self.token
+        r.headers["authorization"] = f"Bearer {self.token}"
         return r
 
     def reauth(self):
@@ -62,16 +62,16 @@ class Gitai_Auth(requests.auth.AuthBase):
         url = self.conn.url_api_version("gitai")
 
         url += "auth"
-        logger.debug("Gitai - url %s" % url)
+        logger.debug(f"Gitai - url {url}")
         req = self.conn.session.post(
             url,
             proxies=self.proxies,
             data={"token": "true", "username": self.auth[0], "password": self.auth[1]},
         )
         logger.debug("REAUTH:")
-        logger.debug("old: %s" % self.token)
+        logger.debug(f"old: {self.token}")
         self.token = req.text
-        logger.debug("new: %s" % self.token)
+        logger.debug(f"new: {self.token}")
 
 
 class QGConnector(api_actions.QGActions):
@@ -491,7 +491,7 @@ class QGConnector(api_actions.QGActions):
                             request = self.session.post(
                                 url, data=data, auth=auth, headers=headers, proxies=self.proxies
                             )
-                        logger.debug("response headers =\n%s" % (str(request.headers)))
+                        logger.debug(f"response headers =\n{str(request.headers)}")
                         response = request.text
                         if retry_count >= max_retries:
                             break
@@ -527,7 +527,7 @@ class QGConnector(api_actions.QGActions):
                             request = self.session.post(
                                 url, data=data, auth=auth, headers=headers, proxies=self.proxies
                             )
-                        logger.debug("response headers =\n%s" % (str(request.headers)))
+                        logger.debug(f"response headers =\n{str(request.headers)}")
                         response = request.text
                         if retry_count >= max_retries:
                             break
