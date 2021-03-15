@@ -8,14 +8,13 @@ and requesting data from it.
 import logging
 import time
 from collections import defaultdict
+from urllib.parse import parse_qs
 
 import requests
 
 import qualysapi.api_actions as api_actions
 import qualysapi.api_methods
 import qualysapi.version
-
-from urllib.parse import parse_qs
 
 
 # Setup module level logging.

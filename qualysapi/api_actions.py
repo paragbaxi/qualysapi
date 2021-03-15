@@ -1,11 +1,13 @@
-import logging
-from urllib import parse as urlparse
-import html
-from lxml import objectify
-import time
-import json
 import datetime
-from qualysapi.api_objects import Host, VirtualHost, AssetGroup, Report, ReportTemplate, Scan
+import html
+import json
+import logging
+import time
+from urllib import parse as urlparse
+
+from lxml import objectify
+
+from qualysapi.api_objects import AssetGroup, Host, Report, ReportTemplate, Scan, VirtualHost
 
 
 class QGActions:

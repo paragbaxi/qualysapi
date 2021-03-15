@@ -1,8 +1,10 @@
-import unittest
-import sys
 import os
-import qualysapi
+import sys
+import unittest
+
 import requests
+
+import qualysapi
 
 
 class UserTest(unittest.TestCase):
