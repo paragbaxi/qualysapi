@@ -24,6 +24,7 @@ def connect(
     password=None,
     hostname="qualysapi.qualys.com",
     max_retries="3",
+    proxies=None,
 ):
     """ Return a QGAPIConnect object for v1 API pulling settings from config
     file.
@@ -31,7 +32,7 @@ def connect(
     # Use function parameter login credentials.
     if username and password:
         connect = qcconn.QGConnector(
-            auth=(username, password), server=hostname, max_retries=max_retries
+            auth=(username, password), server=hostname, max_retries=max_retries, proxies=proxies
         )
 
     # Retrieve login credentials from config file.
