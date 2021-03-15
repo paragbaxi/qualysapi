@@ -1,10 +1,11 @@
 import logging
-import time
 from urllib import parse as urlparse
-
+import html
 from lxml import objectify
-
-from qualysapi.api_objects import *
+import time
+import json
+import datetime
+from qualysapi.api_objects import Host, VirtualHost, AssetGroup, Report, ReportTemplate, Scan
 
 
 class QGActions:
@@ -34,7 +35,6 @@ class QGActions:
         echo_request=None,
         limit=100,
     ):
-
         call = "/api/2.0/fo/asset/host/"
         parameters = {"action": "list", "truncation_limit": str(limit)}
         if detailed:
@@ -366,14 +366,15 @@ class QGActions:
                     )
                 )["id_min"]
                 parameters["id_min"] = id_min
-            except:
+            except KeyError:
                 hasNextPage = False
 
         return hostArray
 
     def addIP(self, ips, vmpc):
         # 'ips' parameter accepts comma-separated list of IP addresses.
-        # 'vmpc' parameter accepts 'vm', 'pc', or 'both'. (Vulnerability Managment, Policy Compliance, or both)
+        # 'vmpc' parameter accepts 'vm', 'pc', or 'both'.
+        # (Vulnerability Managment, Policy Compliance, or both)
         call = "/api/2.0/fo/asset/ip/"
         enablevm = 1
         enablepc = 0
@@ -389,7 +390,8 @@ class QGActions:
 
     def listScans(self, launched_after="", state="", target="", type="", user_login=""):
         # 'launched_after' parameter accepts a date in the format: YYYY-MM-DD
-        # 'state' parameter accepts "Running", "Paused", "Canceled", "Finished", "Error", "Queued", and "Loading".
+        # 'state' parameter accepts "Running", "Paused", "Canceled",
+        #       "Finished", "Error", "Queued", and "Loading".
         # 'title' parameter accepts a string
         # 'type' parameter accepts "On-Demand", and "Scheduled".
         # 'user_login' parameter accepts a user name (string)
@@ -456,7 +458,7 @@ class QGActions:
                 """<ServiceRequest>
 <filters>
 <Criteria field="name" operator="EQUALS">"""
-                + tag_name
+                + html.escape(tag_name)
                 + """</Criteria>
 </filters>
 </ServiceRequest>"""
@@ -464,11 +466,17 @@ class QGActions:
 
         call = "/qps/rest/2.0/search/am/tag"
         parameters = files
-        response = objectify.fromstring(
-            self.request(call, parameters, api_version=2, http_method="post").encode("utf-8")
+        str_resp = self.request(call, parameters, api_version=2, http_method="post").encode(
+            "utf-8"
         )
+        response = objectify.fromstring(str_resp)
         childs = list()
+
+        if response.getchildren()[1] == "0" or response.getchildren()[1] == 0:
+            # logging.debug("-----> COUNT %d" % response.getchildren()[1])
+            raise ValueError("Invalid Tag")
         for child in response.getchildren()[3][0].Tag.children.list.getchildren():
+            # print(child.getchildren())
             childs.append(child.getchildren())
 
         return childs
@@ -528,3 +536,33 @@ class QGActions:
             scan.find("TYPE"),
             scan.find("USER_LOGIN"),
         )
+
+    def qualys_gitai_list_assets(self, pagesize=20):
+        call = "/am/v1/assets/host/list"
+        parameters = {
+            "pageSize": pagesize,
+        }
+
+        resp = json.loads(
+            self.request(call, parameters, api_version="gitai", http_method="post").encode(
+                "utf-8"
+            )
+        )
+
+        return resp
+
+    def qualys_gitai_filter_list_assets(self, pagesize=20, query=None, includeFields=[]):
+        call = "/am/v1/assets/host/filter/list"
+        parameters = {
+            "pageSize": pagesize,
+            "filter": query,
+            "includeFields": ",".join(includeFields),
+        }
+
+        resp = json.loads(
+            self.request(call, parameters, api_version="gitai", http_method="post").encode(
+                "utf-8"
+            )
+        )
+
+        return resp

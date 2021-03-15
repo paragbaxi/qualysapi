@@ -15,12 +15,7 @@ import qualysapi.api_actions as api_actions
 import qualysapi.api_methods
 import qualysapi.version
 
-
-try:
-    from urllib.parse import urlparse
-    from urllib.parse import parse_qs
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import parse_qs
 
 
 # Setup module level logging.
@@ -28,26 +23,83 @@ logger = logging.getLogger(__name__)
 
 try:
     from lxml import etree
-except ImportError as e:
+except ImportError:
     logger.warning(
-        "Warning: Cannot consume lxml.builder E objects without lxml. Send XML strings for AM & WAS API calls."
+        "Warning: Cannot consume lxml.builder E objects without lxml. \
+        Send XML strings for AM & WAS API calls."
     )
 
 
+class Gitai_Auth(requests.auth.AuthBase):
+    def __init__(self, conn, auth, proxies=None, token=None):
+        self.conn = conn
+        self.auth = auth
+        self.proxies = proxies
+        if not conn.api_gw:
+            return None
+        logger.debug("init")
+        if token:
+            self.token = token
+        else:
+            url = conn.url_api_version("gitai")
+
+            url += "auth"
+            logger.debug("Gitai - url %s" % url)
+            req = conn.session.post(
+                url,
+                proxies=proxies,
+                data={"token": "true", "username": auth[0], "password": auth[1]},
+            )
+            self.token = req.text
+
+    def __call__(self, r):
+        r.headers["authorization"] = "Bearer " + self.token
+        return r
+
+    def reauth(self):
+        if not self.conn.api_gw:
+            return None
+        logger.debug("init")
+        url = self.conn.url_api_version("gitai")
+
+        url += "auth"
+        logger.debug("Gitai - url %s" % url)
+        req = self.conn.session.post(
+            url,
+            proxies=self.proxies,
+            data={"token": "true", "username": self.auth[0], "password": self.auth[1]},
+        )
+        logger.debug("REAUTH:")
+        logger.debug("old: %s" % self.token)
+        self.token = req.text
+        logger.debug("new: %s" % self.token)
+
+
 class QGConnector(api_actions.QGActions):
-    """ Qualys Connection class which allows requests to the QualysGuard API using HTTP-Basic Authentication (over SSL).
+    """Qualys Connection class which allows requests to the QualysGuard API using
+    HTTP-Basic Authentication (over SSL)."""
 
-    """
-
-    def __init__(self, auth, server="qualysapi.qualys.com", proxies=None, max_retries=3):
+    def __init__(
+        self,
+        auth,
+        server="qualysapi.qualys.com",
+        api_gw=None,
+        proxies=None,
+        max_retries=3,
+        token=None,
+    ):
         # Read username & password from file, if possible.
         self.auth = auth
+
         # Remember QualysGuard API server.
         self.server = server
+        # Remember QualysGuard API Gateway
+        self.api_gw = api_gw
         # Remember rate limits per call.
         self.rate_limit_remaining = defaultdict(int)
         # api_methods: Define method algorithm in a dict of set.
-        # Naming convention: api_methods[api_version optional_blah] due to api_methods_with_trailing_slash testing.
+        # Naming convention: api_methods[api_version optional_blah] due to
+        # api_methods_with_trailing_slash testing.
         self.api_methods = qualysapi.api_methods.api_methods
         #
         # Keep track of methods with ending slashes to autocorrect user when they forgot slash.
@@ -64,13 +116,17 @@ class QGConnector(api_actions.QGActions):
         self.session.mount("http://", http_max_retries)
         self.session.mount("https://", https_max_retries)
 
+        # auth for gitai
+        try:
+            self.gitai_auth = Gitai_Auth(self, auth, proxies, token)
+        except IndexError:
+            logger.info("Gitai Auth Failed")
+
     def __call__(self):
         return self
 
     def format_api_version(self, api_version):
-        """ Return QualysGuard API version for api_version specified.
-
-        """
+        """Return QualysGuard API version for api_version specified."""
         # Convert to int.
         if type(api_version) == str:
             api_version = api_version.lower()
@@ -90,14 +146,15 @@ class QGConnector(api_actions.QGActions):
             elif api_version in ("pol", "pc"):
                 # Convert PC module to API number 2.
                 api_version = 2
+                # convert to gitai
+            elif api_version in ("gitai", "global asset inventory"):
+                api_version = "gitai"
             else:
                 api_version = int(api_version)
         return api_version
 
     def which_api_version(self, api_call):
-        """ Return QualysGuard API version for api_call specified.
-
-        """
+        """Return QualysGuard API version for api_call specified."""
         # Leverage patterns of calls to API methods.
         if api_call.endswith(".php"):
             # API v1.
@@ -114,9 +171,7 @@ class QGConnector(api_actions.QGActions):
         return False
 
     def url_api_version(self, api_version):
-        """ Return base API url string for the QualysGuard api_version and server.
-
-        """
+        """Return base API url string for the QualysGuard api_version and server."""
         # Set base url depending on API version.
         if api_version == 1:
             # QualysGuard API v1 url.
@@ -133,15 +188,15 @@ class QGConnector(api_actions.QGActions):
         elif api_version == "am2":
             # QualysGuard REST v1 API url (Portal API).
             url = f"https://{self.server}/qps/rest/2.0/"
+        elif api_version == "gitai":
+            url = f"https://{self.api_gw}/"
         else:
             raise Exception(f"Unknown QualysGuard API Version Number {api_version}")
         logger.debug("Base url =\n%s", url)
         return url
 
     def format_http_method(self, api_version, api_call, data):
-        """ Return QualysGuard API http method, with POST preferred..
-
-        """
+        """Return QualysGuard API http method, with POST preferred.."""
         # Define get methods for automatic http request methodology.
         #
         # All API v2 requests are POST methods.
@@ -177,9 +232,7 @@ class QGConnector(api_actions.QGActions):
                 return "post"
 
     def preformat_call(self, api_call):
-        """ Return properly formatted QualysGuard API call.
-
-        """
+        """Return properly formatted QualysGuard API call."""
         # Remove possible starting slashes or trailing question marks in call.
         api_call_formatted = api_call.lstrip("/")
         api_call_formatted = api_call_formatted.rstrip("?")
@@ -189,9 +242,7 @@ class QGConnector(api_actions.QGActions):
         return api_call_formatted
 
     def format_call(self, api_version, api_call):
-        """ Return properly formatted QualysGuard API call according to api_version etiquette.
-
-        """
+        """Return properly formatted QualysGuard API call according to api_version etiquette."""
         # Remove possible starting slashes or trailing question marks in call.
         api_call = api_call.lstrip("/")
         api_call = api_call.rstrip("?")
@@ -208,9 +259,7 @@ class QGConnector(api_actions.QGActions):
         return api_call
 
     def format_payload(self, api_version, data):
-        """ Return appropriate QualysGuard API call.
-
-        """
+        """Return appropriate QualysGuard API call."""
         # Check if payload is for API v1 or API v2.
         if api_version in (1, 2):
             # Check if string type.
@@ -236,6 +285,7 @@ class QGConnector(api_actions.QGActions):
         logger.debug("data %s =\n %s", type(data), str(data))
         logger.debug("http_method =\n%s", http_method)
 
+        auth = self.auth
         #
         # Determine API version.
         # Preformat call.
@@ -258,6 +308,10 @@ class QGConnector(api_actions.QGActions):
         # Portal API takes in XML text, requiring custom header.
         if api_version in ("am", "was", "am2"):
             headers["Content-type"] = "text/xml"
+
+        if api_version == "gitai":
+            headers["Content-type"] = "application/x-www-form-urlencoded"
+            auth = self.gitai_auth
         #
         # Set up http request method, if not specified.
         if not http_method:
@@ -278,14 +332,14 @@ class QGConnector(api_actions.QGActions):
         logger.debug("data =\n%s", str(data))
         logger.debug("headers =\n%s", str(headers))
 
-        return url, data, headers
+        return url, data, headers, auth
 
     def request_streaming(
         self, api_call, data=None, api_version=None, http_method=None, verify=True
     ):
         """ Return QualysGuard streaming response """
 
-        url, data, headers = self.build_request(api_call, data, api_version, http_method)
+        url, data, headers, auth = self.build_request(api_call, data, api_version, http_method)
         # Make request.
         if http_method == "get":
             # GET
@@ -293,7 +347,7 @@ class QGConnector(api_actions.QGActions):
             request = self.session.get(
                 url,
                 params=data,
-                auth=self.auth,
+                auth=auth,
                 headers=headers,
                 proxies=self.proxies,
                 stream=True,
@@ -306,7 +360,7 @@ class QGConnector(api_actions.QGActions):
             request = self.session.post(
                 url,
                 data=data,
-                auth=self.auth,
+                auth=auth,
                 headers=headers,
                 proxies=self.proxies,
                 stream=True,
@@ -347,16 +401,14 @@ class QGConnector(api_actions.QGActions):
         concurrent_scans_retry_delay=0,
         verify=True,
     ):
-        """ Return QualysGuard API response.
-
-        """
+        """Return QualysGuard API response."""
 
         logger.debug("concurrent_scans_retries =\n%s", str(concurrent_scans_retries))
         logger.debug("concurrent_scans_retry_delay =\n%s", str(concurrent_scans_retry_delay))
         concurrent_scans_retries = int(concurrent_scans_retries)
         concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
 
-        url, data, headers = self.build_request(api_call, data, api_version, http_method)
+        url, data, headers, auth = self.build_request(api_call, data, api_version, http_method)
 
         # Make request at least once (more if concurrent_retry is enabled).
         retries = 0
@@ -374,7 +426,7 @@ class QGConnector(api_actions.QGActions):
                 request = self.session.get(
                     url,
                     params=data,
-                    auth=self.auth,
+                    auth=auth,
                     headers=headers,
                     proxies=self.proxies,
                     verify=verify,
@@ -386,14 +438,14 @@ class QGConnector(api_actions.QGActions):
                 request = self.session.post(
                     url,
                     data=data,
-                    auth=self.auth,
+                    auth=auth,
                     headers=headers,
                     proxies=self.proxies,
                     verify=verify,
                 )
             logger.debug("response headers =\n%s", str(request.headers))
-            # Force request encoding value, the automatic detection is very long for large files (report for example)
-            # And sometimes with MemoryError
+            # Force request encoding value, the automatic detection is very long
+            # for large files (report for example) and sometimes with MemoryError
             if request.encoding is None:
                 request.encoding = "utf-8"
             #
@@ -431,22 +483,14 @@ class QGConnector(api_actions.QGActions):
                             # GET
                             logger.debug("GET request.")
                             request = self.session.get(
-                                url,
-                                params=data,
-                                auth=self.auth,
-                                headers=headers,
-                                proxies=self.proxies,
+                                url, params=data, auth=auth, headers=headers, proxies=self.proxies
                             )
                         else:
                             # POST
                             logger.debug("POST request.")
                             # Make POST request.
                             request = self.session.post(
-                                url,
-                                data=data,
-                                auth=self.auth,
-                                headers=headers,
-                                proxies=self.proxies,
+                                url, data=data, auth=auth, headers=headers, proxies=self.proxies
                             )
                         logger.debug("response headers =\n%s" % (str(request.headers)))
                         response = request.text
@@ -475,22 +519,14 @@ class QGConnector(api_actions.QGActions):
                             # GET
                             logger.debug("GET request.")
                             request = self.session.get(
-                                url,
-                                params=data,
-                                auth=self.auth,
-                                headers=headers,
-                                proxies=self.proxies,
+                                url, params=data, auth=auth, headers=headers, proxies=self.proxies
                             )
                         else:
                             # POST
                             logger.debug("POST request.")
                             # Make POST request.
                             request = self.session.post(
-                                url,
-                                data=data,
-                                auth=self.auth,
-                                headers=headers,
-                                proxies=self.proxies,
+                                url, data=data, auth=auth, headers=headers, proxies=self.proxies
                             )
                         logger.debug("response headers =\n%s" % (str(request.headers)))
                         response = request.text
@@ -557,7 +593,7 @@ class QGConnector(api_actions.QGActions):
         # Check to see if there was an error.
         try:
             request.raise_for_status()
-        except requests.HTTPError as e:
+        except requests.HTTPError:
             # Error
             print("Error! Received a 4XX client error or 5XX server error response.")
             print("Content = \n", response)
@@ -567,7 +603,8 @@ class QGConnector(api_actions.QGActions):
             request.raise_for_status()
         if '<RETURN status="FAILED" number="2007">' in response:
             print(
-                "Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security)."
+                "Error! Your IP address is not in the list of secure IPs. \
+                Manager must include this IP (QualysGuard VM > Users > Security)."
             )
             print("Content = \n", response)
             logger.error("Content = \n%s", response)
