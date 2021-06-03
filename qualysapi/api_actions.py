@@ -199,12 +199,16 @@ class QGActions:
                 self.request(call, parameters).encode("utf-8")
             ).RESPONSE
             reportsArray = []
-            while repData.find("REPORT_LIST") is None and max_retries > 0:
-                max_retries = max_retries - 1
-                time.sleep(30)
-                qualys_resp = self.request(call, parameters).encode("utf-8")
-                logging.info("QUALYS_REPONSE " + str(qualys_resp))
-                repData = objectify.fromstring(qualys_resp).RESPONSE
+            if repData.find("REPORT_LIST_OUTPUT") and repData.find("REPORT_LIST"):
+                while repData.find("REPORT_LIST") is None and max_retries > 0:
+                    max_retries = max_retries - 1
+                    time.sleep(30)
+                    qualys_resp = self.request(call, parameters).encode("utf-8")
+                    logging.info("QUALYS_REPONSE " + str(qualys_resp))
+                    repData = objectify.fromstring(qualys_resp).RESPONSE
+            else:
+                logging.info("There are no reports")
+                return []
 
             if max_retries <= 0:
                 logging.info("Report Listing not successful")
