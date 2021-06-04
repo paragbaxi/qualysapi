@@ -396,7 +396,7 @@ class QGConnector(api_actions.QGActions):
             # And sometimes with MemoryError
             if request.encoding is None:
                 request.encoding = "utf-8"
-            #
+
             # Remember how many times left user can make against api_call.
             try:
                 self.rate_limit_remaining[api_call] = int(
@@ -574,4 +574,9 @@ class QGConnector(api_actions.QGActions):
             print("Headers = \n", request.headers)
             logger.error("Headers = \n%s", str(request.headers))
             return False
+
+        # return bytes if pdf
+        if 'application/pdf' in request.headers['content-type']:
+            return request.content
+
         return response
