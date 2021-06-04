@@ -319,10 +319,10 @@ class QGActions:
 
         if repData.find("TEXT") == "New report launched":
             report_id = repData.find("ITEM_LIST").find("ITEM").find("VALUE")
-            return report_id.pyval
-
-        logging.warn("Report ID is empty.")
-        return None
+            return report_id.pyval, repData.find("TEXT")
+        else:
+            logging.warning(repData.find("TEXT"))
+            return -1, repData.find("TEXT")
 
     def downloadReport(self, report_id, echo_request=0):
         call = "/api/2.0/fo/report"
