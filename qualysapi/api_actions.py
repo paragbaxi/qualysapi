@@ -199,7 +199,7 @@ class QGActions:
                 self.request(call, parameters).encode("utf-8")
             ).RESPONSE
             reportsArray = []
-            if repData.find("REPORT_LIST_OUTPUT") and repData.find("REPORT_LIST"):
+            if repData.find("REPORT_LIST"):
                 while repData.find("REPORT_LIST") is None and max_retries > 0:
                     max_retries = max_retries - 1
                     time.sleep(30)
