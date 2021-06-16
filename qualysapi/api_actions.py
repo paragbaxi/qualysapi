@@ -273,6 +273,7 @@ class QGActions:
         tag_set_include=None,
         tag_set_by=None,
         tag_set_exclude=None,
+        tag_include_selector=None,
         max_retries=3,
     ):
         call = "/api/2.0/fo/report"
@@ -301,6 +302,11 @@ class QGActions:
                 parameters["tag_set_by"] = tag_set_by
             else:
                 raise ValueError("tag_set_by must be id or name")
+        if tag_include_selector:
+            if tag_include_selector in ('any', 'all'):
+                parameters["tag_include_selector"] = tag_include_selector
+            else:
+                raise ValueError("use_tags must be 'any' or 'all'")
 
         repData = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
         while (
