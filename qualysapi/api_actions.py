@@ -538,3 +538,25 @@ class QGActions:
             scan.find("TYPE"),
             scan.find("USER_LOGIN"),
         )
+
+
+    def deleteReport(self, id):
+        call = "/api/2.0/fo/report/"
+        parameters = {"action": "delete", "id": id}
+        res = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
+        code = getattr(res, "CODE", "")
+
+        max_retries = 7
+        while res.TEXT != 'Report deleted' and max_retries > 0:
+            max_retries = max_retries - 1
+            time.sleep(40)
+            res = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
+            code = getattr(res, "CODE", "")
+            logging.info("QUALYS_REPONSE " + str(res.TEXT))
+
+        if max_retries <= 0:
+            logging.info("%s %s", code, res.TEXT)
+            return None
+
+        logging.debug("%s %s %s", res.DATETIME, code, res.TEXT)
+        return code, res
