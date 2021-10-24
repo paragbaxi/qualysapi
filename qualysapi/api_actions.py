@@ -199,12 +199,16 @@ class QGActions:
                 self.request(call, parameters).encode("utf-8")
             ).RESPONSE
             reportsArray = []
-            while repData.find("REPORT_LIST") is None and max_retries > 0:
-                max_retries = max_retries - 1
-                time.sleep(30)
-                qualys_resp = self.request(call, parameters).encode("utf-8")
-                logging.info("QUALYS_REPONSE " + str(qualys_resp))
-                repData = objectify.fromstring(qualys_resp).RESPONSE
+            if repData.find("REPORT_LIST"):
+                while repData.find("REPORT_LIST") is None and max_retries > 0:
+                    max_retries = max_retries - 1
+                    time.sleep(30)
+                    qualys_resp = self.request(call, parameters).encode("utf-8")
+                    logging.info("QUALYS_REPONSE " + str(qualys_resp))
+                    repData = objectify.fromstring(qualys_resp).RESPONSE
+            else:
+                logging.info("There are no reports")
+                return []
 
             if max_retries <= 0:
                 logging.info("Report Listing not successful")
@@ -269,6 +273,7 @@ class QGActions:
         tag_set_include=None,
         tag_set_by=None,
         tag_set_exclude=None,
+        tag_include_selector=None,
         max_retries=3,
     ):
         call = "/api/2.0/fo/report"
@@ -297,6 +302,11 @@ class QGActions:
                 parameters["tag_set_by"] = tag_set_by
             else:
                 raise ValueError("tag_set_by must be id or name")
+        if tag_include_selector:
+            if tag_include_selector in ('any', 'all'):
+                parameters["tag_include_selector"] = tag_include_selector
+            else:
+                raise ValueError("use_tags must be 'any' or 'all'")
 
         repData = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
         while (
@@ -315,10 +325,10 @@ class QGActions:
 
         if repData.find("TEXT") == "New report launched":
             report_id = repData.find("ITEM_LIST").find("ITEM").find("VALUE")
-            return report_id.pyval
-
-        logging.warn("Report ID is empty.")
-        return None
+            return report_id.pyval, repData.find("TEXT")
+        else:
+            logging.warning(repData.find("TEXT"))
+            return -1, repData.find("TEXT")
 
     def downloadReport(self, report_id, echo_request=0):
         call = "/api/2.0/fo/report"
@@ -528,3 +538,25 @@ class QGActions:
             scan.find("TYPE"),
             scan.find("USER_LOGIN"),
         )
+
+
+    def deleteReport(self, id):
+        call = "/api/2.0/fo/report/"
+        parameters = {"action": "delete", "id": id}
+        res = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
+        code = getattr(res, "CODE", "")
+
+        max_retries = 7
+        while res.TEXT != 'Report deleted' and max_retries > 0:
+            max_retries = max_retries - 1
+            time.sleep(40)
+            res = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
+            code = getattr(res, "CODE", "")
+            logging.info("QUALYS_REPONSE " + str(res.TEXT))
+
+        if max_retries <= 0:
+            logging.info("%s %s", code, res.TEXT)
+            return None
+
+        logging.debug("%s %s %s", res.DATETIME, code, res.TEXT)
+        return code, res

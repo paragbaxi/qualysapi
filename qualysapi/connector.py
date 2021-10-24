@@ -39,7 +39,7 @@ class QGConnector(api_actions.QGActions):
 
     """
 
-    def __init__(self, auth, server="qualysapi.qualys.com", proxies=None, max_retries=3):
+    def __init__(self, auth, server="qualysapi.qualys.com", proxies=None, data_exchange_format=None, max_retries=3):
         # Read username & password from file, if possible.
         self.auth = auth
         # Remember QualysGuard API server.
@@ -55,6 +55,7 @@ class QGConnector(api_actions.QGActions):
             qualysapi.api_methods.api_methods_with_trailing_slash
         )
         self.proxies = proxies
+        self.data_exchange_format = data_exchange_format
         logger.debug("proxies = \n%s", proxies)
         # Set up requests max_retries.
         logger.debug("max_retries = \n%s", max_retries)
@@ -255,9 +256,15 @@ class QGConnector(api_actions.QGActions):
             "X-Requested-With": f"Parag Baxi QualysAPI (python) v{qualysapi.version.__version__}"
         }
         logger.debug("headers =\n%s", str(headers))
-        # Portal API takes in XML text, requiring custom header.
+        # Portal API support XML/JSON exchange format (JSON for assets tagging and management).
+        # The data exchange format must be specified in the headers.
         if api_version in ("am", "was", "am2"):
-            headers["Content-type"] = "text/xml"
+            if self.data_exchange_format == 'xml':
+                headers["Content-type"] = "text/xml"
+                headers["Accept"] = "text/xml"
+            if self.data_exchange_format == 'json':
+                headers["Content-type"] = "application/json"
+                headers["Accept"] = "application/json"
         #
         # Set up http request method, if not specified.
         if not http_method:
@@ -396,7 +403,7 @@ class QGConnector(api_actions.QGActions):
             # And sometimes with MemoryError
             if request.encoding is None:
                 request.encoding = "utf-8"
-            #
+
             # Remember how many times left user can make against api_call.
             try:
                 self.rate_limit_remaining[api_call] = int(
@@ -568,4 +575,9 @@ class QGConnector(api_actions.QGActions):
             logger.error("Content = \n%s", response)
             logger.error("Headers = \n%s", str(request.headers))
             return False
+
+        # return bytes if pdf
+        if 'application/pdf' in request.headers['content-type']:
+            return request.content
+
         return response
