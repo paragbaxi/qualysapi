@@ -558,7 +558,6 @@ class QGConnector(api_actions.QGActions):
                     logger.critical("Retry #%d", retries)
                 else:
                     # Ran out of retries. Let user know.
-                    print("Alert! Ran out of concurrent_scans_retries!")
                     logger.critical("Alert! Ran out of concurrent_scans_retries!")
                     return False
         # Check to see if there was an error.
@@ -566,19 +565,14 @@ class QGConnector(api_actions.QGActions):
             request.raise_for_status()
         except requests.HTTPError as e:
             # Error
-            print("Error! Received a 4XX client error or 5XX server error response.")
-            print("Content = \n", response)
+            logger.error("Error! Received a 4XX client error or 5XX server error response.")
             logger.error("Content = \n%s", response)
-            print("Headers = \n", request.headers)
             logger.error("Headers = \n%s", str(request.headers))
             request.raise_for_status()
         if '<RETURN status="FAILED" number="2007">' in response:
-            print(
-                "Error! Your IP address is not in the list of secure IPs. Manager must include this IP (QualysGuard VM > Users > Security)."
-            )
-            print("Content = \n", response)
+            logger.error("Error! Your IP address is not in the list of secure IPs." \
+                         +" Manager must include this IP (QualysGuard VM > Users > Security).")
             logger.error("Content = \n%s", response)
-            print("Headers = \n", request.headers)
             logger.error("Headers = \n%s", str(request.headers))
             return False
 
