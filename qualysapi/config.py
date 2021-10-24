@@ -88,7 +88,6 @@ class QualysConnectConfig:
                 self.max_retries = int(self.max_retries)
             except Exception:
                 logger.error("Value max_retries must be an integer.")
-                print("Value max_retries must be an integer.")
                 exit(1)
             self._cfgparse.set(self._section, "max_retries", str(self.max_retries))
         self.max_retries = int(self.max_retries)
@@ -102,7 +101,6 @@ class QualysConnectConfig:
                 self.report_template_id = int(self.report_template_id)
             except Exception:
                 logger.error("Report Template ID Must be set and be an integer")
-                print("Value template ID must be an integer.")
                 exit(1)
             self._cfgparse.set(self._section, "template_id", str(self.report_template_id))
         self.report_template_id = int(self.report_template_id)
