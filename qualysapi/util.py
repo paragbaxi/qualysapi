@@ -5,8 +5,6 @@ import qualysapi.config as qcconf
 import qualysapi.connector as qcconn
 import qualysapi.settings as qcs
 
-from urllib.parse import quote_plus
-
 
 __author__ = "Parag Baxi <parag.baxi@gmail.com> & Colin Bell <colin.bell@uwaterloo.ca>"
 __copyright__ = "Copyright 2011-2013, Parag Baxi & University of Waterloo"
@@ -35,7 +33,7 @@ def connect(
     # Use function parameter login credentials.
     if username and password:
         connect = qcconn.QGConnector(
-            auth=(username, quote_plus(password)), server=hostname, max_retries=max_retries,
+            auth=(username, password), server=hostname, max_retries=max_retries,
             proxies=proxies, data_exchange_format=data_exchange_format
         )
 
