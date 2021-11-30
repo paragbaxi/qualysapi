@@ -261,7 +261,7 @@ class QGConnector(api_actions.QGActions):
         if api_version in ("am", "was", "am2"):
             if self.data_exchange_format == 'xml':
                 headers["Content-type"] = "text/xml"
-                headers["Accept"] = "text/xml"
+                headers["Accept"] = "application/xml"
             if self.data_exchange_format == 'json':
                 headers["Content-type"] = "application/json"
                 headers["Accept"] = "application/json"
