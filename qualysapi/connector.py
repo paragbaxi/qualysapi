@@ -129,10 +129,10 @@ class QGConnector(api_actions.QGActions):
             # QualysGuard REST v3 API url (Portal API).
             url = f"https://{self.server}/qps/rest/3.0/"
         elif api_version == "am":
-            # QualysGuard REST v1 API url (Portal API).
-            url = f"https://{self.server}/qps/rest/1.0/"
+            # QualysGuard REST v2 API url (Portal API).
+            url = f"https://{self.server}/qps/rest/2.0/"
         elif api_version == "am2":
-            # QualysGuard REST v1 API url (Portal API).
+            # QualysGuard REST v2 API url (Portal API).
             url = f"https://{self.server}/qps/rest/2.0/"
         else:
             raise Exception(f"Unknown QualysGuard API Version Number {api_version}")
@@ -285,14 +285,14 @@ class QGConnector(api_actions.QGActions):
         logger.debug("data =\n%s", str(data))
         logger.debug("headers =\n%s", str(headers))
 
-        return url, data, headers
+        return url, data, headers, http_method
 
     def request_streaming(
         self, api_call, data=None, api_version=None, http_method=None, verify=True
     ):
         """ Return QualysGuard streaming response """
 
-        url, data, headers = self.build_request(api_call, data, api_version, http_method)
+        url, data, headers, http_method = self.build_request(api_call, data, api_version, http_method)
         # Make request.
         if http_method == "get":
             # GET
@@ -363,7 +363,7 @@ class QGConnector(api_actions.QGActions):
         concurrent_scans_retries = int(concurrent_scans_retries)
         concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
 
-        url, data, headers = self.build_request(api_call, data, api_version, http_method)
+        url, data, headers, http_method = self.build_request(api_call, data, api_version, http_method)
 
         # Make request at least once (more if concurrent_retry is enabled).
         retries = 0
