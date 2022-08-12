@@ -269,6 +269,7 @@ class QGActions:
         report_title=None,
         echo_request=0,
         report_type=None,
+        report_refs = None,
         use_tags=None,
         tag_set_include=None,
         tag_set_by=None,
@@ -288,6 +289,8 @@ class QGActions:
             parameters["echo_request"] = echo_request
         if report_type:
             parameters["report_type"] = report_type
+        if report_refs:
+            parameters["report_refs"] = report_refs
         if use_tags:
             if use_tags == 0 or use_tags == 1:
                 parameters["use_tags"] = use_tags
