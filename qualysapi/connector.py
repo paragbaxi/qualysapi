@@ -78,12 +78,14 @@ class QGConnector(api_actions.QGActions):
     """Qualys Connection class which allows requests to the QualysGuard API using
     HTTP-Basic Authentication (over SSL)."""
 
+
     def __init__(
         self,
         auth,
         server="qualysapi.qualys.com",
         api_gw=None,
         proxies=None,
+        data_exchange_format=None,
         max_retries=3,
         token=None,
     ):
@@ -106,6 +108,7 @@ class QGConnector(api_actions.QGActions):
             qualysapi.api_methods.api_methods_with_trailing_slash
         )
         self.proxies = proxies
+        self.data_exchange_format = data_exchange_format
         logger.debug("proxies = \n%s", proxies)
         # Set up requests max_retries.
         logger.debug("max_retries = \n%s", max_retries)
@@ -182,10 +185,10 @@ class QGConnector(api_actions.QGActions):
             # QualysGuard REST v3 API url (Portal API).
             url = f"https://{self.server}/qps/rest/3.0/"
         elif api_version == "am":
-            # QualysGuard REST v1 API url (Portal API).
-            url = f"https://{self.server}/qps/rest/1.0/"
+            # QualysGuard REST v2 API url (Portal API).
+            url = f"https://{self.server}/qps/rest/2.0/"
         elif api_version == "am2":
-            # QualysGuard REST v1 API url (Portal API).
+            # QualysGuard REST v2 API url (Portal API).
             url = f"https://{self.server}/qps/rest/2.0/"
         elif api_version == "gitai":
             url = f"https://{self.api_gw}/"
@@ -304,9 +307,15 @@ class QGConnector(api_actions.QGActions):
             "X-Requested-With": f"Parag Baxi QualysAPI (python) v{qualysapi.version.__version__}"
         }
         logger.debug("headers =\n%s", str(headers))
-        # Portal API takes in XML text, requiring custom header.
+        # Portal API support XML/JSON exchange format (JSON for assets tagging and management).
+        # The data exchange format must be specified in the headers.
         if api_version in ("am", "was", "am2"):
-            headers["Content-type"] = "text/xml"
+            if self.data_exchange_format == 'xml':
+                headers["Content-type"] = "text/xml"
+                headers["Accept"] = "text/xml"
+            if self.data_exchange_format == 'json':
+                headers["Content-type"] = "application/json"
+                headers["Accept"] = "application/json"
 
         if api_version == "gitai":
             headers["Content-type"] = "application/x-www-form-urlencoded"
@@ -331,14 +340,16 @@ class QGConnector(api_actions.QGActions):
         logger.debug("data =\n%s", str(data))
         logger.debug("headers =\n%s", str(headers))
 
-        return url, data, headers, auth
+
+        return url, data, headers, auth, http_method
 
     def request_streaming(
         self, api_call, data=None, api_version=None, http_method=None, verify=True
     ):
         """ Return QualysGuard streaming response """
 
-        url, data, headers, auth = self.build_request(api_call, data, api_version, http_method)
+        url, data, headers, auth, http_method = self.build_request(api_call, data, api_version, http_method)
+        
         # Make request.
         if http_method == "get":
             # GET
@@ -407,7 +418,8 @@ class QGConnector(api_actions.QGActions):
         concurrent_scans_retries = int(concurrent_scans_retries)
         concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
 
-        url, data, headers, auth = self.build_request(api_call, data, api_version, http_method)
+        url, data, headers, auth, http_method = self.build_request(api_call, data, api_version, http_method)
+
 
         # Make request at least once (more if concurrent_retry is enabled).
         retries = 0
@@ -447,7 +459,7 @@ class QGConnector(api_actions.QGActions):
             # for large files (report for example) and sometimes with MemoryError
             if request.encoding is None:
                 request.encoding = "utf-8"
-            #
+
             # Remember how many times left user can make against api_call.
             try:
                 self.rate_limit_remaining[api_call] = int(
@@ -603,4 +615,9 @@ class QGConnector(api_actions.QGActions):
             logger.error("Content = \n%s", response)
             logger.error("Headers = \n%s", str(request.headers))
             return False
+
+        # return bytes if pdf
+        if 'application/pdf' in request.headers['content-type']:
+            return request.content
+
         return response
