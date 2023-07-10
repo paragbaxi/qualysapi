@@ -190,3 +190,16 @@ class Scan:
             self.status = objectify.fromstring(
                 conn.request(call, parameters).encode("utf-8")
             ).RESPONSE.SCAN_LIST.SCAN.STATUS.STATE
+
+
+class Scanner:
+    def __init__(self, id: int, uuid: str, name: str, network_id: int, software_version:str,
+                 running_slices_count: int, running_scan_count: int, status: str):
+        self.id = id
+        self.uuid = uuid
+        self.name = name
+        self.network_id = network_id
+        self.software_version = software_version
+        self.running_slices_count = running_slices_count
+        self.running_scan_count = running_scan_count
+        self.status = status

@@ -560,3 +560,27 @@ class QGActions:
 
         logging.debug("%s %s %s", res.DATETIME, code, res.TEXT)
         return code, res
+
+    def listAppliances(self):
+        call = "/api/2.0/fo/appliance/"
+        parameters = {
+            "action": "list"
+        }
+
+        scanner_data = objectify.fromstring(self.request(call, parameters).encode("utf-8"))
+        scanner_array = []
+        for scanner in scanner_data.RESPONSE.APPLIANCE_LIST.APPLIANCE:
+            scanner_array.append(
+                Scanner(
+                    scanner.find("ID"),
+                    scanner.find("UUID"),
+                    scanner.find("NAME"),
+                    scanner.find("NETWORK_ID"),
+                    scanner.find("SOFTWARE_VERSION"),
+                    scanner.find("RUNNING_SLICES_COUNT"),
+                    scanner.find("RUNNING_SCAN_COUNT"),
+                    scanner.find("STATUS")
+                )
+            )
+
+        return scanner_array
