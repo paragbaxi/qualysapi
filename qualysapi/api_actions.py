@@ -584,3 +584,10 @@ class QGActions:
             )
 
         return scanner_array
+
+    def createVirtualAppliance(self, name):
+        call = "/api/2.0/fo/appliance/"
+        parameters = {"action": "create", "name": name}
+        res = objectify.fromstring(self.request(call, parameters).encode("utf-8")).RESPONSE
+        code = getattr(res, "CODE", "")
+        return code, res
