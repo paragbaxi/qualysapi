@@ -118,26 +118,24 @@ class QGConnector(api_actions.QGActions):
         """ Return base API url string for the QualysGuard api_version and server.
 
         """
-        # Set base url depending on API version.
-        if api_version == 1:
-            # QualysGuard API v1 url.
-            url = f"https://{self.server}/msp/"
-        elif api_version == 2:
-            # QualysGuard API v2 url.
-            url = f"https://{self.server}/"
-        elif api_version == "was":
-            # QualysGuard REST v3 API url (Portal API).
-            url = f"https://{self.server}/qps/rest/3.0/"
-        elif api_version == "am":
-            # QualysGuard REST v2 API url (Portal API).
-            url = f"https://{self.server}/qps/rest/2.0/"
-        elif api_version == "am2":
-            # QualysGuard REST v2 API url (Portal API).
-            url = f"https://{self.server}/qps/rest/2.0/"
-        else:
+        url = f"https://{self.server}" if "https://" not in self.server else self.server
+
+        paths = {
+            1: "/msp/",  # QualysGuard API v1 url.
+            2: "/",  # QualysGuard API v2 url.
+            "was": "/qps/rest/3.0/",  # QualysGuard REST v3 API url (Portal API).  
+            "am": "/qps/rest/2.0/",  # QualysGuard REST v2 API url (Portal API).
+            "am2": "/qps/rest/2.0/",  # QualysGuard REST v2 API url (Portal API).
+        }
+
+        computed_path = paths.get(api_version)
+
+        if computed_path is None:
             raise Exception(f"Unknown QualysGuard API Version Number {api_version}")
+        
         logger.debug("Base url =\n%s", url)
-        return url
+        return url + computed_path
+
 
     def format_http_method(self, api_version, api_call, data):
         """ Return QualysGuard API http method, with POST preferred..
