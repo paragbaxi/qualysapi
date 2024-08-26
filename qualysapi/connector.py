@@ -2,12 +2,18 @@ __author__ = "Parag Baxi <parag.baxi@gmail.com>"
 __copyright__ = "Copyright 2013, Parag Baxi"
 __license__ = "Apache License 2.0"
 
+import ssl
+
+import certifi
+
 """ Module that contains classes for setting up connections to QualysGuard API
 and requesting data from it.
 """
 import logging
 import time
 from collections import defaultdict
+import asyncio
+import aiohttp
 
 import requests
 
@@ -230,6 +236,49 @@ class QGConnector(api_actions.QGActions):
                 data = etree.tostring(data)
                 logger.debug("Converted:\n%s", data)
         return data
+
+    def build_async_request(self, api_call, data=None, api_version=None, http_method=None):
+        logger.debug("api_call =\n%s", api_call)
+        logger.debug("api_version =\n%s", api_version)
+        logger.debug("data %s =\n %s", type(data), str(data))
+        logger.debug("http_method =\n%s", http_method)
+
+        api_call = self.preformat_call(api_call)
+        api_version = self.format_api_version(api_version) if api_version else self.which_api_version(api_call)
+        # Set up base url.
+        url = self.url_api_version(api_version)
+        # Set up headers.
+        headers = {
+            "X-Requested-With": f"Parag Baxi QualysAPI (python) v{qualysapi.version.__version__}"
+        }
+        logger.debug("headers =\n%s", str(headers))
+        # Portal API support XML/JSON exchange format (JSON for assets tagging and management).
+        # The data exchange format must be specified in the headers.
+        if api_version in ("am", "was", "am2"):
+            if self.data_exchange_format == 'xml':
+                headers["Content-type"] = "text/xml"
+                headers["Accept"] = "text/xml"
+            if self.data_exchange_format == 'json':
+                headers["Content-type"] = "application/json"
+                headers["Accept"] = "application/json"
+        # Set up http request method, if not specified.
+        if not http_method:
+            http_method = self.format_http_method(api_version, api_call, data)
+        logger.debug("http_method =\n%s", http_method)
+        # Format API call.
+        api_call = self.format_call(api_version, api_call)
+        logger.debug("api_call =\n%s", api_call)
+        # Append api_call to url.
+        url += api_call
+        # Format data, if applicable.
+        if data is not None:
+            data = aiohttp.FormData(data)
+
+        logger.debug("url =\n%s", str(url))
+        logger.debug("data =\n%s", str(data))
+        logger.debug("headers =\n%s", str(headers))
+
+        return url, data, headers, http_method
 
     def build_request(self, api_call, data=None, api_version=None, http_method=None):
         logger.debug("api_call =\n%s", api_call)
@@ -581,3 +630,213 @@ class QGConnector(api_actions.QGActions):
             return request.content
 
         return response
+
+    async def async_request(
+        self,
+        api_call,
+        data=None,
+        api_version=None,
+        http_method=None,
+        concurrent_scans_retries=0,
+        concurrent_scans_retry_delay=0,
+        verify=True,
+    ):
+        """ Return QualysGuard API response asynchronously."""
+        sslcontext = ssl.create_default_context(cafile=certifi.where())
+
+        async with aiohttp.ClientSession() as session:
+            logger.debug("concurrent_scans_retries =\n%s", str(concurrent_scans_retries))
+            logger.debug("concurrent_scans_retry_delay =\n%s", str(concurrent_scans_retry_delay))
+            concurrent_scans_retries = int(concurrent_scans_retries)
+            concurrent_scans_retry_delay = int(concurrent_scans_retry_delay)
+
+            url, data, headers, http_method = self.build_async_request(api_call, data, api_version, http_method)
+
+            # Make request at least once (more if concurrent_retry is enabled).
+            retries = 0
+
+            # set a warning threshold for the rate limit
+            rate_warn_threshold = 10
+            while retries <= concurrent_scans_retries:
+                # Make request.
+                logger.debug("url =\n%s", str(url))
+                logger.debug("data =\n%s", str(data))
+                logger.debug("headers =\n%s", str(headers))
+
+                logger.debug(f"{http_method.upper()} request.")
+
+                request = await getattr(session, http_method)(
+                    url,
+                    data=data,
+                    auth=aiohttp.BasicAuth(*self.auth),
+                    headers=headers,
+                    ssl=sslcontext if verify else False,
+                    proxy=self.proxies,
+                )
+                request = await request.__aenter__()
+
+                logger.debug("response headers =\n%s", str(request.headers))
+
+                # Remember how many times left user can make against api_call.
+                try:
+                    self.rate_limit_remaining[api_call] = int(
+                        request.headers["x-ratelimit-remaining"]
+                    )
+                    logger.debug(
+                        "rate limit for api_call, %s = %s",
+                        api_call,
+                        self.rate_limit_remaining[api_call],
+                    )
+                    response = await request.text()
+                    await request.__aexit__(None, None, None)
+                    if (
+                            "<CODE>1960</CODE>" in response
+                            and "<TEXT>This API cannot be run again until" in response
+                    ):
+                        max_retries = 10
+                        retry_count = 0
+                        while (
+                                "<CODE>1960</CODE>" in response
+                                and "<TEXT>This API cannot be run again until" in response
+                        ):
+                            retry_count += 1
+                            time_to_wait = int(30)
+                            logger.info(
+                                "Concurrency Limit Exceeded waiting %d seconds. %d retries remaining"
+                                % (time_to_wait, max_retries - retry_count)
+                            )
+                            await asyncio.sleep(time_to_wait)
+
+                            logger.info(str(url), str(data))  # self.auth, headers, self.proxies)
+                            logger.debug(f"{http_method.upper()} request.")
+
+                            request = await getattr(session, http_method)(
+                                url,
+                                data=data,
+                                auth=aiohttp.BasicAuth(*self.auth),
+                                headers=headers,
+                                ssl=sslcontext if verify else False,
+                                proxy=self.proxies,
+                            )
+
+                            request = await request.__aenter__()
+
+                            logger.debug("response headers =\n%s" % (str(request.headers)))
+                            response = await request.text()
+                            await request.__aexit__(None, None, None)
+                            if retry_count >= max_retries:
+                                break
+                    elif (
+                            "<CODE>1965</CODE>" in response
+                            and "<TEXT>This API cannot be run again for another" in response
+                    ):
+                        max_retries = 10
+                        retry_count = 0
+                        while (
+                                "<CODE>1965</CODE>" in response
+                                and "<TEXT>This API cannot be run again for another" in response
+                        ):
+                            retry_count += 1
+                            time_to_wait = int(request.headers["x-ratelimit-towait-sec"])
+                            logger.info(
+                                "API Limit Exceeded waiting %d seconds. %d retries remaining"
+                                % (time_to_wait, max_retries - retry_count)
+                            )
+                            await asyncio.sleep(time_to_wait)
+
+                            logger.info(str(url), str(data))  # self.auth, headers, self.proxies)
+                            logger.debug(f"{http_method.upper()} request.")
+
+                            request = await getattr(session, http_method)(
+                                url,
+                                data=data,
+                                auth=aiohttp.BasicAuth(*self.auth),
+                                headers=headers,
+                                ssl=sslcontext if verify else False,
+                                proxy=self.proxies,
+                            )
+
+                            request = await request.__aenter__()
+
+                            logger.debug("response headers =\n%s" % (str(request.headers)))
+                            response = await request.text()
+
+                            await request.__aexit__(None, None, None)
+                            if retry_count >= max_retries:
+                                break
+
+                    elif self.rate_limit_remaining[api_call] > rate_warn_threshold:
+                        logger.debug(
+                            "rate limit for api_call, %s = %s",
+                            api_call,
+                            self.rate_limit_remaining[api_call],
+                        )
+                    elif (self.rate_limit_remaining[api_call] <= rate_warn_threshold) and (
+                            self.rate_limit_remaining[api_call] > 0
+                    ):
+                        logger.warning(
+                            "Rate limit is about to being reached (remaining api calls = %s)",
+                            self.rate_limit_remaining[api_call],
+                        )
+                    elif self.rate_limit_remaining[api_call] <= 0:
+                        logger.critical(
+                            "ATTENTION! RATE LIMIT HAS BEEN REACHED (remaining api calls = %s)!",
+                            self.rate_limit_remaining[api_call],
+                        )
+                except KeyError as e:  # Likely a bad api_call.
+                    logger.debug(e)
+                except TypeError as e:  # Likely an asset search api_call.
+                    logger.debug(e)
+                # Response received.
+                response = await request.text()
+
+                await request.__aexit__(None, None, None)
+                logger.debug("response text =\n%s", response)
+                # Keep track of how many retries.
+                retries += 1
+                # Check for concurrent scans limit.
+                if not (
+                        "<responseCode>INVALID_REQUEST</responseCode>" in response
+                        and "<errorMessage>You have reached the maximum number of concurrent running scans"
+                        in response
+                        and "<errorResolution>Please wait until your previous scans have completed</errorResolution>"
+                        in response
+                ):
+                    # Did not hit concurrent scan limit.
+                    break
+                else:
+                    # Hit concurrent scan limit.
+                    logger.critical(response)
+                    # If trying again, delay next try by concurrent_scans_retry_delay.
+                    if retries <= concurrent_scans_retries:
+                        logger.warning(
+                            "Waiting %d seconds until next try.", concurrent_scans_retry_delay
+                        )
+                        await asyncio.sleep(concurrent_scans_retry_delay)
+                        # Inform user of how many retries.
+                        logger.critical("Retry #%d", retries)
+                    else:
+                        # Ran out of retries. Let user know.
+                        logger.critical("Alert! Ran out of concurrent_scans_retries!")
+                        return False
+            # Check to see if there was an error.
+            try:
+                request.raise_for_status()
+            except aiohttp.ClientResponseError:
+                # Error
+                logger.error("Error! Received a 4XX client error or 5XX server error response.")
+                logger.error("Content = \n%s", response)
+                logger.error("Headers = \n%s", str(request.headers))
+                request.raise_for_status()
+            if '<RETURN status="FAILED" number="2007">' in response:
+                logger.error("Error! Your IP address is not in the list of secure IPs." \
+                             + " Manager must include this IP (QualysGuard VM > Users > Security).")
+                logger.error("Content = \n%s", response)
+                logger.error("Headers = \n%s", str(request.headers))
+                return False
+
+            # return bytes if pdf
+            if 'application/pdf' in request.headers['content-type']:
+                return request.content
+
+            return response
