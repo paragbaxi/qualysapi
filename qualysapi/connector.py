@@ -580,4 +580,9 @@ class QGConnector(api_actions.QGActions):
         if 'application/pdf' in request.headers['content-type']:
             return request.content
 
+        # return a request instance to handle the changes introduced by the new Qualys Policy Compliance Reporting Service (PCRS)
+        # compliance reports whose size is between 1 GB and 5 GB will be automatically converted into the .zip format
+        if 'application/zip' in request.headers['content-type']:
+            return request
+
         return response
